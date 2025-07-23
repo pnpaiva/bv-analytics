@@ -11,10 +11,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download } from 'lucide-react';
+import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
 import { toast } from 'sonner';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface AggregateMetrics {
   totalViews: number;
@@ -40,8 +41,8 @@ export default function Analytics() {
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [creatorFilter, setCreatorFilter] = useState<string>('all');
-  const [clientFilter, setClientFilter] = useState<string>('all');
+  const [creatorFilters, setCreatorFilters] = useState<string[]>([]);
+  const [clientFilters, setClientFilters] = useState<string[]>([]);
 
   // Filter campaigns based on search and filters
   const filteredCampaigns = useMemo(() => {
@@ -51,12 +52,12 @@ export default function Analytics() {
                            campaign.clients?.name.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
-      const matchesCreator = creatorFilter === 'all' || campaign.creator_id === creatorFilter;
-      const matchesClient = clientFilter === 'all' || campaign.client_id === clientFilter;
+      const matchesCreator = creatorFilters.length === 0 || creatorFilters.includes(campaign.creator_id);
+      const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
 
       return matchesSearch && matchesStatus && matchesCreator && matchesClient;
     });
-  }, [campaigns, searchTerm, statusFilter, creatorFilter, clientFilter]);
+  }, [campaigns, searchTerm, statusFilter, creatorFilters, clientFilters]);
 
   // Calculate aggregate metrics for selected campaigns
   const aggregateMetrics = useMemo((): AggregateMetrics => {
@@ -109,6 +110,51 @@ export default function Analytics() {
 
     return breakdown;
   }, [campaigns, selectedCampaigns, filteredCampaigns]);
+
+  // Prepare chart data
+  const chartData = useMemo(() => {
+    const platformData = Object.entries(platformBreakdown).map(([platform, data]) => ({
+      platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+      views: data.views,
+      engagement: data.engagement,
+      campaigns: data.campaigns,
+      engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
+    }));
+
+    return platformData;
+  }, [platformBreakdown]);
+
+  const pieData = useMemo(() => {
+    return Object.entries(platformBreakdown).map(([platform, data], index) => ({
+      name: platform.charAt(0).toUpperCase() + platform.slice(1),
+      value: data.views,
+      fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
+    }));
+  }, [platformBreakdown]);
+
+  const handleCreatorFilterChange = (creatorId: string) => {
+    setCreatorFilters(prev => 
+      prev.includes(creatorId) 
+        ? prev.filter(id => id !== creatorId)
+        : [...prev, creatorId]
+    );
+  };
+
+  const handleClientFilterChange = (clientId: string) => {
+    setClientFilters(prev => 
+      prev.includes(clientId) 
+        ? prev.filter(id => id !== clientId)
+        : [...prev, clientId]
+    );
+  };
+
+  const removeCreatorFilter = (creatorId: string) => {
+    setCreatorFilters(prev => prev.filter(id => id !== creatorId));
+  };
+
+  const removeClientFilter = (clientId: string) => {
+    setClientFilters(prev => prev.filter(id => id !== clientId));
+  };
 
   const handleCampaignSelection = (campaignId: string, checked: boolean) => {
     if (checked) {
@@ -237,37 +283,79 @@ export default function Analytics() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="creator">Creator</Label>
-                <Select value={creatorFilter} onValueChange={setCreatorFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All creators" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All creators</SelectItem>
-                    {creators.map((creator) => (
-                      <SelectItem key={creator.id} value={creator.id}>
-                        {creator.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="creator">Creators</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={handleCreatorFilterChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select creators..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {creators.map((creator) => (
+                        <SelectItem key={creator.id} value={creator.id}>
+                          {creator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {creatorFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {creatorFilters.map((creatorId) => {
+                        const creator = creators.find(c => c.id === creatorId);
+                        return creator ? (
+                          <Badge key={creatorId} variant="secondary" className="text-xs">
+                            {creator.name}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 ml-1"
+                              onClick={() => removeCreatorFilter(creatorId)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="client">Client</Label>
-                <Select value={clientFilter} onValueChange={setClientFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All clients" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All clients</SelectItem>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="client">Clients</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={handleClientFilterChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select clients..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {clientFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {clientFilters.map((clientId) => {
+                        const client = clients.find(c => c.id === clientId);
+                        return client ? (
+                          <Badge key={clientId} variant="secondary" className="text-xs">
+                            {client.name}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-auto p-0 ml-1"
+                              onClick={() => removeClientFilter(clientId)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -339,6 +427,61 @@ export default function Analytics() {
           </Card>
         </div>
 
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Bar Chart - Platform Views & Engagement */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Performance</CardTitle>
+              <CardDescription>Views and engagement by platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="platform" />
+                  <YAxis />
+                  <Tooltip formatter={(value, name) => [
+                    typeof value === 'number' ? value.toLocaleString() : value,
+                    name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
+                  ]} />
+                  <Legend />
+                  <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
+                  <Bar dataKey="engagement" fill="hsl(var(--secondary))" name="Engagement" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Pie Chart - Platform Views Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Views Distribution</CardTitle>
+              <CardDescription>Share of total views by platform</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label={({name, percent}) => `${name} ${(percent * 100).toFixed(1)}%`}
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [value.toLocaleString(), 'Views']} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Platform Breakdown */}
         <Card className="mb-8">
           <CardHeader>
@@ -348,14 +491,26 @@ export default function Analytics() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.entries(platformBreakdown).map(([platform, data]) => (
-                <div key={platform} className="space-y-2">
+                <div key={platform} className="space-y-2 p-4 border rounded-lg">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium capitalize">{platform}</h4>
                     <Badge variant="secondary">{data.campaigns} campaigns</Badge>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    <div>Views: {data.views.toLocaleString()}</div>
-                    <div>Engagement: {data.engagement.toLocaleString()}</div>
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Views:</span>
+                      <span className="font-medium">{data.views.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Engagement:</span>
+                      <span className="font-medium">{data.engagement.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Eng. Rate:</span>
+                      <span className="font-medium">
+                        {data.views > 0 ? ((data.engagement / data.views) * 100).toFixed(2) : 0}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
