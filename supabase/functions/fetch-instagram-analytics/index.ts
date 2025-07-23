@@ -112,8 +112,9 @@ Deno.serve(async (req) => {
           console.log('Processing Instagram post data:', JSON.stringify(post, null, 2));
           
           // Instagram Post Scraper response format - handle multiple possible field names
-          const views = post.videoViewCount || post.videoPlayCount || post.playCount || 
-                       post.viewsCount || post.views || 0;
+          // Check for Video Play Count and other view-related fields
+          const views = post.videoPlayCount || post.videoViewCount || post.playCount || 
+                       post.viewsCount || post.views || post['Video Play Count'] || 0;
           
           const likes = post.likesCount || post.likeCount || post.likes || 
                        post.diggCount || 0;
