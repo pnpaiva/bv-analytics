@@ -10,7 +10,7 @@ const Index = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/campaigns');
+      navigate('/analytics');
     }
   }, [user, navigate]);
 
@@ -20,8 +20,8 @@ const Index = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <BarChart3 className="h-12 w-12 text-primary mr-4" />
-            <h1 className="text-4xl font-bold">Campaign Analytics Platform</h1>
+            <img src="/lovable-uploads/4add0e07-79ba-4808-834f-029555e0d6f7.png" alt="BV Analytics" className="h-12 w-12 mr-4" />
+            <h1 className="text-4xl font-bold">BV Analytics</h1>
           </div>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Track, analyze, and optimize your influencer marketing campaigns across YouTube, Instagram, and TikTok with real-time analytics and insights.
@@ -68,12 +68,6 @@ const Index = () => {
           <p className="text-muted-foreground mb-6">
             Join thousands of marketers who trust our platform for their influencer marketing analytics.
           </p>
-          <Button 
-            onClick={() => navigate('/auth')}
-            className="mr-4"
-          >
-            Sign Up Free
-          </Button>
           <Button 
             variant="outline"
             onClick={() => navigate('/auth')}

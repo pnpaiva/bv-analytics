@@ -222,7 +222,7 @@ export default function Analytics() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Campaign Analytics</h1>
+            <h1 className="text-3xl font-bold">BV Analytics</h1>
             <p className="text-muted-foreground">
               Aggregate view of all campaigns with filtering capabilities
             </p>

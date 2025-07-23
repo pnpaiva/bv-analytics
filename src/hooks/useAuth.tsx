@@ -69,6 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.error(error.message);
     } else {
       toast.success('Welcome back!');
+      // Redirect to analytics after successful login
+      window.location.href = '/analytics';
     }
     
     return { error };

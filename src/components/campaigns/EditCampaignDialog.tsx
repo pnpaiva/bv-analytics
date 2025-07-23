@@ -25,6 +25,7 @@ import { Campaign } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Trash2, Plus, Edit3 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface EditCampaignDialogProps {
   campaign: Campaign | null;
@@ -37,12 +38,14 @@ const formSchema = z.object({
   youtube: z.array(z.string().url().optional().or(z.literal(''))).default([]),
   instagram: z.array(z.string().url().optional().or(z.literal(''))).default([]),
   tiktok: z.array(z.string().url().optional().or(z.literal(''))).default([]),
+  masterCampaignName: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCampaignDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [existingMasterCampaigns, setExistingMasterCampaigns] = useState<string[]>([]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -50,8 +53,32 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       youtube: [],
       instagram: [],
       tiktok: [],
+      masterCampaignName: '',
     },
   });
+
+  // Load existing master campaigns
+  React.useEffect(() => {
+    const loadMasterCampaigns = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('campaigns')
+          .select('master_campaign_name')
+          .not('master_campaign_name', 'is', null);
+
+        if (error) throw error;
+
+        const uniqueNames = [...new Set(data.map(c => c.master_campaign_name))];
+        setExistingMasterCampaigns(uniqueNames);
+      } catch (error) {
+        console.error('Error loading master campaigns:', error);
+      }
+    };
+
+    if (isOpen) {
+      loadMasterCampaigns();
+    }
+  }, [isOpen]);
 
   // Update form values when campaign changes
   React.useEffect(() => {
@@ -61,6 +88,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         youtube: contentUrls.youtube || [''],
         instagram: contentUrls.instagram || [''],
         tiktok: contentUrls.tiktok || [''],
+        masterCampaignName: campaign.master_campaign_name || '',
       });
     }
   }, [campaign, form]);
@@ -71,7 +99,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
   };
 
   const removeUrlField = (platform: keyof FormData, index: number) => {
-    const currentUrls = form.getValues(platform) || [];
+    if (platform === 'masterCampaignName') return; // Skip for non-array fields
+    const currentUrls = form.getValues(platform) as string[] || [];
     const newUrls = currentUrls.filter((_, i) => i !== index);
     form.setValue(platform, newUrls.length === 0 ? [''] : newUrls);
   };
@@ -92,13 +121,14 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         .from('campaigns')
         .update({
           content_urls: cleanedData,
+          master_campaign_name: data.masterCampaignName || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', campaign.id);
 
       if (error) throw error;
 
-      toast.success('Campaign URLs updated successfully');
+      toast.success('Campaign updated successfully');
       onSave();
       onClose();
     } catch (error) {
@@ -110,7 +140,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
   };
 
   const renderUrlFields = (platform: keyof FormData, label: string) => {
-    const urls = form.watch(platform) || [''];
+    if (platform === 'masterCampaignName') return null; // Skip for non-array fields
+    const urls = form.watch(platform) as string[] || [''];
     
     return (
       <div className="space-y-2">
@@ -185,6 +216,33 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Master Campaign Selection */}
+            <FormField
+              control={form.control}
+              name="masterCampaignName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Master Campaign</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select master campaign (optional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">No Master Campaign</SelectItem>
+                      {existingMasterCampaigns.map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             {renderUrlFields('youtube', 'YouTube')}
             {renderUrlFields('instagram', 'Instagram')}
             {renderUrlFields('tiktok', 'TikTok')}

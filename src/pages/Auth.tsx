@@ -34,7 +34,7 @@ export default function Auth() {
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-2">
             <BarChart3 className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">Campaign Analytics</h1>
+            <h1 className="text-2xl font-bold">BV Analytics</h1>
           </div>
         </div>
         
