@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use Apify API with actor ID: apify/instagram-post-scraper
-    const actorId = 'apify/instagram-post-scraper';
+    // Use Apify API with correct actor name format from OpenAPI doc
+    const actorId = 'apify~instagram-post-scraper';
     
     // Prepare the input - use username array with Instagram URL and skipPinnedPosts
     const runInput = {
