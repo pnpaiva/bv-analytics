@@ -51,11 +51,10 @@ Deno.serve(async (req) => {
     // Use Apify API with actor ID: apify/instagram-post-scraper
     const actorId = 'apify/instagram-post-scraper';
     
-    // Prepare the input - use the full Instagram URL in directUrls array
+    // Prepare the input - use username array with Instagram URL and skipPinnedPosts
     const runInput = {
-      directUrls: [url],
-      resultsLimit: 1,
-      addParentData: false
+      skipPinnedPosts: false,
+      username: [url]
     };
 
     console.log('Instagram API request input:', JSON.stringify(runInput, null, 2));
