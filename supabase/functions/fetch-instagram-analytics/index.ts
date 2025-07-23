@@ -48,11 +48,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use Apify API with actor ID: nH2AHrwxeTRJoN5hX
+    // Use Apify API with actor ID: nH2AHrwxeTRJoN5hX (Instagram Post Scraper)
     const actorId = 'nH2AHrwxeTRJoN5hX';
     const runInput = {
-      urls: [url],
-      resultsLimit: 1
+      directUrls: [url],
+      resultsLimit: 1,
+      addParentData: false
     };
 
     // Start actor run
@@ -88,9 +89,12 @@ Deno.serve(async (req) => {
         
         if (results.length > 0) {
           const post = results[0];
-          const views = post.videoViewCount || post.playCount || 0;
-          const likes = post.likesCount || 0;
-          const comments = post.commentsCount || 0;
+          console.log('Instagram API response:', JSON.stringify(post, null, 2));
+          
+          // Instagram Post Scraper response format
+          const views = post.videoViewCount || post.videoPlayCount || post.playCount || 0;
+          const likes = post.likesCount || post.likeCount || 0;
+          const comments = post.commentsCount || post.commentCount || 0;
           const engagement = likes + comments;
           const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
 
