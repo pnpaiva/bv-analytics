@@ -56,6 +56,8 @@ Deno.serve(async (req) => {
       resultsLimit: 1
     };
 
+    console.log('Instagram API request input:', JSON.stringify(runInput, null, 2));
+
     // Start actor run
     const runResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyApiKey}`, {
       method: 'POST',
