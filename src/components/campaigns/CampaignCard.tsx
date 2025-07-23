@@ -5,10 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2 } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
+import { PDFExporter } from '@/utils/pdfExporter';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,6 +80,22 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
   const handleMasterCampaignSave = () => {
     // Refresh the campaigns data to show updated master campaign links
     queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+  };
+
+  const handleExportPDF = () => {
+    try {
+      const exporter = new PDFExporter();
+      exporter.exportSingleCampaign(campaign, {
+        includeAnalytics: true,
+        includeContentUrls: true,
+        includeMasterCampaigns: true
+      });
+      
+      toast.success('Campaign PDF exported successfully');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export campaign PDF');
+    }
   };
 
   const getPlatformIcon = (platform: string) => {
@@ -236,30 +254,40 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
           </Button>
         </div>
         
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="sm">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this campaign? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteCampaign.mutate(campaign.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportPDF}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this campaign? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteCampaign.mutate(campaign.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </CardFooter>
     </Card>
 

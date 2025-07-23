@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Link2, Eye, Users, TrendingUp, Calendar, Search } from 'lucide-react';
+import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
+import { PDFExporter, MasterCampaignData } from '@/utils/pdfExporter';
+import { toast } from 'sonner';
 
 interface MasterCampaign {
   name: string;
@@ -96,6 +98,36 @@ export default function MasterCampaigns() {
     return campaigns.filter(campaign => !campaign.master_campaign_name);
   }, [campaigns]);
 
+  const handleExportPDF = () => {
+    try {
+      if (filteredMasterCampaigns.length === 0) {
+        toast.error('No master campaigns to export');
+        return;
+      }
+
+      const exporter = new PDFExporter();
+      const masterCampaignData: MasterCampaignData[] = filteredMasterCampaigns.map(mc => ({
+        name: mc.name,
+        campaigns: mc.campaigns,
+        totalViews: mc.totalViews,
+        totalEngagement: mc.totalEngagement,
+        avgEngagementRate: mc.avgEngagementRate,
+        dateRange: mc.dateRange
+      }));
+      
+      exporter.exportMasterCampaigns(masterCampaignData, {
+        includeAnalytics: true,
+        includeContentUrls: true,
+        includeMasterCampaigns: true
+      });
+      
+      toast.success(`PDF report exported with ${filteredMasterCampaigns.length} master campaigns`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF report');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -125,6 +157,14 @@ export default function MasterCampaigns() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            <Button 
+              onClick={handleExportPDF} 
+              disabled={filteredMasterCampaigns.length === 0}
+              variant="outline"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
             <Badge variant="outline" className="text-sm">
               {filteredMasterCampaigns.length} master campaigns
             </Badge>

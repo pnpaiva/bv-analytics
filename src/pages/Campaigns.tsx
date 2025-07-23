@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { CreateCampaignDialog } from '@/components/campaigns/CreateCampaignDialog';
@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
-import { RefreshCw, Search, Filter } from 'lucide-react';
+import { RefreshCw, Search, Filter, Download } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
+import { PDFExporter } from '@/utils/pdfExporter';
+import { toast } from 'sonner';
 
 export default function Campaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -21,6 +23,26 @@ export default function Campaigns() {
   const handleViewAnalytics = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setAnalyticsOpen(true);
+  };
+
+  const handleExportPDF = () => {
+    try {
+      const exporter = new PDFExporter();
+      const exportTitle = searchTerm || statusFilter !== 'all' 
+        ? `Filtered Campaigns Report` 
+        : 'All Campaigns Report';
+      
+      exporter.exportMultipleCampaigns(filteredCampaigns, exportTitle, {
+        includeAnalytics: true,
+        includeContentUrls: true,
+        includeMasterCampaigns: true
+      });
+      
+      toast.success('PDF report exported successfully');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF report');
+    }
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -59,6 +81,10 @@ export default function Campaigns() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
+            <Button variant="outline" onClick={handleExportPDF} disabled={filteredCampaigns.length === 0}>
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh All

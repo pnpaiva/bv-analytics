@@ -11,8 +11,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter } from 'lucide-react';
+import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
+import { PDFExporter } from '@/utils/pdfExporter';
+import { toast } from 'sonner';
 
 interface AggregateMetrics {
   totalViews: number;
@@ -124,6 +126,33 @@ export default function Analytics() {
     }
   };
 
+  const handleExportPDF = () => {
+    try {
+      const campaignsToExport = selectedCampaigns.length > 0 
+        ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+        : filteredCampaigns;
+
+      if (campaignsToExport.length === 0) {
+        toast.error('No campaigns to export');
+        return;
+      }
+
+      const exporter = new PDFExporter();
+      const exportTitle = 'Campaign Analytics Report';
+      
+      exporter.exportMultipleCampaigns(campaignsToExport, exportTitle, {
+        includeAnalytics: true,
+        includeContentUrls: true,
+        includeMasterCampaigns: true
+      });
+      
+      toast.success(`PDF report exported with ${campaignsToExport.length} campaigns`);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Failed to export PDF report');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -152,9 +181,19 @@ export default function Analytics() {
               Aggregate view of all campaigns with filtering capabilities
             </p>
           </div>
-          <Badge variant="outline" className="text-sm">
-            {selectedCampaigns.length > 0 ? `${selectedCampaigns.length} selected` : `${filteredCampaigns.length} campaigns`}
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={handleExportPDF} 
+              disabled={filteredCampaigns.length === 0}
+              variant="outline"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export PDF
+            </Button>
+            <Badge variant="outline" className="text-sm">
+              {selectedCampaigns.length > 0 ? `${selectedCampaigns.length} selected` : `${filteredCampaigns.length} campaigns`}
+            </Badge>
+          </div>
         </div>
 
         {/* Filters */}
