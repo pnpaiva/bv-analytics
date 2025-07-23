@@ -40,7 +40,7 @@ export function Navigation() {
       <div className="container flex h-14 items-center">
         <div className="flex items-center space-x-6">
           <Link to="/campaigns" className="flex items-center space-x-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
+            <img src="/lovable-uploads/d23c0fe1-e18a-4726-8a81-0b6231400b44.png" alt="BV Analytics" className="h-6 w-6" />
             <span className="font-bold text-lg">BV Analytics</span>
           </Link>
           

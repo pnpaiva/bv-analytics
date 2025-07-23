@@ -11,12 +11,23 @@ import { RefreshCw, Search, Filter, Download } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { PDFExporter } from '@/utils/pdfExporter';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function Campaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [refreshAllDialogOpen, setRefreshAllDialogOpen] = useState(false);
   
   const { data: campaigns = [], isLoading, refetch } = useCampaigns();
 
@@ -43,6 +54,12 @@ export default function Campaigns() {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');
     }
+  };
+
+  const handleRefreshAll = () => {
+    refetch();
+    setRefreshAllDialogOpen(false);
+    toast.success('All campaigns refreshed');
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -85,7 +102,7 @@ export default function Campaigns() {
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>
-            <Button variant="outline" onClick={() => refetch()}>
+            <Button variant="outline" onClick={() => setRefreshAllDialogOpen(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh All
             </Button>
@@ -169,6 +186,23 @@ export default function Campaigns() {
           open={analyticsOpen}
           onOpenChange={setAnalyticsOpen}
         />
+
+        <AlertDialog open={refreshAllDialogOpen} onOpenChange={setRefreshAllDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Refresh All</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to refresh all campaigns? This action will update analytics for all campaigns and will incur higher costs compared to refreshing individual campaigns.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRefreshAll}>
+                Yes, Refresh All
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
