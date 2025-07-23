@@ -10,6 +10,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Campaigns from "./pages/Campaigns";
 import Analytics from "./pages/Analytics";
+import MasterCampaigns from "./pages/MasterCampaigns";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,11 @@ const App = () => (
             <Route path="/analytics" element={
               <ProtectedRoute>
                 <Analytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/master-campaigns" element={
+              <ProtectedRoute>
+                <MasterCampaigns />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

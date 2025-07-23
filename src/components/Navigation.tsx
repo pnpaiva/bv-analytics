@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { BarChart3, LogOut, User, Folder, TrendingUp } from 'lucide-react';
+import { BarChart3, LogOut, User, Folder, TrendingUp, Link2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -26,6 +26,12 @@ export function Navigation() {
       label: 'Analytics',
       icon: TrendingUp,
       active: location.pathname === '/analytics'
+    },
+    {
+      href: '/master-campaigns',
+      label: 'Master Campaigns',
+      icon: Link2,
+      active: location.pathname === '/master-campaigns'
     }
   ];
 

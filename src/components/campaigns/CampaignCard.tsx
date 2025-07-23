@@ -5,9 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
+import { MasterCampaignDialog } from './MasterCampaignDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ interface CampaignCardProps {
 export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
@@ -70,6 +72,11 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
 
   const handleEditSave = () => {
     // Refresh the campaigns data to show updated URLs
+    queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+  };
+
+  const handleMasterCampaignSave = () => {
+    // Refresh the campaigns data to show updated master campaign links
     queryClient.invalidateQueries({ queryKey: ['campaigns'] });
   };
 
@@ -143,10 +150,25 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             <p className="text-sm text-muted-foreground mt-1">
               {campaign.creators?.name || 'Unknown Creator'}
             </p>
+            {campaign.master_campaign_name && (
+              <div className="flex items-center gap-1 mt-2">
+                <Link2 className="h-3 w-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Part of "{campaign.master_campaign_name}"
+                </span>
+              </div>
+            )}
           </div>
-          <Badge className={getStatusColor(campaign.status)}>
-            {campaign.status}
-          </Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className={getStatusColor(campaign.status)}>
+              {campaign.status}
+            </Badge>
+            {campaign.master_campaign_name && (
+              <Badge variant="outline" className="text-xs">
+                Master Campaign
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       
@@ -204,6 +226,14 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             <Edit3 className="h-4 w-4 mr-1" />
             Edit
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMasterCampaignDialogOpen(true)}
+          >
+            <Link2 className="h-4 w-4 mr-1" />
+            {campaign.master_campaign_name ? 'Unlink' : 'Link'}
+          </Button>
         </div>
         
         <AlertDialog>
@@ -238,6 +268,13 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
       isOpen={editDialogOpen}
       onClose={() => setEditDialogOpen(false)}
       onSave={handleEditSave}
+    />
+
+    <MasterCampaignDialog
+      campaign={campaign}
+      isOpen={masterCampaignDialogOpen}
+      onClose={() => setMasterCampaignDialogOpen(false)}
+      onSave={handleMasterCampaignSave}
     />
   </>
   );
