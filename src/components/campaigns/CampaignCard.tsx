@@ -248,6 +248,7 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             variant="outline"
             size="sm"
             onClick={() => setMasterCampaignDialogOpen(true)}
+            className="whitespace-nowrap"
           >
             <Link2 className="h-4 w-4 mr-1" />
             {campaign.master_campaign_name ? 'Unlink' : 'Link'}
