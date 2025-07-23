@@ -41,14 +41,58 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
 
   if (!campaign) return null;
 
+  // Extract real platform data from campaign analytics
+  const getPlatformData = () => {
+    if (!campaign.analytics_data) return [];
+    
+    const platforms = [];
+    const analyticsData = campaign.analytics_data as any;
+    
+    if (analyticsData.youtube?.length > 0) {
+      const youtubeData = analyticsData.youtube[0];
+      platforms.push({
+        platform: 'YouTube',
+        views: youtubeData.views || 0,
+        engagement: youtubeData.engagement || 0,
+        rate: youtubeData.rate || 0,
+        url: youtubeData.url
+      });
+    }
+    
+    if (analyticsData.instagram?.length > 0) {
+      const instagramData = analyticsData.instagram[0];
+      platforms.push({
+        platform: 'Instagram',
+        views: instagramData.views || 0,
+        engagement: instagramData.engagement || 0,
+        rate: instagramData.rate || 0,
+        url: instagramData.url
+      });
+    }
+    
+    if (analyticsData.tiktok?.length > 0) {
+      const tiktokData = analyticsData.tiktok[0];
+      platforms.push({
+        platform: 'TikTok',
+        views: tiktokData.views || 0,
+        engagement: tiktokData.engagement || 0,
+        rate: tiktokData.rate || 0,
+        url: tiktokData.url
+      });
+    }
+    
+    return platforms;
+  };
+
+  const platformData = getPlatformData();
+
   const handleExport = () => {
-    // Mock export functionality
     const data = {
       campaign: campaign.brand_name,
       totalViews: campaign.total_views,
       totalEngagement: campaign.total_engagement,
       engagementRate: campaign.engagement_rate,
-      platforms: mockPlatformData,
+      platforms: platformData,
       timeline: mockAnalyticsData,
     };
     
@@ -162,12 +206,16 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
 
           <TabsContent value="platforms" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {mockPlatformData.map((platform) => (
+              {platformData.map((platform) => (
                 <Card key={platform.platform}>
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       {platform.platform}
-                      <ExternalLink className="h-4 w-4" />
+                      {platform.url && (
+                        <a href={platform.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -197,7 +245,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={mockPlatformData}>
+                  <BarChart data={platformData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="platform" />
                     <YAxis />
