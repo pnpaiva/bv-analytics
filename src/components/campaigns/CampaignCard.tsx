@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3 } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import {
@@ -73,6 +73,66 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
     queryClient.invalidateQueries({ queryKey: ['campaigns'] });
   };
 
+  const getPlatformIcon = (platform: string) => {
+    switch (platform.toLowerCase()) {
+      case 'youtube':
+        return Youtube;
+      case 'instagram':
+        return Instagram;
+      case 'tiktok':
+        // Using a generic icon for TikTok since lucide doesn't have a specific one
+        return ExternalLink;
+      default:
+        return ExternalLink;
+    }
+  };
+
+  const renderContentUrls = () => {
+    const contentUrls = campaign.content_urls;
+    if (!contentUrls || typeof contentUrls !== 'object') return null;
+
+    const allUrls: Array<{ platform: string; url: string }> = [];
+    
+    Object.entries(contentUrls).forEach(([platform, urls]) => {
+      if (Array.isArray(urls)) {
+        urls.forEach((url) => {
+          if (url && url.trim()) {
+            allUrls.push({ platform, url: url.trim() });
+          }
+        });
+      }
+    });
+
+    if (allUrls.length === 0) return null;
+
+    return (
+      <div className="mt-4 pt-4 border-t">
+        <h4 className="text-sm font-medium mb-2 text-foreground">Content Links</h4>
+        <div className="space-y-2">
+          {allUrls.map((item, index) => {
+            const IconComponent = getPlatformIcon(item.platform);
+            return (
+              <a
+                key={index}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <IconComponent className="h-4 w-4 flex-shrink-0" />
+                <span className="capitalize font-medium">{item.platform}:</span>
+                <span className="truncate group-hover:underline flex-1">
+                  {item.url.replace(/^https?:\/\//, '')}
+                </span>
+                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
       <Card className="hover:shadow-md transition-shadow">
@@ -113,6 +173,8 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             <p>Client: {campaign.clients.name}</p>
           )}
         </div>
+
+        {renderContentUrls()}
       </CardContent>
       
       <CardFooter className="flex justify-between">
