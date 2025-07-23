@@ -1,0 +1,143 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+export interface Campaign {
+  id: string;
+  brand_name: string;
+  creator_id: string;
+  user_id: string;
+  status: 'draft' | 'analyzing' | 'completed' | 'error';
+  total_views: number;
+  total_engagement: number;
+  engagement_rate: number;
+  campaign_date: string;
+  deal_value?: number;
+  client_id?: string;
+  master_campaign_name?: string;
+  master_campaign_start_date?: string;
+  master_campaign_end_date?: string;
+  analytics_data?: any;
+  analytics_updated_at?: string;
+  created_at: string;
+  updated_at: string;
+  creators?: {
+    name: string;
+  };
+  clients?: {
+    name: string;
+  };
+}
+
+export interface CreateCampaignData {
+  brand_name: string;
+  creator_id: string;
+  campaign_date: string;
+  deal_value?: number;
+  client_id?: string;
+  master_campaign_name?: string;
+  content_urls?: Record<string, string[]>;
+}
+
+export function useCampaigns() {
+  return useQuery({
+    queryKey: ['campaigns'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select(`
+          *,
+          creators (name),
+          clients (name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        toast.error('Failed to fetch campaigns');
+        throw error;
+      }
+
+      return data as Campaign[];
+    },
+  });
+}
+
+export function useCreateCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: CreateCampaignData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data: campaign, error } = await supabase
+        .from('campaigns')
+        .insert([{
+          ...data,
+          user_id: user.id,
+          status: 'draft',
+          total_views: 0,
+          total_engagement: 0,
+          engagement_rate: 0,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return campaign;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      toast.success('Campaign created successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to create campaign');
+      console.error(error);
+    },
+  });
+}
+
+export function useDeleteCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      toast.success('Campaign deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete campaign');
+      console.error(error);
+    },
+  });
+}
+
+export function useUpdateCampaignStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to update campaign status');
+      console.error(error);
+    },
+  });
+}
