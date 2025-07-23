@@ -17,6 +17,7 @@ export interface Campaign {
   master_campaign_name?: string;
   master_campaign_start_date?: string;
   master_campaign_end_date?: string;
+  content_urls?: Record<string, string[]>;
   analytics_data?: any;
   analytics_updated_at?: string;
   created_at: string;
@@ -36,7 +37,7 @@ export interface CreateCampaignData {
   deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;
-  content_urls?: Record<string, string[]>;
+  content_urls: Record<string, string[]>;
 }
 
 export function useCampaigns() {

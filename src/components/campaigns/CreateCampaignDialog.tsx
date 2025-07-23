@@ -47,15 +47,17 @@ export function CreateCampaignDialog() {
     
     const content_urls: Record<string, string[]> = {};
     
-    if (formData.youtube_urls) {
+    if (formData.youtube_urls.trim()) {
       content_urls.youtube = formData.youtube_urls.split('\n').filter(url => url.trim());
     }
-    if (formData.instagram_urls) {
+    if (formData.instagram_urls.trim()) {
       content_urls.instagram = formData.instagram_urls.split('\n').filter(url => url.trim());
     }
-    if (formData.tiktok_urls) {
+    if (formData.tiktok_urls.trim()) {
       content_urls.tiktok = formData.tiktok_urls.split('\n').filter(url => url.trim());
     }
+
+    console.log('Creating campaign with content_urls:', content_urls);
 
     await createCampaign.mutateAsync({
       brand_name: formData.brand_name,

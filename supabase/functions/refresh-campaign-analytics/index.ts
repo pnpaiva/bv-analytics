@@ -21,10 +21,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log('Processing campaign:', campaignId);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Set status to analyzing
+    await supabase.rpc('set_campaign_status', {
+      p_campaign_id: campaignId,
+      p_status: 'analyzing'
+    });
 
     // Get campaign details
     const { data: campaign, error: campaignError } = await supabase
@@ -37,24 +45,21 @@ Deno.serve(async (req) => {
       throw new Error('Campaign not found');
     }
 
-    // Update status to analyzing
-    await supabase
-      .from('campaigns')
-      .update({ status: 'analyzing' })
-      .eq('id', campaignId);
-
-    console.log('Processing campaign:', campaign.brand_name);
+    console.log('Campaign content_urls:', campaign.content_urls);
 
     let totalViews = 0;
     let totalEngagement = 0;
-    let platformCount = 0;
+    let platformResults: any = {};
 
     // Process content URLs if they exist
     if (campaign.content_urls && typeof campaign.content_urls === 'object') {
       const urls = campaign.content_urls as Record<string, string[]>;
       
       // Process YouTube URLs
-      if (urls.youtube && urls.youtube.length > 0) {
+      if (urls.youtube && Array.isArray(urls.youtube) && urls.youtube.length > 0) {
+        console.log('Processing YouTube URLs:', urls.youtube.length);
+        platformResults.youtube = [];
+        
         for (const url of urls.youtube) {
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/fetch-youtube-analytics`, {
@@ -70,21 +75,8 @@ Deno.serve(async (req) => {
               const data = await response.json();
               totalViews += data.views || 0;
               totalEngagement += data.engagement || 0;
-              platformCount++;
-
-              // Store analytics data
-              await supabase
-                .from('analytics_data')
-                .insert({
-                  campaign_id: campaignId,
-                  platform: 'youtube',
-                  content_url: url,
-                  views: data.views || 0,
-                  engagement: data.engagement || 0,
-                  likes: data.likes || 0,
-                  comments: data.comments || 0,
-                  engagement_rate: data.rate || 0,
-                });
+              platformResults.youtube.push({ url, ...data });
+              console.log('YouTube data:', data);
             }
           } catch (error) {
             console.error('Error processing YouTube URL:', url, error);
@@ -93,7 +85,10 @@ Deno.serve(async (req) => {
       }
 
       // Process Instagram URLs
-      if (urls.instagram && urls.instagram.length > 0) {
+      if (urls.instagram && Array.isArray(urls.instagram) && urls.instagram.length > 0) {
+        console.log('Processing Instagram URLs:', urls.instagram.length);
+        platformResults.instagram = [];
+        
         for (const url of urls.instagram) {
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/fetch-instagram-analytics`, {
@@ -109,21 +104,8 @@ Deno.serve(async (req) => {
               const data = await response.json();
               totalViews += data.views || 0;
               totalEngagement += data.engagement || 0;
-              platformCount++;
-
-              // Store analytics data
-              await supabase
-                .from('analytics_data')
-                .insert({
-                  campaign_id: campaignId,
-                  platform: 'instagram',
-                  content_url: url,
-                  views: data.views || 0,
-                  engagement: data.engagement || 0,
-                  likes: data.likes || 0,
-                  comments: data.comments || 0,
-                  engagement_rate: data.rate || 0,
-                });
+              platformResults.instagram.push({ url, ...data });
+              console.log('Instagram data:', data);
             }
           } catch (error) {
             console.error('Error processing Instagram URL:', url, error);
@@ -132,7 +114,10 @@ Deno.serve(async (req) => {
       }
 
       // Process TikTok URLs
-      if (urls.tiktok && urls.tiktok.length > 0) {
+      if (urls.tiktok && Array.isArray(urls.tiktok) && urls.tiktok.length > 0) {
+        console.log('Processing TikTok URLs:', urls.tiktok.length);
+        platformResults.tiktok = [];
+        
         for (const url of urls.tiktok) {
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tiktok-analytics`, {
@@ -148,22 +133,8 @@ Deno.serve(async (req) => {
               const data = await response.json();
               totalViews += data.views || 0;
               totalEngagement += data.engagement || 0;
-              platformCount++;
-
-              // Store analytics data
-              await supabase
-                .from('analytics_data')
-                .insert({
-                  campaign_id: campaignId,
-                  platform: 'tiktok',
-                  content_url: url,
-                  views: data.views || 0,
-                  engagement: data.engagement || 0,
-                  likes: data.likes || 0,
-                  comments: data.comments || 0,
-                  shares: data.shares || 0,
-                  engagement_rate: data.rate || 0,
-                });
+              platformResults.tiktok.push({ url, ...data });
+              console.log('TikTok data:', data);
             }
           } catch (error) {
             console.error('Error processing TikTok URL:', url, error);
@@ -175,19 +146,19 @@ Deno.serve(async (req) => {
     // Calculate engagement rate
     const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
 
-    // Update campaign with final analytics
-    const { error: updateError } = await supabase
-      .from('campaigns')
-      .update({
-        status: 'completed',
-        total_views: totalViews,
-        total_engagement: totalEngagement,
-        engagement_rate: engagementRate,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', campaignId);
+    console.log('Final totals:', { totalViews, totalEngagement, engagementRate });
+
+    // Update campaign with analytics using the simplified function
+    const { error: updateError } = await supabase.rpc('update_campaign_analytics', {
+      p_campaign_id: campaignId,
+      p_total_views: totalViews,
+      p_total_engagement: totalEngagement,
+      p_engagement_rate: engagementRate,
+      p_analytics_data: platformResults
+    });
 
     if (updateError) {
+      console.error('Update error:', updateError);
       throw updateError;
     }
 
@@ -197,7 +168,7 @@ Deno.serve(async (req) => {
         totalViews,
         totalEngagement,
         engagementRate,
-        platformsProcessed: platformCount,
+        platformResults,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -212,10 +183,10 @@ Deno.serve(async (req) => {
     
     const { campaignId } = await req.json().catch(() => ({}));
     if (campaignId) {
-      await supabase
-        .from('campaigns')
-        .update({ status: 'error' })
-        .eq('id', campaignId);
+      await supabase.rpc('set_campaign_status', {
+        p_campaign_id: campaignId,
+        p_status: 'error'
+      });
     }
 
     return new Response(

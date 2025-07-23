@@ -196,11 +196,14 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          analytics_data: Json | null
+          analytics_updated_at: string | null
           brand_name: string
           campaign_date: string
           campaign_month: string | null
           client_id: string | null
           client_name: string | null
+          content_urls: Json | null
           created_at: string
           creator_id: string
           deal_value: number | null
@@ -218,11 +221,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          analytics_data?: Json | null
+          analytics_updated_at?: string | null
           brand_name: string
           campaign_date: string
           campaign_month?: string | null
           client_id?: string | null
           client_name?: string | null
+          content_urls?: Json | null
           created_at?: string
           creator_id: string
           deal_value?: number | null
@@ -240,11 +246,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          analytics_data?: Json | null
+          analytics_updated_at?: string | null
           brand_name?: string
           campaign_date?: string
           campaign_month?: string | null
           client_id?: string | null
           client_name?: string | null
+          content_urls?: Json | null
           created_at?: string
           creator_id?: string
           deal_value?: number | null
@@ -816,6 +825,20 @@ export type Database = {
           p_subscribers?: number
           p_views?: number
           p_engagement_rate?: number
+        }
+        Returns: undefined
+      }
+      set_campaign_status: {
+        Args: { p_campaign_id: string; p_status: string }
+        Returns: undefined
+      }
+      update_campaign_analytics: {
+        Args: {
+          p_campaign_id: string
+          p_total_views?: number
+          p_total_engagement?: number
+          p_engagement_rate?: number
+          p_analytics_data?: Json
         }
         Returns: undefined
       }
