@@ -21,20 +21,79 @@ interface CampaignAnalyticsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Mock analytics data for demonstration
-const mockAnalyticsData = [
-  { date: '2024-01-01', views: 1200, engagement: 89, engagementRate: 7.4 },
-  { date: '2024-01-02', views: 1450, engagement: 102, engagementRate: 7.0 },
-  { date: '2024-01-03', views: 1680, engagement: 134, engagementRate: 8.0 },
-  { date: '2024-01-04', views: 1890, engagement: 145, engagementRate: 7.7 },
-  { date: '2024-01-05', views: 2100, engagement: 168, engagementRate: 8.0 },
-];
+// Generate realistic timeline data from campaign
+const generateTimelineData = (campaign: Campaign) => {
+  const platforms = getPlatformDataStatic(campaign);
+  const totalViews = platforms.reduce((sum, p) => sum + p.views, 0);
+  const totalEngagement = platforms.reduce((sum, p) => sum + p.engagement, 0);
+  
+  // Create a 5-day progression showing cumulative growth
+  const baseDate = new Date(campaign.campaign_date);
+  const timelineData = [];
+  
+  for (let i = 0; i < 5; i++) {
+    const date = new Date(baseDate);
+    date.setDate(date.getDate() + i);
+    
+    // Simulate gradual accumulation over time
+    const progress = (i + 1) / 5;
+    const views = Math.round(totalViews * progress);
+    const engagement = Math.round(totalEngagement * progress);
+    const engagementRate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+    
+    timelineData.push({
+      date: date.toISOString().split('T')[0],
+      views,
+      engagement,
+      engagementRate
+    });
+  }
+  
+  return timelineData;
+};
 
-const mockPlatformData = [
-  { platform: 'YouTube', views: 5820, engagement: 445, rate: 7.6 },
-  { platform: 'Instagram', views: 3200, engagement: 256, rate: 8.0 },
-  { platform: 'TikTok', views: 7500, engagement: 637, rate: 8.5 },
-];
+// Helper function to get platform data (used in timeline generation)
+const getPlatformDataStatic = (campaign: Campaign) => {
+  if (!campaign.analytics_data) return [];
+  
+  const platforms = [];
+  const analyticsData = campaign.analytics_data as any;
+  
+  if (analyticsData.youtube?.length > 0) {
+    const youtubeData = analyticsData.youtube[0];
+    platforms.push({
+      platform: 'YouTube',
+      views: youtubeData.views || 0,
+      engagement: youtubeData.engagement || 0,
+      rate: youtubeData.rate || 0,
+      url: youtubeData.url
+    });
+  }
+  
+  if (analyticsData.instagram?.length > 0) {
+    const instagramData = analyticsData.instagram[0];
+    platforms.push({
+      platform: 'Instagram',
+      views: instagramData.views || 0,
+      engagement: instagramData.engagement || 0,
+      rate: instagramData.rate || 0,
+      url: instagramData.url
+    });
+  }
+  
+  if (analyticsData.tiktok?.length > 0) {
+    const tiktokData = analyticsData.tiktok[0];
+    platforms.push({
+      platform: 'TikTok',
+      views: tiktokData.views || 0,
+      engagement: tiktokData.engagement || 0,
+      rate: tiktokData.rate || 0,
+      url: tiktokData.url
+    });
+  }
+  
+  return platforms;
+};
 
 export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: CampaignAnalyticsModalProps) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -85,6 +144,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   };
 
   const platformData = getPlatformData();
+  const timelineData = generateTimelineData(campaign);
 
   const handleExport = () => {
     const data = {
@@ -93,7 +153,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
       totalEngagement: campaign.total_engagement,
       engagementRate: campaign.engagement_rate,
       platforms: platformData,
-      timeline: mockAnalyticsData,
+      timeline: timelineData,
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -191,7 +251,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mockAnalyticsData}>
+                  <LineChart data={timelineData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -266,7 +326,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mockAnalyticsData}>
+                  <LineChart data={timelineData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -290,7 +350,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockAnalyticsData.map((day, index) => (
+                  {timelineData.map((day, index) => (
                     <div key={index} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{format(new Date(day.date), 'MMMM d, yyyy')}</p>
