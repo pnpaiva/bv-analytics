@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
+import { supabase } from '@/integrations/supabase/client';
 import { Eye, Heart, Trash2, BarChart3, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -42,11 +43,25 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await updateStatus.mutateAsync({ id: campaign.id, status: 'analyzing' });
-    // Here you would trigger the analytics refresh
-    setTimeout(() => {
+    try {
+      // Update status to analyzing first
+      await updateStatus.mutateAsync({ id: campaign.id, status: 'analyzing' });
+      
+      // Call the refresh analytics edge function
+      const { data, error } = await supabase.functions.invoke('refresh-campaign-analytics', {
+        body: { campaignId: campaign.id },
+      });
+
+      if (error) {
+        console.error('Error refreshing analytics:', error);
+        await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
+      }
+    } catch (error) {
+      console.error('Error refreshing campaign:', error);
+      await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
+    } finally {
       setRefreshing(false);
-    }, 2000);
+    }
   };
 
   return (
