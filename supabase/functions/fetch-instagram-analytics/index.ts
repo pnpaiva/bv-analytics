@@ -50,13 +50,16 @@ Deno.serve(async (req) => {
 
     // Use Apify API with actor ID: apify/instagram-post-scraper
     const actorId = 'apify/instagram-post-scraper';
+    
+    // Prepare the input - use the full Instagram URL in directUrls array
     const runInput = {
-      skipPinnedPosts: false,
-      username: [url],
-      resultsLimit: 1
+      directUrls: [url],
+      resultsLimit: 1,
+      addParentData: false
     };
 
     console.log('Instagram API request input:', JSON.stringify(runInput, null, 2));
+    console.log('Using Instagram URL:', url);
 
     // Start actor run
     const runResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyApiKey}`, {
@@ -67,16 +70,21 @@ Deno.serve(async (req) => {
       body: JSON.stringify(runInput),
     });
 
+    console.log('Apify run response status:', runResponse.status);
+    
     if (!runResponse.ok) {
-      throw new Error('Failed to start Apify actor');
+      const errorText = await runResponse.text();
+      console.error('Failed to start Apify actor:', errorText);
+      throw new Error(`Failed to start Apify actor: ${runResponse.status} ${errorText}`);
     }
 
     const runData = await runResponse.json();
     const runId = runData.data.id;
+    console.log('Apify run started with ID:', runId);
 
     // Wait for completion and get results
     let attempts = 0;
-    const maxAttempts = 30; // 30 seconds timeout
+    const maxAttempts = 60; // 60 seconds timeout for Instagram processing
     
     while (attempts < maxAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
@@ -84,21 +92,45 @@ Deno.serve(async (req) => {
       const statusResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${apifyApiKey}`);
       const statusData = await statusResponse.json();
       
+      console.log(`Attempt ${attempts + 1}: Status = ${statusData.data.status}`);
+      
       if (statusData.data.status === 'SUCCEEDED') {
+        console.log('Apify actor succeeded, fetching results...');
+        
         // Get results
         const resultsResponse = await fetch(`https://api.apify.com/v2/datasets/${statusData.data.defaultDatasetId}/items?token=${apifyApiKey}`);
+        
+        if (!resultsResponse.ok) {
+          console.error('Failed to fetch results:', resultsResponse.status);
+          throw new Error(`Failed to fetch results: ${resultsResponse.status}`);
+        }
+        
         const results = await resultsResponse.json();
+        console.log('Raw results from Apify:', JSON.stringify(results, null, 2));
         
         if (results.length > 0) {
           const post = results[0];
-          console.log('Instagram API response:', JSON.stringify(post, null, 2));
+          console.log('Processing Instagram post data:', JSON.stringify(post, null, 2));
           
-          // Instagram Post Scraper response format
-          const views = post.videoViewCount || post.videoPlayCount || post.playCount || 0;
-          const likes = post.likesCount || post.likeCount || 0;
-          const comments = post.commentsCount || post.commentCount || 0;
+          // Instagram Post Scraper response format - handle multiple possible field names
+          const views = post.videoViewCount || post.videoPlayCount || post.playCount || 
+                       post.viewsCount || post.views || 0;
+          
+          const likes = post.likesCount || post.likeCount || post.likes || 
+                       post.diggCount || 0;
+          
+          const comments = post.commentsCount || post.commentCount || post.comments || 0;
+          
           const engagement = likes + comments;
           const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+
+          console.log('Parsed Instagram data:', {
+            views,
+            engagement,
+            likes,
+            comments,
+            rate
+          });
 
           const result = {
             views,
@@ -112,16 +144,23 @@ Deno.serve(async (req) => {
             JSON.stringify(result),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
+        } else {
+          console.log('No results found in dataset');
+          throw new Error('No results found in Apify dataset');
         }
-        break;
       } else if (statusData.data.status === 'FAILED') {
-        throw new Error('Apify actor failed');
+        console.error('Apify actor failed:', statusData.data);
+        throw new Error(`Apify actor failed: ${JSON.stringify(statusData.data)}`);
+      } else if (statusData.data.status === 'ABORTED') {
+        console.error('Apify actor was aborted:', statusData.data);
+        throw new Error('Apify actor was aborted');
       }
       
       attempts++;
     }
 
-    throw new Error('Timeout waiting for Apify results');
+    console.error('Timeout waiting for Apify results after', maxAttempts, 'attempts');
+    throw new Error(`Timeout waiting for Apify results after ${maxAttempts} seconds`);
 
   } catch (error) {
     console.error('Error fetching Instagram analytics:', error);
