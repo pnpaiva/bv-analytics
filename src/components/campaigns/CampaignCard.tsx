@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3 } from 'lucide-react';
 import { format } from 'date-fns';
+import { EditCampaignDialog } from './EditCampaignDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,8 +27,10 @@ interface CampaignCardProps {
 
 export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
+  const queryClient = useQueryClient();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,8 +68,14 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
     }
   };
 
+  const handleEditSave = () => {
+    // Refresh the campaigns data to show updated URLs
+    queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+  };
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <>
+      <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
@@ -124,6 +134,14 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setEditDialogOpen(true)}
+          >
+            <Edit3 className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
         </div>
         
         <AlertDialog>
@@ -152,5 +170,13 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
         </AlertDialog>
       </CardFooter>
     </Card>
+
+    <EditCampaignDialog
+      campaign={campaign}
+      isOpen={editDialogOpen}
+      onClose={() => setEditDialogOpen(false)}
+      onSave={handleEditSave}
+    />
+  </>
   );
 }

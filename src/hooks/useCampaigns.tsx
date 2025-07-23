@@ -142,3 +142,36 @@ export function useUpdateCampaignStatus() {
     },
   });
 }
+
+export function useUpdateCampaign() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, content_urls }: { id: string; content_urls: Record<string, string[]> }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      const { data, error } = await supabase
+        .from('campaigns')
+        .update({
+          content_urls,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      toast.success('Campaign updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update campaign');
+      console.error(error);
+    },
+  });
+}
