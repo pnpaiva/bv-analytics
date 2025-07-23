@@ -48,12 +48,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use Apify API with actor ID: apify/instagram-post-scraper (updated actor)
+    // Use Apify API with actor ID: apify/instagram-post-scraper
     const actorId = 'apify/instagram-post-scraper';
     const runInput = {
-      directUrls: [url],
-      resultsLimit: 1,
-      addParentData: false
+      skipPinnedPosts: false,
+      username: [url],
+      resultsLimit: 1
     };
 
     // Start actor run
