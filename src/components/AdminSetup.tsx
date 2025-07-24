@@ -13,7 +13,7 @@ export function AdminSetup() {
     try {
       // Create the dedicated admin account
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: 'admin@beyond-views.com',
+        email: 'nordskogpedro@gmail.com',
         password: 'Nense123nense!',
         email_confirm: true,
       });
@@ -34,12 +34,12 @@ export function AdminSetup() {
       toast.success('Dedicated admin account created successfully!');
       
       // Show login instructions
-      toast.success('You can now log in with admin@beyond-views.com to access admin features');
+      toast.success('You can now log in with nordskogpedro@gmail.com to access admin features');
       
     } catch (error: any) {
       console.error('Error creating admin account:', error);
       if (error.message?.includes('already been registered')) {
-        toast.error('Admin account already exists. You can log in with admin@beyond-views.com');
+        toast.error('Admin account already exists. You can log in with nordskogpedro@gmail.com');
       } else {
         toast.error(`Failed to create admin account: ${error.message}`);
       }
@@ -63,7 +63,7 @@ export function AdminSetup() {
         <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4" />
-            <span>Email: admin@beyond-views.com</span>
+            <span>Email: nordskogpedro@gmail.com</span>
           </div>
           <p>This will create a dedicated admin account separate from your current account.</p>
         </div>
