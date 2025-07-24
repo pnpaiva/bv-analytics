@@ -34,6 +34,7 @@ export interface CreateCampaignData {
   brand_name: string;
   creator_id: string;
   campaign_date: string;
+  campaign_month?: string;
   deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;

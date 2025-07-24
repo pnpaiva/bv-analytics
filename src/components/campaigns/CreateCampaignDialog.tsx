@@ -22,6 +22,7 @@ import {
 import { useCreateCampaign } from '@/hooks/useCampaigns';
 import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
+import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { Plus, Loader2 } from 'lucide-react';
 
 export function CreateCampaignDialog() {
@@ -30,6 +31,7 @@ export function CreateCampaignDialog() {
     brand_name: '',
     creator_id: '',
     campaign_date: '',
+    campaign_month: '',
     deal_value: '',
     client_id: '',
     master_campaign_name: '',
@@ -41,6 +43,7 @@ export function CreateCampaignDialog() {
   const createCampaign = useCreateCampaign();
   const { data: creators = [] } = useCreators();
   const { data: clients = [] } = useClients();
+  const { data: masterCampaigns = [] } = useMasterCampaigns();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +66,7 @@ export function CreateCampaignDialog() {
       brand_name: formData.brand_name,
       creator_id: formData.creator_id,
       campaign_date: formData.campaign_date,
+      campaign_month: formData.campaign_month || undefined,
       deal_value: formData.deal_value ? parseFloat(formData.deal_value) : undefined,
       client_id: formData.client_id || undefined,
       master_campaign_name: formData.master_campaign_name || undefined,
@@ -74,6 +78,7 @@ export function CreateCampaignDialog() {
       brand_name: '',
       creator_id: '',
       campaign_date: '',
+      campaign_month: '',
       deal_value: '',
       client_id: '',
       master_campaign_name: '',
@@ -145,6 +150,18 @@ export function CreateCampaignDialog() {
             </div>
             
             <div className="space-y-2">
+              <Label htmlFor="campaign_month">Campaign Month</Label>
+              <Input
+                id="campaign_month"
+                placeholder="e.g., January 2024, Q1 2024"
+                value={formData.campaign_month}
+                onChange={(e) => setFormData({ ...formData, campaign_month: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="deal_value">Deal Value</Label>
               <Input
                 id="deal_value"
@@ -155,37 +172,44 @@ export function CreateCampaignDialog() {
                 onChange={(e) => setFormData({ ...formData, deal_value: e.target.value })}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+            
             <div className="space-y-2">
-              <Label htmlFor="client_id">Client</Label>
+              <Label htmlFor="master_campaign_name">Master Campaign</Label>
               <Select
-                value={formData.client_id}
-                onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+                value={formData.master_campaign_name}
+                onValueChange={(value) => setFormData({ ...formData, master_campaign_name: value })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select client (optional)" />
+                  <SelectValue placeholder="Select master campaign (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((client) => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
+                  {masterCampaigns.map((masterCampaign: any) => (
+                    <SelectItem key={masterCampaign.name} value={masterCampaign.name}>
+                      {masterCampaign.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="master_campaign_name">Master Campaign</Label>
-              <Input
-                id="master_campaign_name"
-                placeholder="Master campaign name"
-                value={formData.master_campaign_name}
-                onChange={(e) => setFormData({ ...formData, master_campaign_name: e.target.value })}
-              />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="client_id">Client</Label>
+            <Select
+              value={formData.client_id}
+              onValueChange={(value) => setFormData({ ...formData, client_id: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select client (optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((client) => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-4">

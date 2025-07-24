@@ -7,11 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download, Settings, UserPlus } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
 import { PDFExporter, MasterCampaignData } from '@/utils/pdfExporter';
 import { toast } from 'sonner';
+import { MasterCampaignManagement } from '@/components/campaigns/MasterCampaignManagement';
+import { CreatorManagement } from '@/components/campaigns/CreatorManagement';
 
 interface MasterCampaign {
   name: string;
@@ -174,88 +177,183 @@ export default function MasterCampaigns() {
           </div>
         </div>
 
-        {/* Search */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-4 h-4" />
-              Search Master Campaigns
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="search">Search by master campaign name, brand, creator, or client</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search"
-                  placeholder="Search master campaigns..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
+            <TabsTrigger value="master-campaigns">
+              <Settings className="w-4 h-4 mr-2" />
+              Master Campaigns
+            </TabsTrigger>
+            <TabsTrigger value="creators">
+              <UserPlus className="w-4 h-4 mr-2" />
+              Creators
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Master Campaigns */}
-        <div className="space-y-6">
-          {filteredMasterCampaigns.length > 0 ? (
-            filteredMasterCampaigns.map((masterCampaign) => (
-              <Card key={masterCampaign.name} className="border-l-4 border-l-primary">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Link2 className="w-5 h-5 text-primary" />
-                        {masterCampaign.name}
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {masterCampaign.campaigns.length} campaigns • {masterCampaign.dateRange}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
-                        {masterCampaign.campaigns.length} campaigns
-                      </Badge>
-                    </div>
+          <TabsContent value="overview" className="space-y-6">
+            {/* Search */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  Search Master Campaigns
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="search">Search by master campaign name, brand, creator, or client</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="search"
+                      placeholder="Search master campaigns..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
-                </CardHeader>
+                </div>
+              </CardContent>
+            </Card>
 
-                <CardContent>
-                  {/* Aggregate Metrics */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="flex items-center space-x-2">
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Total Views</p>
-                        <p className="text-2xl font-bold">{masterCampaign.totalViews.toLocaleString()}</p>
+            {/* Master Campaigns */}
+            <div className="space-y-6">
+              {filteredMasterCampaigns.length > 0 ? (
+                filteredMasterCampaigns.map((masterCampaign) => (
+                  <Card key={masterCampaign.name} className="border-l-4 border-l-primary">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Link2 className="w-5 h-5 text-primary" />
+                            {masterCampaign.name}
+                          </CardTitle>
+                          <CardDescription className="mt-1">
+                            {masterCampaign.campaigns.length} campaigns • {masterCampaign.dateRange}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {masterCampaign.campaigns.length} campaigns
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Total Engagement</p>
-                        <p className="text-2xl font-bold">{masterCampaign.totalEngagement.toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Avg Engagement Rate</p>
-                        <p className="text-2xl font-bold">{masterCampaign.avgEngagementRate.toFixed(2)}%</p>
-                      </div>
-                    </div>
-                  </div>
+                    </CardHeader>
 
-                  <Separator className="my-4" />
+                    <CardContent>
+                      {/* Aggregate Metrics */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div className="flex items-center space-x-2">
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Total Views</p>
+                            <p className="text-2xl font-bold">{masterCampaign.totalViews.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Total Engagement</p>
+                            <p className="text-2xl font-bold">{masterCampaign.totalEngagement.toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">Avg Engagement Rate</p>
+                            <p className="text-2xl font-bold">{masterCampaign.avgEngagementRate.toFixed(2)}%</p>
+                          </div>
+                        </div>
+                      </div>
 
-                  {/* Individual Campaigns */}
-                  <div>
-                    <h4 className="font-medium mb-3">Individual Campaigns</h4>
+                      <Separator className="my-4" />
+
+                      {/* Individual Campaigns */}
+                      <div>
+                        <h4 className="font-medium mb-3">Individual Campaigns</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {masterCampaign.campaigns.map((campaign) => (
+                            <div
+                              key={campaign.id}
+                              className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h5 className="font-medium text-sm">{campaign.brand_name}</h5>
+                                  <p className="text-xs text-muted-foreground">
+                                    {campaign.creators?.name}
+                                  </p>
+                                </div>
+                                <Badge variant={
+                                  campaign.status === 'completed' ? 'default' :
+                                  campaign.status === 'analyzing' ? 'secondary' :
+                                  campaign.status === 'error' ? 'destructive' : 'outline'
+                                } className="text-xs">
+                                  {campaign.status}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground space-y-1">
+                                <div className="flex justify-between">
+                                  <span>Views:</span>
+                                  <span>{campaign.total_views?.toLocaleString() || 0}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Engagement:</span>
+                                  <span>{campaign.total_engagement?.toLocaleString() || 0}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Rate:</span>
+                                  <span>{campaign.engagement_rate?.toFixed(2) || 0}%</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Date:</span>
+                                  <span>{format(new Date(campaign.campaign_date), 'MMM d, yyyy')}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : searchTerm ? (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No master campaigns found</h3>
+                    <p className="text-muted-foreground">
+                      No master campaigns match your search criteria.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <Link2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No master campaigns yet</h3>
+                    <p className="text-muted-foreground">
+                      Start by linking campaigns together to create master campaigns.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Unlinked Campaigns Section */}
+              {orphanedCampaigns.length > 0 && (
+                <Card className="border-l-4 border-l-muted">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-muted-foreground" />
+                      Unlinked Campaigns
+                    </CardTitle>
+                    <CardDescription>
+                      {orphanedCampaigns.length} campaigns not linked to any master campaign
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {masterCampaign.campaigns.map((campaign) => (
+                      {orphanedCampaigns.slice(0, 9).map((campaign) => (
                         <div
                           key={campaign.id}
                           className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
@@ -275,103 +373,32 @@ export default function MasterCampaigns() {
                               {campaign.status}
                             </Badge>
                           </div>
-                          <div className="text-xs text-muted-foreground space-y-1">
-                            <div className="flex justify-between">
-                              <span>Views:</span>
-                              <span>{campaign.total_views?.toLocaleString() || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Engagement:</span>
-                              <span>{campaign.total_engagement?.toLocaleString() || 0}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Rate:</span>
-                              <span>{campaign.engagement_rate?.toFixed(2) || 0}%</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Date:</span>
-                              <span>{format(new Date(campaign.campaign_date), 'MMM d, yyyy')}</span>
-                            </div>
+                          <div className="text-xs text-muted-foreground">
+                            <p>{format(new Date(campaign.campaign_date), 'MMM d, yyyy')}</p>
+                            <p>{campaign.clients?.name}</p>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : searchTerm ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No master campaigns found</h3>
-                <p className="text-muted-foreground">
-                  No master campaigns match your search criteria.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Link2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No master campaigns yet</h3>
-                <p className="text-muted-foreground">
-                  Start by linking campaigns together to create master campaigns.
-                </p>
-              </CardContent>
-            </Card>
-          )}
+                    {orphanedCampaigns.length > 9 && (
+                      <p className="text-sm text-muted-foreground mt-4 text-center">
+                        And {orphanedCampaigns.length - 9} more unlinked campaigns...
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
 
-          {/* Unlinked Campaigns Section */}
-          {orphanedCampaigns.length > 0 && (
-            <Card className="border-l-4 border-l-muted">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-muted-foreground" />
-                  Unlinked Campaigns
-                </CardTitle>
-                <CardDescription>
-                  {orphanedCampaigns.length} campaigns not linked to any master campaign
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {orphanedCampaigns.slice(0, 9).map((campaign) => (
-                    <div
-                      key={campaign.id}
-                      className="border rounded-lg p-3 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h5 className="font-medium text-sm">{campaign.brand_name}</h5>
-                          <p className="text-xs text-muted-foreground">
-                            {campaign.creators?.name}
-                          </p>
-                        </div>
-                        <Badge variant={
-                          campaign.status === 'completed' ? 'default' :
-                          campaign.status === 'analyzing' ? 'secondary' :
-                          campaign.status === 'error' ? 'destructive' : 'outline'
-                        } className="text-xs">
-                          {campaign.status}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <p>{format(new Date(campaign.campaign_date), 'MMM d, yyyy')}</p>
-                        <p>{campaign.clients?.name}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {orphanedCampaigns.length > 9 && (
-                  <p className="text-sm text-muted-foreground mt-4 text-center">
-                    And {orphanedCampaigns.length - 9} more unlinked campaigns...
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
+          <TabsContent value="master-campaigns">
+            <MasterCampaignManagement />
+          </TabsContent>
+
+          <TabsContent value="creators">
+            <CreatorManagement />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
