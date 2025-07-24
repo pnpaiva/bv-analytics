@@ -47,14 +47,18 @@ export function useCreateUserAccount() {
   
   return useMutation({
     mutationFn: async ({ email, password, role }: { email: string; password: string; role: AppRole }) => {
-      // First create the user account
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // Create the user account using Supabase Admin API
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
-        email_confirm: true, // Auto-confirm for admin-created accounts
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`
+        }
       });
       
       if (authError) throw authError;
+      
+      if (!authData.user) throw new Error('User creation failed');
       
       // Then assign the role
       const { error: roleError } = await supabase
@@ -88,11 +92,10 @@ export function useClientAccounts() {
     queryFn: async () => {
       if (!isAdmin) return [];
       
-      // Get user roles first
+      // Get all user roles
       const { data: userRoles, error: roleError } = await supabase
         .from('user_roles')
         .select('*')
-        .eq('role', 'client')
         .order('created_at', { ascending: false });
       
       if (roleError) throw roleError;
