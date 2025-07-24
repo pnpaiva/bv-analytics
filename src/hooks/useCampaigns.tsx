@@ -12,6 +12,7 @@ export interface Campaign {
   total_engagement: number;
   engagement_rate: number;
   campaign_date: string;
+  campaign_month?: string;
   deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;

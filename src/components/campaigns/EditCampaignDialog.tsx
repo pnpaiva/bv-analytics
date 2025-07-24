@@ -19,13 +19,17 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Campaign } from '@/hooks/useCampaigns';
+import { useCreators } from '@/hooks/useCreators';
+import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Trash2, Plus, Edit3 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ClientCombobox } from '@/components/ui/client-combobox';
 
 interface EditCampaignDialogProps {
   campaign: Campaign | null;
@@ -35,6 +39,12 @@ interface EditCampaignDialogProps {
 }
 
 const formSchema = z.object({
+  brand_name: z.string().min(1, 'Brand name is required'),
+  creator_id: z.string().min(1, 'Creator is required'),
+  campaign_date: z.string().min(1, 'Campaign date is required'),
+  campaign_month: z.string().optional(),
+  deal_value: z.string().optional(),
+  client_id: z.string().optional(),
   youtube: z.array(z.string().url().optional().or(z.literal(''))).default([]),
   instagram: z.array(z.string().url().optional().or(z.literal(''))).default([]),
   tiktok: z.array(z.string().url().optional().or(z.literal(''))).default([]),
@@ -47,9 +57,18 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
   const [isLoading, setIsLoading] = useState(false);
   const [existingMasterCampaigns, setExistingMasterCampaigns] = useState<string[]>([]);
 
+  const { data: creators = [] } = useCreators();
+  const { data: masterCampaigns = [] } = useMasterCampaigns();
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      brand_name: '',
+      creator_id: '',
+      campaign_date: '',
+      campaign_month: '',
+      deal_value: '',
+      client_id: '',
       youtube: [],
       instagram: [],
       tiktok: [],
@@ -85,6 +104,12 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
     if (campaign) {
       const contentUrls = campaign.content_urls || {};
       form.reset({
+        brand_name: campaign.brand_name,
+        creator_id: campaign.creator_id,
+        campaign_date: campaign.campaign_date,
+        campaign_month: campaign.campaign_month || '',
+        deal_value: campaign.deal_value?.toString() || '',
+        client_id: campaign.client_id || '',
         youtube: contentUrls.youtube || [''],
         instagram: contentUrls.instagram || [''],
         tiktok: contentUrls.tiktok || [''],
@@ -120,6 +145,12 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       const { error } = await supabase
         .from('campaigns')
         .update({
+          brand_name: data.brand_name,
+          creator_id: data.creator_id,
+          campaign_date: data.campaign_date,
+          campaign_month: data.campaign_month || null,
+          deal_value: data.deal_value ? parseFloat(data.deal_value) : null,
+          client_id: data.client_id || null,
           content_urls: cleanedData,
           master_campaign_name: data.masterCampaignName === '__no_master__' ? null : data.masterCampaignName || null,
           updated_at: new Date().toISOString(),
@@ -133,7 +164,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       onClose();
     } catch (error) {
       console.error('Error updating campaign:', error);
-      toast.error('Failed to update campaign URLs');
+      toast.error('Failed to update campaign');
     } finally {
       setIsLoading(false);
     }
@@ -196,15 +227,14 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit3 className="w-5 h-5" />
-            Edit Campaign URLs
+            Edit Campaign
           </DialogTitle>
           <DialogDescription>
-            Update the content URLs for "{campaign.brand_name}" campaign. 
-            You can add multiple URLs for each platform.
+            Update all campaign details for "{campaign.brand_name}".
           </DialogDescription>
           <div className="flex items-center gap-2 pt-2">
             <Badge variant="outline">Creator: {campaign.creators?.name}</Badge>
@@ -216,32 +246,143 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Master Campaign Selection */}
+            {/* Basic Campaign Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="brand_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand Name *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter brand name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="creator_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Creator *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select creator" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {creators.map((creator) => (
+                          <SelectItem key={creator.id} value={creator.id}>
+                            {creator.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Date and Campaign Month */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="campaign_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Date *</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="campaign_month"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Month</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., January 2024, Q1 2024" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Deal Value and Master Campaign */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="deal_value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deal Value</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="masterCampaignName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Master Campaign</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select master campaign (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__no_master__">No Master Campaign</SelectItem>
+                        {masterCampaigns.map((masterCampaign: any) => (
+                          <SelectItem key={masterCampaign.name} value={masterCampaign.name}>
+                            {masterCampaign.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Client */}
             <FormField
               control={form.control}
-              name="masterCampaignName"
+              name="client_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Master Campaign</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select master campaign (optional)" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="__no_master__">No Master Campaign</SelectItem>
-                      {existingMasterCampaigns.map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormLabel>Client</FormLabel>
+                  <FormControl>
+                    <ClientCombobox
+                      value={field.value || ''}
+                      onValueChange={field.onChange}
+                      placeholder="Select or create client..."
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Master Campaign Selection */}
+            {/* Removed duplicate master campaign field */}
 
             {renderUrlFields('youtube', 'YouTube')}
             {renderUrlFields('instagram', 'Instagram')}
