@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { Trash2, Plus, Edit3 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ClientCombobox } from '@/components/ui/client-combobox';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface EditCampaignDialogProps {
   campaign: Campaign | null;
@@ -45,6 +46,7 @@ const formSchema = z.object({
   campaign_month: z.string().optional(),
   deal_value: z.string().optional(),
   client_id: z.string().optional(),
+  logo_url: z.string().optional(),
   youtube: z.array(z.string().url().optional().or(z.literal(''))).default([]),
   instagram: z.array(z.string().url().optional().or(z.literal(''))).default([]),
   tiktok: z.array(z.string().url().optional().or(z.literal(''))).default([]),
@@ -69,6 +71,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       campaign_month: '',
       deal_value: '',
       client_id: '',
+      logo_url: '',
       youtube: [],
       instagram: [],
       tiktok: [],
@@ -110,6 +113,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         campaign_month: campaign.campaign_month || '',
         deal_value: campaign.deal_value?.toString() || '',
         client_id: campaign.client_id || '',
+        logo_url: campaign.logo_url || '',
         youtube: contentUrls.youtube || [''],
         instagram: contentUrls.instagram || [''],
         tiktok: contentUrls.tiktok || [''],
@@ -151,6 +155,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
           campaign_month: data.campaign_month || null,
           deal_value: data.deal_value ? parseFloat(data.deal_value) : null,
           client_id: data.client_id || null,
+          logo_url: data.logo_url || null,
           content_urls: cleanedData,
           master_campaign_name: data.masterCampaignName === '__no_master__' ? null : data.masterCampaignName || null,
           updated_at: new Date().toISOString(),
@@ -383,6 +388,23 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
 
             {/* Master Campaign Selection */}
             {/* Removed duplicate master campaign field */}
+
+            {/* Campaign Logo */}
+            <FormField
+              control={form.control}
+              name="logo_url"
+              render={({ field }) => (
+                <FormItem>
+                  <ImageUpload
+                    value={field.value || ''}
+                    onValueChange={field.onChange}
+                    label="Campaign Logo"
+                    placeholder="Upload company logo"
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {renderUrlFields('youtube', 'YouTube')}
             {renderUrlFields('instagram', 'Instagram')}

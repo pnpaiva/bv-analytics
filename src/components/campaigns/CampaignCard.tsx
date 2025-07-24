@@ -163,19 +163,28 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
       <Card className="hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="text-lg">{campaign.brand_name}</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {campaign.creators?.name || 'Unknown Creator'}
-            </p>
-            {campaign.master_campaign_name && (
-              <div className="flex items-center gap-1 mt-2">
-                <Link2 className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">
-                  Part of "{campaign.master_campaign_name}"
-                </span>
-              </div>
+          <div className="flex items-center gap-3">
+            {campaign.logo_url && (
+              <img 
+                src={campaign.logo_url} 
+                alt={`${campaign.brand_name} logo`}
+                className="w-10 h-10 object-contain rounded border bg-white p-1 flex-shrink-0"
+              />
             )}
+            <div>
+              <CardTitle className="text-lg">{campaign.brand_name}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {campaign.creators?.name || 'Unknown Creator'}
+              </p>
+              {campaign.master_campaign_name && (
+                <div className="flex items-center gap-1 mt-2">
+                  <Link2 className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Part of "{campaign.master_campaign_name}"
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge className={getStatusColor(campaign.status)}>

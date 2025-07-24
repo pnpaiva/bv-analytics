@@ -210,8 +210,10 @@ export type Database = {
           engagement_rate: number | null
           id: string
           is_master_campaign_template: boolean | null
+          logo_url: string | null
           master_campaign_end_date: string | null
           master_campaign_id: string | null
+          master_campaign_logo_url: string | null
           master_campaign_name: string | null
           master_campaign_start_date: string | null
           status: string | null
@@ -235,8 +237,10 @@ export type Database = {
           engagement_rate?: number | null
           id?: string
           is_master_campaign_template?: boolean | null
+          logo_url?: string | null
           master_campaign_end_date?: string | null
           master_campaign_id?: string | null
+          master_campaign_logo_url?: string | null
           master_campaign_name?: string | null
           master_campaign_start_date?: string | null
           status?: string | null
@@ -260,8 +264,10 @@ export type Database = {
           engagement_rate?: number | null
           id?: string
           is_master_campaign_template?: boolean | null
+          logo_url?: string | null
           master_campaign_end_date?: string | null
           master_campaign_id?: string | null
+          master_campaign_logo_url?: string | null
           master_campaign_name?: string | null
           master_campaign_start_date?: string | null
           status?: string | null

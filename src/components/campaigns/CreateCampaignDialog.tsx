@@ -24,6 +24,7 @@ import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { ClientCombobox } from '@/components/ui/client-combobox';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { Plus, Loader2 } from 'lucide-react';
 
 export function CreateCampaignDialog() {
@@ -36,6 +37,7 @@ export function CreateCampaignDialog() {
     deal_value: '',
     client_id: '',
     master_campaign_name: '',
+    logo_url: '',
     youtube_urls: '',
     instagram_urls: '',
     tiktok_urls: '',
@@ -71,6 +73,7 @@ export function CreateCampaignDialog() {
       deal_value: formData.deal_value ? parseFloat(formData.deal_value) : undefined,
       client_id: formData.client_id || undefined,
       master_campaign_name: formData.master_campaign_name || undefined,
+      logo_url: formData.logo_url || undefined,
       content_urls,
     });
 
@@ -83,6 +86,7 @@ export function CreateCampaignDialog() {
       deal_value: '',
       client_id: '',
       master_campaign_name: '',
+      logo_url: '',
       youtube_urls: '',
       instagram_urls: '',
       tiktok_urls: '',
@@ -203,7 +207,15 @@ export function CreateCampaignDialog() {
             />
           </div>
 
-          <div className="space-y-4">
+            {/* Campaign Logo */}
+            <ImageUpload
+              value={formData.logo_url}
+              onValueChange={(url) => setFormData({ ...formData, logo_url: url })}
+              label="Campaign Logo"
+              placeholder="Upload company logo"
+            />
+
+            <div className="space-y-4">
             <Label>Content URLs</Label>
             
             <div className="space-y-2">

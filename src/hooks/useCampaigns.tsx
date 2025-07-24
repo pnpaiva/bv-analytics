@@ -18,6 +18,8 @@ export interface Campaign {
   master_campaign_name?: string;
   master_campaign_start_date?: string;
   master_campaign_end_date?: string;
+  logo_url?: string;
+  master_campaign_logo_url?: string;
   content_urls?: Record<string, string[]>;
   analytics_data?: any;
   analytics_updated_at?: string;
@@ -39,6 +41,7 @@ export interface CreateCampaignData {
   deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;
+  logo_url?: string;
   content_urls: Record<string, string[]>;
 }
 

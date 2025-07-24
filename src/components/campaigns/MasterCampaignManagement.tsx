@@ -25,6 +25,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Edit, Trash2, Loader2, Link2 } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
 import { 
   useMasterCampaigns, 
   useCreateMasterCampaign, 
@@ -36,6 +37,7 @@ interface MasterCampaignFormData {
   name: string;
   start_date: string;
   end_date: string;
+  logo_url: string;
 }
 
 export function MasterCampaignManagement() {
@@ -46,6 +48,7 @@ export function MasterCampaignManagement() {
     name: '',
     start_date: '',
     end_date: '',
+    logo_url: '',
   });
 
   const { data: masterCampaigns = [], isLoading } = useMasterCampaigns();
@@ -58,6 +61,7 @@ export function MasterCampaignManagement() {
       name: '',
       start_date: '',
       end_date: '',
+      logo_url: '',
     });
   };
 
@@ -100,6 +104,7 @@ export function MasterCampaignManagement() {
       name: masterCampaignName,
       start_date: '',
       end_date: '',
+      logo_url: '',
     });
     setEditOpen(true);
   };
@@ -168,6 +173,13 @@ export function MasterCampaignManagement() {
                   />
                 </div>
               </div>
+
+              <ImageUpload
+                value={formData.logo_url}
+                onValueChange={(url) => setFormData({ ...formData, logo_url: url })}
+                label="Master Campaign Logo"
+                placeholder="Upload campaign logo"
+              />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>
@@ -292,6 +304,13 @@ export function MasterCampaignManagement() {
                 />
               </div>
             </div>
+
+            <ImageUpload
+              value={formData.logo_url}
+              onValueChange={(url) => setFormData({ ...formData, logo_url: url })}
+              label="Master Campaign Logo"
+              placeholder="Upload campaign logo"
+            />
 
             <DialogFooter>
               <Button 
