@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Users, Plus, Mail, Calendar, Clock, Shield } from 'lucide-react';
+import { Users, Plus, Mail, Calendar, Clock, Shield, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { useCreateUserAccount, useClientAccounts, useIsAdmin } from '@/hooks/useUserRoles';
+import { useDeleteUser, useUpdateUser } from '@/hooks/useAdminUserManagement';
 import { AdminSetup } from '@/components/AdminSetup';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -26,11 +27,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { AppRole } from '@/hooks/useUserRoles';
 
 export default function AdminDashboard() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newUserData, setNewUserData] = useState({
+    email: '',
+    password: '',
+    role: 'client' as AppRole,
+  });
+  const [editUserData, setEditUserData] = useState({
     email: '',
     password: '',
     role: 'client' as AppRole,
@@ -39,6 +65,8 @@ export default function AdminDashboard() {
   const isAdmin = useIsAdmin();
   const { data: clientAccounts = [], isLoading } = useClientAccounts();
   const createUserMutation = useCreateUserAccount();
+  const deleteUserMutation = useDeleteUser();
+  const updateUserMutation = useUpdateUser();
   
   // Quick create admin account function
   const createAdminAccount = async () => {
@@ -104,6 +132,58 @@ export default function AdminDashboard() {
       
       setNewUserData({ email: '', password: '', role: 'client' });
       setIsCreateDialogOpen(false);
+    } catch (error) {
+      // Error is already handled in the mutation
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    setSelectedUser(user);
+    setEditUserData({
+      email: user.user?.email || '',
+      password: '',
+      role: user.role,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const updateData: any = { userId: selectedUser.user_id };
+      
+      // Only include changed fields
+      if (editUserData.email !== selectedUser.user?.email) {
+        updateData.email = editUserData.email;
+      }
+      if (editUserData.password) {
+        updateData.password = editUserData.password;
+      }
+      if (editUserData.role !== selectedUser.role) {
+        updateData.role = editUserData.role;
+      }
+
+      await updateUserMutation.mutateAsync(updateData);
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+    } catch (error) {
+      // Error is already handled in the mutation
+    }
+  };
+
+  const handleDeleteUser = (user: any) => {
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await deleteUserMutation.mutateAsync(selectedUser.user_id);
+      setIsDeleteDialogOpen(false);
+      setSelectedUser(null);
     } catch (error) {
       // Error is already handled in the mutation
     }
@@ -208,6 +288,86 @@ export default function AdminDashboard() {
             </Dialog>
           </div>
         </div>
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User Account</DialogTitle>
+              <DialogDescription>
+                Update user information and permissions.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-email">Email Address</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  placeholder="user@example.com"
+                  value={editUserData.email}
+                  onChange={(e) => setEditUserData(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-password">New Password (leave empty to keep current)</Label>
+                <Input
+                  id="edit-password"
+                  type="password"
+                  placeholder="New password"
+                  value={editUserData.password}
+                  onChange={(e) => setEditUserData(prev => ({ ...prev, password: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-role">Role</Label>
+                <Select value={editUserData.role} onValueChange={(value: AppRole) => setEditUserData(prev => ({ ...prev, role: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="client">Client</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateUser}
+                disabled={updateUserMutation.isPending}
+              >
+                {updateUserMutation.isPending ? 'Updating...' : 'Update User'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete User Confirmation */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete the account for {selectedUser?.user?.email}? 
+                This action cannot be undone and will permanently remove all user data.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDeleteUser}
+                className="bg-destructive hover:bg-destructive/90"
+                disabled={deleteUserMutation.isPending}
+              >
+                {deleteUserMutation.isPending ? 'Deleting...' : 'Delete User'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -318,6 +478,27 @@ export default function AdminDashboard() {
                             Last active: {format(new Date(account.user.last_sign_in_at), 'MMM d, yyyy')}
                           </span>
                         )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditUser(account)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteUser(account)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
@@ -375,6 +556,27 @@ export default function AdminDashboard() {
                             Last active: {format(new Date(account.user.last_sign_in_at), 'MMM d, yyyy')}
                           </span>
                         )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditUser(account)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteUser(account)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
