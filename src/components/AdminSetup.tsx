@@ -11,6 +11,8 @@ export function AdminSetup() {
   const createDedicatedAdmin = async () => {
     setIsCreating(true);
     try {
+      console.log('Starting admin account creation...');
+      
       // First, create the user account using regular signup
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: 'nordskogpedro@gmail.com',
@@ -20,13 +22,26 @@ export function AdminSetup() {
         }
       });
       
-      if (authError) throw authError;
+      console.log('SignUp response:', { authData, authError });
+      
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw authError;
+      }
       
       if (!authData.user) {
+        console.error('No user returned from signup');
         throw new Error('User creation failed - no user returned');
       }
       
+      console.log('User created successfully:', authData.user.id);
+      
+      // Check if user exists before creating role
+      const { data: userCheck, error: userCheckError } = await supabase.auth.admin.getUserById(authData.user.id);
+      console.log('User check:', { userCheck, userCheckError });
+      
       // Assign admin role to the new account
+      console.log('Creating role for user:', authData.user.id);
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
@@ -35,11 +50,12 @@ export function AdminSetup() {
           created_by: (await supabase.auth.getUser()).data.user?.id,
         });
       
-      if (roleError) throw roleError;
+      if (roleError) {
+        console.error('Role creation error:', roleError);
+        throw roleError;
+      }
       
       toast.success('Dedicated admin account created successfully!');
-      
-      // Show login instructions
       toast.success('You can now log in with nordskogpedro@gmail.com to access admin features');
       
     } catch (error: any) {
