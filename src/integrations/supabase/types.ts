@@ -751,6 +751,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_admin_account: {
+        Args: { admin_email: string; admin_password: string }
+        Returns: string
+      }
       direct_update_campaign: {
         Args: {
           p_campaign_id: string

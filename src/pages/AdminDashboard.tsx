@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Users, Plus, Mail, Calendar, Clock, Shield } from 'lucide-react';
 import { useCreateUserAccount, useClientAccounts, useIsAdmin } from '@/hooks/useUserRoles';
+import { AdminSetup } from '@/components/AdminSetup';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import {
