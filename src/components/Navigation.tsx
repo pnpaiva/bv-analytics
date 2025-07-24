@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { BarChart3, LogOut, User, Folder, TrendingUp, Link2 } from 'lucide-react';
+import { useIsAdmin } from '@/hooks/useUserRoles';
+import { BarChart3, LogOut, User, Folder, TrendingUp, Link2, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -12,15 +13,10 @@ import { cn } from '@/lib/utils';
 
 export function Navigation() {
   const { user, signOut } = useAuth();
+  const isAdmin = useIsAdmin();
   const location = useLocation();
 
   const navItems = [
-    {
-      href: '/campaigns',
-      label: 'Campaigns',
-      icon: Folder,
-      active: location.pathname === '/campaigns'
-    },
     {
       href: '/analytics',
       label: 'Analytics',
@@ -28,11 +24,23 @@ export function Navigation() {
       active: location.pathname === '/analytics'
     },
     {
+      href: '/campaigns',
+      label: 'Campaigns',
+      icon: Folder,
+      active: location.pathname === '/campaigns'
+    },
+    {
       href: '/master-campaigns',
       label: 'Master Campaigns',
       icon: Link2,
       active: location.pathname === '/master-campaigns'
-    }
+    },
+    ...(isAdmin ? [{
+      href: '/admin',
+      label: 'Admin',
+      icon: Settings,
+      active: location.pathname === '/admin'
+    }] : [])
   ];
 
   return (

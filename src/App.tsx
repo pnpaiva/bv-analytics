@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Campaigns from "./pages/Campaigns";
 import Analytics from "./pages/Analytics";
 import MasterCampaigns from "./pages/MasterCampaigns";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,11 @@ const App = () => (
             <Route path="/master-campaigns" element={
               <ProtectedRoute>
                 <MasterCampaigns />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminDashboard />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
