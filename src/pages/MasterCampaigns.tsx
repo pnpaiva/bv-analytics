@@ -8,13 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download, Settings, UserPlus } from 'lucide-react';
+import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download, Settings, UserPlus, Building } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
 import { PDFExporter, MasterCampaignData } from '@/utils/pdfExporter';
 import { toast } from 'sonner';
 import { MasterCampaignManagement } from '@/components/campaigns/MasterCampaignManagement';
 import { CreatorManagement } from '@/components/campaigns/CreatorManagement';
+import { ClientManagement } from '@/components/campaigns/ClientManagement';
 
 interface MasterCampaign {
   name: string;
@@ -178,7 +179,7 @@ export default function MasterCampaigns() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
             <TabsTrigger value="master-campaigns">
               <Settings className="w-4 h-4 mr-2" />
@@ -187,6 +188,10 @@ export default function MasterCampaigns() {
             <TabsTrigger value="creators">
               <UserPlus className="w-4 h-4 mr-2" />
               Creators
+            </TabsTrigger>
+            <TabsTrigger value="clients">
+              <Building className="w-4 h-4 mr-2" />
+              Clients
             </TabsTrigger>
           </TabsList>
 
@@ -397,6 +402,10 @@ export default function MasterCampaigns() {
 
           <TabsContent value="creators">
             <CreatorManagement />
+          </TabsContent>
+
+          <TabsContent value="clients">
+            <ClientManagement />
           </TabsContent>
         </Tabs>
       </div>

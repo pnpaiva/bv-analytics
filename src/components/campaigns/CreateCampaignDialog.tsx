@@ -23,6 +23,7 @@ import { useCreateCampaign } from '@/hooks/useCampaigns';
 import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
+import { ClientCombobox } from '@/components/ui/client-combobox';
 import { Plus, Loader2 } from 'lucide-react';
 
 export function CreateCampaignDialog() {
@@ -195,21 +196,11 @@ export function CreateCampaignDialog() {
 
           <div className="space-y-2">
             <Label htmlFor="client_id">Client</Label>
-            <Select
+            <ClientCombobox
               value={formData.client_id}
               onValueChange={(value) => setFormData({ ...formData, client_id: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select client (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Select or create client..."
+            />
           </div>
 
           <div className="space-y-4">
