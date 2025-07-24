@@ -45,22 +45,57 @@ Deno.serve(async (req) => {
       throw new Error('Campaign not found');
     }
 
-    console.log('Campaign content_urls:', campaign.content_urls);
+    // Get campaign creators and their content URLs
+    const { data: campaignCreators, error: creatorsError } = await supabase
+      .from('campaign_creators')
+      .select('*')
+      .eq('campaign_id', campaignId);
+
+    if (creatorsError) {
+      console.error('Error fetching campaign creators:', creatorsError);
+      throw new Error('Failed to fetch campaign creators');
+    }
+
+    console.log('Campaign creators found:', campaignCreators?.length || 0);
 
     let totalViews = 0;
     let totalEngagement = 0;
     let platformResults: any = {};
 
-    // Process content URLs if they exist
-    if (campaign.content_urls && typeof campaign.content_urls === 'object') {
-      const urls = campaign.content_urls as Record<string, string[]>;
+    // Process each creator's content URLs individually
+    if (campaignCreators && campaignCreators.length > 0) {
+      // Aggregate all URLs by platform from all creators
+      const allUrls: Record<string, string[]> = {
+        youtube: [],
+        instagram: [],
+        tiktok: []
+      };
+
+      // Collect all URLs from all creators
+      for (const creator of campaignCreators) {
+        if (creator.content_urls && typeof creator.content_urls === 'object') {
+          const urls = creator.content_urls as Record<string, string[]>;
+          
+          if (urls.youtube && Array.isArray(urls.youtube)) {
+            allUrls.youtube.push(...urls.youtube.filter(url => url.trim()));
+          }
+          if (urls.instagram && Array.isArray(urls.instagram)) {
+            allUrls.instagram.push(...urls.instagram.filter(url => url.trim()));
+          }
+          if (urls.tiktok && Array.isArray(urls.tiktok)) {
+            allUrls.tiktok.push(...urls.tiktok.filter(url => url.trim()));
+          }
+        }
+      }
+
+      console.log('Aggregated URLs:', allUrls);
       
       // Process YouTube URLs
-      if (urls.youtube && Array.isArray(urls.youtube) && urls.youtube.length > 0) {
-        console.log('Processing YouTube URLs:', urls.youtube.length);
+      if (allUrls.youtube.length > 0) {
+        console.log('Processing YouTube URLs:', allUrls.youtube.length);
         platformResults.youtube = [];
         
-        for (const url of urls.youtube) {
+        for (const url of allUrls.youtube) {
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/fetch-youtube-analytics`, {
               method: 'POST',
@@ -85,11 +120,11 @@ Deno.serve(async (req) => {
       }
 
       // Process Instagram URLs
-      if (urls.instagram && Array.isArray(urls.instagram) && urls.instagram.length > 0) {
-        console.log('Processing Instagram URLs:', urls.instagram.length);
+      if (allUrls.instagram.length > 0) {
+        console.log('Processing Instagram URLs:', allUrls.instagram.length);
         platformResults.instagram = [];
         
-        for (const url of urls.instagram) {
+        for (const url of allUrls.instagram) {
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/fetch-instagram-analytics`, {
               method: 'POST',
@@ -114,11 +149,11 @@ Deno.serve(async (req) => {
       }
 
       // Process TikTok URLs
-      if (urls.tiktok && Array.isArray(urls.tiktok) && urls.tiktok.length > 0) {
-        console.log('Processing TikTok URLs:', urls.tiktok.length);
+      if (allUrls.tiktok.length > 0) {
+        console.log('Processing TikTok URLs:', allUrls.tiktok.length);
         platformResults.tiktok = [];
         
-        for (const url of urls.tiktok) {
+        for (const url of allUrls.tiktok) {
           try {
             const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tiktok-analytics`, {
               method: 'POST',
