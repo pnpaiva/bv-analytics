@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useCampaigns } from '@/hooks/useCampaigns';
 import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
+import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,12 +39,14 @@ export default function Analytics() {
   const { data: campaigns = [], isLoading } = useCampaigns();
   const { data: creators = [] } = useCreators();
   const { data: clients = [] } = useClients();
+  const { data: masterCampaigns = [] } = useMasterCampaigns();
 
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [creatorFilters, setCreatorFilters] = useState<string[]>([]);
   const [clientFilters, setClientFilters] = useState<string[]>([]);
+  const [masterCampaignFilters, setMasterCampaignFilters] = useState<string[]>([]);
   const [creatorViewMode, setCreatorViewMode] = useState(false);
 
   // Filter campaigns based on search and filters
@@ -51,15 +54,18 @@ export default function Analytics() {
     return campaigns.filter(campaign => {
       const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            campaign.creators?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           campaign.clients?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                           campaign.clients?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           campaign.master_campaign_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
       const matchesCreator = creatorFilters.length === 0 || creatorFilters.includes(campaign.creator_id);
       const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
+      const matchesMasterCampaign = masterCampaignFilters.length === 0 || 
+        (campaign.master_campaign_name && masterCampaignFilters.includes(campaign.master_campaign_name));
 
-      return matchesSearch && matchesStatus && matchesCreator && matchesClient;
+      return matchesSearch && matchesStatus && matchesCreator && matchesClient && matchesMasterCampaign;
     });
-  }, [campaigns, searchTerm, statusFilter, creatorFilters, clientFilters]);
+  }, [campaigns, searchTerm, statusFilter, creatorFilters, clientFilters, masterCampaignFilters]);
 
   // Calculate aggregate metrics for selected campaigns
   const aggregateMetrics = useMemo((): AggregateMetrics => {
@@ -216,6 +222,18 @@ export default function Analytics() {
     setClientFilters(prev => prev.filter(id => id !== clientId));
   };
 
+  const handleMasterCampaignFilterChange = (masterCampaignName: string) => {
+    setMasterCampaignFilters(prev => 
+      prev.includes(masterCampaignName) 
+        ? prev.filter(name => name !== masterCampaignName)
+        : [...prev, masterCampaignName]
+    );
+  };
+
+  const removeMasterCampaignFilter = (masterCampaignName: string) => {
+    setMasterCampaignFilters(prev => prev.filter(name => name !== masterCampaignName));
+  };
+
   const handleCampaignSelection = (campaignId: string, checked: boolean) => {
     if (checked) {
       setSelectedCampaigns(prev => [...prev, campaignId]);
@@ -311,7 +329,7 @@ export default function Analytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="search">Search</Label>
                 <div className="relative">
@@ -413,6 +431,41 @@ export default function Analytics() {
                           </Badge>
                         ) : null;
                       })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="masterCampaign">Master Campaigns</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={handleMasterCampaignFilterChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select master campaigns..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {masterCampaigns.map((masterCampaign) => (
+                        <SelectItem key={masterCampaign.name} value={masterCampaign.name}>
+                          {masterCampaign.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {masterCampaignFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {masterCampaignFilters.map((masterCampaignName) => (
+                        <Badge key={masterCampaignName} variant="secondary" className="text-xs">
+                          {masterCampaignName}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-auto p-0 ml-1"
+                            onClick={() => removeMasterCampaignFilter(masterCampaignName)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </Badge>
+                      ))}
                     </div>
                   )}
                 </div>

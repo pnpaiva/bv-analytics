@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { BarChart3, TrendingUp, Users, Zap } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Shield, Target, Database } from 'lucide-react';
 
 const Index = () => {
   const { user } = useAuth();
@@ -23,57 +23,106 @@ const Index = () => {
             <img src="/lovable-uploads/4add0e07-79ba-4808-834f-029555e0d6f7.png" alt="BV Analytics" className="h-12 w-12 mr-4" />
             <h1 className="text-4xl font-bold">BV Analytics</h1>
           </div>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Track, analyze, and optimize your influencer marketing campaigns across YouTube, Instagram, and TikTok with real-time analytics and insights.
-          </p>
+          <div className="bg-card border rounded-lg p-8 mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Internal Analytics Platform</h2>
+            <p className="text-lg text-muted-foreground mb-6 max-w-3xl mx-auto">
+              Welcome to Beyond Views Analytics - our comprehensive internal tool for managing influencer marketing campaigns. 
+              This platform allows you to track performance across YouTube, Instagram, and TikTok, manage creator relationships, 
+              and generate detailed analytics reports for our clients.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-4xl mx-auto mb-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">What You Can Do:</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    Create and manage marketing campaigns
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-primary" />
+                    Organize creator rosters and client relationships
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    Track real-time analytics across all platforms
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Database className="h-4 w-4 text-primary" />
+                    Generate comprehensive performance reports
+                  </li>
+                </ul>
+              </div>
+              <div className="space-y-4">
+                <h3 className="font-semibold text-lg">Access Levels:</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span><strong>Admin:</strong> Full system access and user management</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <span><strong>Client:</strong> View assigned campaigns and analytics</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
           <Button 
             size="lg" 
             onClick={() => navigate('/auth')}
             className="text-lg px-8 py-6"
           >
-            Get Started
+            Log In to Platform
           </Button>
         </div>
 
-        {/* Features Grid */}
+        {/* Key Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           <div className="text-center p-6 rounded-lg border bg-card">
             <TrendingUp className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Real-time Analytics</h3>
+            <h3 className="text-xl font-semibold mb-2">Campaign Management</h3>
             <p className="text-muted-foreground">
-              Get instant insights into your campaign performance with live data from all major social platforms.
+              Create, organize, and track influencer marketing campaigns with detailed analytics and performance metrics.
             </p>
           </div>
           
           <div className="text-center p-6 rounded-lg border bg-card">
             <Users className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Multi-Platform Support</h3>
+            <h3 className="text-xl font-semibold mb-2">Creator & Client Management</h3>
             <p className="text-muted-foreground">
-              Track campaigns across YouTube, Instagram, and TikTok from a single, unified dashboard.
+              Maintain comprehensive databases of creators and clients with detailed performance history and contact information.
             </p>
           </div>
           
           <div className="text-center p-6 rounded-lg border bg-card">
-            <Zap className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Advanced Insights</h3>
+            <BarChart3 className="h-12 w-12 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Analytics & Reporting</h3>
             <p className="text-muted-foreground">
-              Discover engagement patterns, ROI metrics, and actionable insights to optimize your campaigns.
+              Generate detailed reports with cross-platform analytics, engagement metrics, and ROI calculations for client presentations.
             </p>
           </div>
         </div>
 
-        {/* CTA Section */}
+        {/* Quick Start Guide */}
         <div className="text-center bg-primary/5 rounded-lg p-8 border">
-          <h2 className="text-2xl font-bold mb-4">Ready to supercharge your campaigns?</h2>
+          <h2 className="text-2xl font-bold mb-4">Getting Started</h2>
           <p className="text-muted-foreground mb-6">
-            Join thousands of marketers who trust our platform for their influencer marketing analytics.
+            Log in with your company credentials to access campaign data, creator rosters, and analytics tools. 
+            New to the platform? Contact your administrator for account setup.
           </p>
-          <Button 
-            variant="outline"
-            onClick={() => navigate('/auth')}
-          >
-            Learn More
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={() => navigate('/auth')}
+            >
+              Access Platform
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => window.open('mailto:admin@beyond-views.com', '_blank')}
+            >
+              Contact Admin
+            </Button>
+          </div>
         </div>
       </div>
     </div>
