@@ -254,7 +254,7 @@ export type Database = {
           client_name: string | null
           content_urls: Json | null
           created_at: string
-          creator_id: string
+          creator_id: string | null
           deal_value: number | null
           engagement_rate: number | null
           id: string
@@ -281,7 +281,7 @@ export type Database = {
           client_name?: string | null
           content_urls?: Json | null
           created_at?: string
-          creator_id: string
+          creator_id?: string | null
           deal_value?: number | null
           engagement_rate?: number | null
           id?: string
@@ -308,7 +308,7 @@ export type Database = {
           client_name?: string | null
           content_urls?: Json | null
           created_at?: string
-          creator_id?: string
+          creator_id?: string | null
           deal_value?: number | null
           engagement_rate?: number | null
           id?: string
