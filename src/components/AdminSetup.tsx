@@ -11,14 +11,20 @@ export function AdminSetup() {
   const createDedicatedAdmin = async () => {
     setIsCreating(true);
     try {
-      // Create the dedicated admin account
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      // First, create the user account using regular signup
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: 'nordskogpedro@gmail.com',
         password: 'Nense123nense!',
-        email_confirm: true,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth`
+        }
       });
       
       if (authError) throw authError;
+      
+      if (!authData.user) {
+        throw new Error('User creation failed - no user returned');
+      }
       
       // Assign admin role to the new account
       const { error: roleError } = await supabase
@@ -38,7 +44,7 @@ export function AdminSetup() {
       
     } catch (error: any) {
       console.error('Error creating admin account:', error);
-      if (error.message?.includes('already been registered')) {
+      if (error.message?.includes('already been registered') || error.message?.includes('already registered')) {
         toast.error('Admin account already exists. You can log in with nordskogpedro@gmail.com');
       } else {
         toast.error(`Failed to create admin account: ${error.message}`);
