@@ -88,7 +88,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         youtube: contentUrls.youtube || [''],
         instagram: contentUrls.instagram || [''],
         tiktok: contentUrls.tiktok || [''],
-        masterCampaignName: campaign.master_campaign_name || '',
+        masterCampaignName: campaign.master_campaign_name || '__no_master__',
       });
     }
   }, [campaign, form]);
@@ -121,7 +121,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         .from('campaigns')
         .update({
           content_urls: cleanedData,
-          master_campaign_name: data.masterCampaignName || null,
+          master_campaign_name: data.masterCampaignName === '__no_master__' ? null : data.masterCampaignName || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', campaign.id);
@@ -230,7 +230,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No Master Campaign</SelectItem>
+                      <SelectItem value="__no_master__">No Master Campaign</SelectItem>
                       {existingMasterCampaigns.map((name) => (
                         <SelectItem key={name} value={name}>
                           {name}
