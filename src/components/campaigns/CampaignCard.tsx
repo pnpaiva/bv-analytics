@@ -242,7 +242,7 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
         
         <div className="text-sm text-muted-foreground">
           <p>Rate: {campaign.engagement_rate.toFixed(2)}%</p>
-          <p>Created: {format(new Date(campaign.created_at), 'MMM d, yyyy')}</p>
+          <p>Month: {campaign.campaign_month || format(new Date(campaign.campaign_date), 'MMM yyyy')}</p>
           {campaign.clients && (
             <p>Client: {campaign.clients.name}</p>
           )}
