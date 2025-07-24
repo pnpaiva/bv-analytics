@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
+import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download } from 'lucide-react';
@@ -35,6 +36,7 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
+  const { data: campaignCreators = [] } = useCampaignCreators(campaign.id);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -113,16 +115,25 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
   };
 
   const renderContentUrls = () => {
-    const contentUrls = campaign.content_urls;
-    if (!contentUrls || typeof contentUrls !== 'object') return null;
+    // Get URLs from campaign creators instead of campaign.content_urls
+    if (campaignCreators.length === 0) return null;
 
-    const allUrls: Array<{ platform: string; url: string }> = [];
+    const allUrls: Array<{ platform: string; url: string; creatorName: string }> = [];
     
-    Object.entries(contentUrls).forEach(([platform, urls]) => {
-      if (Array.isArray(urls)) {
-        urls.forEach((url) => {
-          if (url && url.trim()) {
-            allUrls.push({ platform, url: url.trim() });
+    campaignCreators.forEach((campaignCreator) => {
+      const contentUrls = campaignCreator.content_urls;
+      if (contentUrls && typeof contentUrls === 'object') {
+        Object.entries(contentUrls).forEach(([platform, urls]) => {
+          if (Array.isArray(urls)) {
+            urls.forEach((url) => {
+              if (url && url.trim()) {
+                allUrls.push({ 
+                  platform, 
+                  url: url.trim(),
+                  creatorName: campaignCreator.creators?.name || 'Unknown Creator'
+                });
+              }
+            });
           }
         });
       }
@@ -145,7 +156,12 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
                 className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
               >
                 <IconComponent className="h-4 w-4 flex-shrink-0" />
-                <span className="capitalize font-medium">{item.platform}:</span>
+                <div className="flex items-center gap-1">
+                  <span className="capitalize font-medium">{item.platform}:</span>
+                  <span className="text-xs bg-muted px-1 py-0.5 rounded">
+                    {item.creatorName}
+                  </span>
+                </div>
                 <span className="truncate group-hover:underline flex-1">
                   {item.url.replace(/^https?:\/\//, '')}
                 </span>
@@ -174,7 +190,16 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             <div>
               <CardTitle className="text-lg">{campaign.brand_name}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {campaign.creators?.name || 'Unknown Creator'}
+                {campaignCreators.length > 0 ? (
+                  campaignCreators.map((creator, index) => (
+                    <span key={creator.id}>
+                      {creator.creators?.name}
+                      {index < campaignCreators.length - 1 && ', '}
+                    </span>
+                  ))
+                ) : (
+                  'No creators assigned'
+                )}
               </p>
               {campaign.master_campaign_name && (
                 <div className="flex items-center gap-1 mt-2">

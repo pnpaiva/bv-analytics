@@ -194,6 +194,55 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_creators: {
+        Row: {
+          campaign_id: string
+          content_urls: Json | null
+          created_at: string
+          creator_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          content_urls?: Json | null
+          created_at?: string
+          creator_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          content_urls?: Json | null
+          created_at?: string
+          creator_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_campaign_creators_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_creators_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_analytics"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_creators_creator"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           analytics_data: Json | null

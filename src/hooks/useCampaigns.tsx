@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 export interface Campaign {
   id: string;
   brand_name: string;
-  creator_id: string;
+  creator_id?: string; // Made optional since we now use campaign_creators table
   user_id: string;
   status: 'draft' | 'analyzing' | 'completed' | 'error';
   total_views: number;
@@ -35,14 +35,20 @@ export interface Campaign {
 
 export interface CreateCampaignData {
   brand_name: string;
-  creator_id: string;
   campaign_date: string;
   campaign_month?: string;
   deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;
   logo_url?: string;
-  content_urls: Record<string, string[]>;
+  creators: Array<{
+    creator_id: string;
+    content_urls: {
+      youtube: string[];
+      instagram: string[];
+      tiktok: string[];
+    };
+  }>;
 }
 
 export function useCampaigns() {
@@ -53,7 +59,6 @@ export function useCampaigns() {
         .from('campaigns')
         .select(`
           *,
-          creators (name),
           clients (name)
         `)
         .order('created_at', { ascending: false });
@@ -76,20 +81,40 @@ export function useCreateCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      const { creators, ...campaignData } = data;
+      
       const { data: campaign, error } = await supabase
         .from('campaigns')
-        .insert([{
-          ...data,
+        .insert({
+          ...campaignData,
           user_id: user.id,
           status: 'draft',
           total_views: 0,
           total_engagement: 0,
           engagement_rate: 0,
-        }])
+          creator_id: null, // Set to null since we're using campaign_creators now
+          content_urls: {},
+        })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Insert campaign creators
+      if (creators && creators.length > 0) {
+        const campaignCreatorsData = creators.map(creator => ({
+          campaign_id: campaign.id,
+          creator_id: creator.creator_id,
+          content_urls: creator.content_urls,
+        }));
+
+        const { error: creatorsError } = await supabase
+          .from('campaign_creators')
+          .insert(campaignCreatorsData);
+
+        if (creatorsError) throw creatorsError;
+      }
+
       return campaign;
     },
     onSuccess: () => {

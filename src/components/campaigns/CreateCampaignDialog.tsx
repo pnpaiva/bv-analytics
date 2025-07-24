@@ -20,77 +20,84 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useCreateCampaign } from '@/hooks/useCampaigns';
-import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { ClientCombobox } from '@/components/ui/client-combobox';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { CampaignCreatorManager } from './CampaignCreatorManager';
 import { Plus, Loader2 } from 'lucide-react';
 
 export function CreateCampaignDialog() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     brand_name: '',
-    creator_id: '',
     campaign_date: '',
     campaign_month: '',
     deal_value: '',
     client_id: '',
     master_campaign_name: '',
     logo_url: '',
-    youtube_urls: '',
-    instagram_urls: '',
-    tiktok_urls: '',
   });
 
+  const [creators, setCreators] = useState([
+    {
+      creator_id: '',
+      content_urls: {
+        youtube: [''],
+        instagram: [''],
+        tiktok: [''],
+      },
+    },
+  ]);
+
   const createCampaign = useCreateCampaign();
-  const { data: creators = [] } = useCreators();
   const { data: clients = [] } = useClients();
   const { data: masterCampaigns = [] } = useMasterCampaigns();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const content_urls: Record<string, string[]> = {};
-    
-    if (formData.youtube_urls.trim()) {
-      content_urls.youtube = formData.youtube_urls.split('\n').filter(url => url.trim());
-    }
-    if (formData.instagram_urls.trim()) {
-      content_urls.instagram = formData.instagram_urls.split('\n').filter(url => url.trim());
-    }
-    if (formData.tiktok_urls.trim()) {
-      content_urls.tiktok = formData.tiktok_urls.split('\n').filter(url => url.trim());
-    }
-
-    console.log('Creating campaign with content_urls:', content_urls);
+    // Clean up creators data - remove empty URLs
+    const cleanedCreators = creators.map(creator => ({
+      creator_id: creator.creator_id,
+      content_urls: {
+        youtube: creator.content_urls.youtube.filter(url => url.trim() !== ''),
+        instagram: creator.content_urls.instagram.filter(url => url.trim() !== ''),
+        tiktok: creator.content_urls.tiktok.filter(url => url.trim() !== ''),
+      },
+    })).filter(creator => creator.creator_id); // Only include creators with selected creator_id
 
     await createCampaign.mutateAsync({
       brand_name: formData.brand_name,
-      creator_id: formData.creator_id,
       campaign_date: formData.campaign_date,
       campaign_month: formData.campaign_month || undefined,
       deal_value: formData.deal_value ? parseFloat(formData.deal_value) : undefined,
       client_id: formData.client_id || undefined,
       master_campaign_name: formData.master_campaign_name || undefined,
       logo_url: formData.logo_url || undefined,
-      content_urls,
+      creators: cleanedCreators,
     });
 
     setOpen(false);
     setFormData({
       brand_name: '',
-      creator_id: '',
       campaign_date: '',
       campaign_month: '',
       deal_value: '',
       client_id: '',
       master_campaign_name: '',
       logo_url: '',
-      youtube_urls: '',
-      instagram_urls: '',
-      tiktok_urls: '',
     });
+    setCreators([
+      {
+        creator_id: '',
+        content_urls: {
+          youtube: [''],
+          instagram: [''],
+          tiktok: [''],
+        },
+      },
+    ]);
   };
 
   return (
@@ -121,24 +128,14 @@ export function CreateCampaignDialog() {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="creator_id">Creator *</Label>
-              <Select
-                value={formData.creator_id}
-                onValueChange={(value) => setFormData({ ...formData, creator_id: value })}
-                required
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select creator" />
-                </SelectTrigger>
-                <SelectContent>
-                  {creators.map((creator) => (
-                    <SelectItem key={creator.id} value={creator.id}>
-                      {creator.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="col-span-2 space-y-2">
+              <Label>Campaign Logo</Label>
+              <ImageUpload
+                value={formData.logo_url}
+                onValueChange={(url) => setFormData({ ...formData, logo_url: url })}
+                label=""
+                placeholder="Upload company logo"
+              />
             </div>
           </div>
 
@@ -207,50 +204,10 @@ export function CreateCampaignDialog() {
             />
           </div>
 
-            {/* Campaign Logo */}
-            <ImageUpload
-              value={formData.logo_url}
-              onValueChange={(url) => setFormData({ ...formData, logo_url: url })}
-              label="Campaign Logo"
-              placeholder="Upload company logo"
+            <CampaignCreatorManager
+              creators={creators}
+              onChange={setCreators}
             />
-
-            <div className="space-y-4">
-            <Label>Content URLs</Label>
-            
-            <div className="space-y-2">
-              <Label htmlFor="youtube_urls" className="text-sm">YouTube URLs (one per line)</Label>
-              <Textarea
-                id="youtube_urls"
-                placeholder="https://youtube.com/watch?v=..."
-                value={formData.youtube_urls}
-                onChange={(e) => setFormData({ ...formData, youtube_urls: e.target.value })}
-                rows={3}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="instagram_urls" className="text-sm">Instagram URLs (one per line)</Label>
-              <Textarea
-                id="instagram_urls"
-                placeholder="https://instagram.com/p/..."
-                value={formData.instagram_urls}
-                onChange={(e) => setFormData({ ...formData, instagram_urls: e.target.value })}
-                rows={3}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="tiktok_urls" className="text-sm">TikTok URLs (one per line)</Label>
-              <Textarea
-                id="tiktok_urls"
-                placeholder="https://tiktok.com/@user/video/..."
-                value={formData.tiktok_urls}
-                onChange={(e) => setFormData({ ...formData, tiktok_urls: e.target.value })}
-                rows={3}
-              />
-            </div>
-          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
