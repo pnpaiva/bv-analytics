@@ -100,14 +100,38 @@ export function useClientAccounts() {
       
       if (roleError) throw roleError;
       
-      // Get user details from auth.users for each role
+      // Get user details from the edge function instead
       const usersWithDetails = await Promise.all(
         userRoles.map(async (role) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(role.user_id);
-          return {
-            ...role,
-            user: userData.user
-          };
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return { ...role, user: null };
+
+            const response = await fetch(`https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/admin-get-users`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ userIds: [role.user_id] }),
+            });
+
+            if (!response.ok) {
+              console.error('Failed to fetch user details:', role.user_id);
+              return { ...role, user: null };
+            }
+
+            const result = await response.json();
+            const userData = result.users?.[0];
+            
+            return {
+              ...role,
+              user: userData
+            };
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+            return { ...role, user: null };
+          }
         })
       );
       

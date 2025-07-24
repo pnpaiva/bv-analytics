@@ -35,7 +35,7 @@ export function useDeleteUser() {
     },
     onSuccess: () => {
       toast.success('User deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['clientAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['client-accounts'] });
     },
     onError: (error: Error) => {
       toast.error(`Failed to delete user: ${error.message}`);
@@ -69,7 +69,7 @@ export function useUpdateUser() {
     },
     onSuccess: () => {
       toast.success('User updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['clientAccounts'] });
+      queryClient.invalidateQueries({ queryKey: ['client-accounts'] });
     },
     onError: (error: Error) => {
       toast.error(`Failed to update user: ${error.message}`);
