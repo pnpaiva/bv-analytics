@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
@@ -43,6 +44,7 @@ export default function Analytics() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [creatorFilters, setCreatorFilters] = useState<string[]>([]);
   const [clientFilters, setClientFilters] = useState<string[]>([]);
+  const [creatorViewMode, setCreatorViewMode] = useState(false);
 
   // Filter campaigns based on search and filters
   const filteredCampaigns = useMemo(() => {
@@ -113,24 +115,82 @@ export default function Analytics() {
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    const platformData = Object.entries(platformBreakdown).map(([platform, data]) => ({
-      platform: platform.charAt(0).toUpperCase() + platform.slice(1),
-      views: data.views,
-      engagement: data.engagement,
-      campaigns: data.campaigns,
-      engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
-    }));
+    const selectedCampaignData = selectedCampaigns.length > 0 
+      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+      : filteredCampaigns;
 
-    return platformData;
-  }, [platformBreakdown]);
+    if (creatorViewMode) {
+      // Group by creator
+      const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: number; creatorName: string } } = {};
+      
+      selectedCampaignData.forEach(campaign => {
+        const creatorId = campaign.creator_id;
+        const creatorName = campaign.creators?.name || 'Unknown Creator';
+        
+        if (!creatorData[creatorId]) {
+          creatorData[creatorId] = { views: 0, engagement: 0, campaigns: 0, creatorName };
+        }
+        
+        creatorData[creatorId].views += campaign.total_views || 0;
+        creatorData[creatorId].engagement += campaign.total_engagement || 0;
+        creatorData[creatorId].campaigns += 1;
+      });
+
+      return Object.values(creatorData).map((data) => ({
+        platform: data.creatorName,
+        views: data.views,
+        engagement: data.engagement,
+        campaigns: data.campaigns,
+        engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
+      }));
+    } else {
+      // Group by platform
+      const platformData = Object.entries(platformBreakdown).map(([platform, data]) => ({
+        platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+        views: data.views,
+        engagement: data.engagement,
+        campaigns: data.campaigns,
+        engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
+      }));
+
+      return platformData;
+    }
+  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode]);
 
   const pieData = useMemo(() => {
-    return Object.entries(platformBreakdown).map(([platform, data], index) => ({
-      name: platform.charAt(0).toUpperCase() + platform.slice(1),
-      value: data.views,
-      fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
-    }));
-  }, [platformBreakdown]);
+    const selectedCampaignData = selectedCampaigns.length > 0 
+      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+      : filteredCampaigns;
+
+    if (creatorViewMode) {
+      // Group by creator
+      const creatorData: { [creatorId: string]: { views: number; creatorName: string } } = {};
+      
+      selectedCampaignData.forEach(campaign => {
+        const creatorId = campaign.creator_id;
+        const creatorName = campaign.creators?.name || 'Unknown Creator';
+        
+        if (!creatorData[creatorId]) {
+          creatorData[creatorId] = { views: 0, creatorName };
+        }
+        
+        creatorData[creatorId].views += campaign.total_views || 0;
+      });
+
+      return Object.values(creatorData).map((data, index) => ({
+        name: data.creatorName,
+        value: data.views,
+        fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
+      }));
+    } else {
+      // Group by platform
+      return Object.entries(platformBreakdown).map(([platform, data], index) => ({
+        name: platform.charAt(0).toUpperCase() + platform.slice(1),
+        value: data.views,
+        fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
+      }));
+    }
+  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode]);
 
   const handleCreatorFilterChange = (creatorId: string) => {
     setCreatorFilters(prev => 
@@ -432,8 +492,20 @@ export default function Analytics() {
           {/* Bar Chart - Platform Views & Engagement */}
           <Card>
             <CardHeader>
-              <CardTitle>Platform Performance</CardTitle>
-              <CardDescription>Views and engagement by platform</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>{creatorViewMode ? 'Creator Performance' : 'Platform Performance'}</CardTitle>
+                  <CardDescription>{creatorViewMode ? 'Views and engagement by creator' : 'Views and engagement by platform'}</CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="creator-view-bar">Creator View</Label>
+                  <Switch
+                    id="creator-view-bar"
+                    checked={creatorViewMode}
+                    onCheckedChange={setCreatorViewMode}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -447,7 +519,7 @@ export default function Analytics() {
                   ]} />
                   <Legend />
                   <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
-                  <Bar dataKey="engagement" fill="hsl(var(--secondary))" name="Engagement" />
+                  <Bar dataKey="engagement" fill="hsl(var(--accent-foreground))" name="Engagement" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -456,8 +528,20 @@ export default function Analytics() {
           {/* Pie Chart - Platform Views Distribution */}
           <Card>
             <CardHeader>
-              <CardTitle>Views Distribution</CardTitle>
-              <CardDescription>Share of total views by platform</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Views Distribution</CardTitle>
+                  <CardDescription>{creatorViewMode ? 'Share of total views by creator' : 'Share of total views by platform'}</CardDescription>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="creator-view-pie">Creator View</Label>
+                  <Switch
+                    id="creator-view-pie"
+                    checked={creatorViewMode}
+                    onCheckedChange={setCreatorViewMode}
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
