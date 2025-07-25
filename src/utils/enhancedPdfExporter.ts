@@ -28,7 +28,7 @@ export class EnhancedPDFExporter {
   private pageHeight: number;
 
   constructor() {
-    this.doc = new jsPDF();
+    this.doc = new jsPDF('p', 'mm', 'a4', true); // Enable Unicode support
     this.currentY = 20;
     this.margin = 20;
     this.pageWidth = this.doc.internal.pageSize.getWidth();
@@ -137,7 +137,7 @@ export class EnhancedPDFExporter {
   }
 
   private addMiniDashboard(campaigns: Campaign[]) {
-    this.addSectionHeader('📊 Campaign Overview');
+    this.addSectionHeader('Campaign Overview');
     
     const totalViews = campaigns.reduce((sum, c) => sum + (c.total_views || 0), 0);
     const totalEngagement = campaigns.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
@@ -145,15 +145,39 @@ export class EnhancedPDFExporter {
       ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / campaigns.length 
       : 0;
 
+    // Get all individual posts from campaigns
+    const allPosts: Array<{url: string, views: number, engagement: number, engagementRate: number, platform: string, campaignName: string}> = [];
+    
+    campaigns.forEach(campaign => {
+      if (campaign.analytics_data) {
+        Object.entries(campaign.analytics_data).forEach(([platform, data]) => {
+          if (Array.isArray(data)) {
+            data.forEach((item: any) => {
+              if (item.content_url && item.views) {
+                allPosts.push({
+                  url: item.content_url,
+                  views: item.views || 0,
+                  engagement: item.engagement || 0,
+                  engagementRate: item.engagement_rate || 0,
+                  platform: platform,
+                  campaignName: campaign.brand_name
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    // Find top performing posts
+    const topPosts = [...allPosts]
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 3);
+
     // Find best performing campaign
     const bestCampaign = campaigns.reduce((best, current) => 
       (current.total_views || 0) > (best.total_views || 0) ? current : best
     , campaigns[0]);
-
-    // Find top 3 campaigns
-    const top3Campaigns = [...campaigns]
-      .sort((a, b) => (b.total_views || 0) - (a.total_views || 0))
-      .slice(0, 3);
 
     this.addKeyValuePair('Total Views', totalViews.toLocaleString());
     this.addKeyValuePair('Avg Engagement Rate', `${avgEngagementRate.toFixed(2)}%`);
@@ -161,7 +185,7 @@ export class EnhancedPDFExporter {
 
     if (bestCampaign) {
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('🏆 Best Performing Campaign:', this.margin, this.currentY);
+      this.doc.text('Best Performing Campaign:', this.margin, this.currentY);
       this.currentY += 6;
       this.addKeyValuePair('Campaign', bestCampaign.brand_name, 10);
       this.addKeyValuePair('Views', (bestCampaign.total_views || 0).toLocaleString(), 10);
@@ -169,18 +193,21 @@ export class EnhancedPDFExporter {
       this.currentY += 5;
     }
 
-    if (top3Campaigns.length > 0) {
+    if (topPosts.length > 0) {
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('🥇 Top 3 Performing Campaigns:', this.margin, this.currentY);
+      this.doc.text('Top 3 Performing Posts:', this.margin, this.currentY);
       this.currentY += 6;
       
-      top3Campaigns.forEach((campaign, index) => {
-        const emoji = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
+      topPosts.forEach((post, index) => {
+        const rankText = index === 0 ? '#1' : index === 1 ? '#2' : '#3';
         this.addKeyValuePair(
-          `${emoji} ${campaign.brand_name}`, 
-          `${(campaign.total_views || 0).toLocaleString()} views (${(campaign.engagement_rate || 0).toFixed(2)}%)`,
+          `${rankText} ${post.platform.toUpperCase()}`, 
+          `${post.views.toLocaleString()} views (${post.engagementRate.toFixed(2)}%)`,
           10
         );
+        this.addKeyValuePair('Campaign', post.campaignName, 15);
+        this.addKeyValuePair('URL', post.url.substring(0, 50) + '...', 15);
+        this.currentY += 2;
       });
     }
 

@@ -60,11 +60,8 @@ export default function Analytics() {
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
       const matchesCreator = creatorFilters.length === 0 || 
-        // Check if any selected creator matches this campaign's creator
-        creatorFilters.some(filterId => {
-          const selectedCreator = creators.find(creator => creator.id === filterId);
-          return selectedCreator && campaign.creators?.name === selectedCreator.name;
-        });
+        // Check if any selected creator matches this campaign's creator_id
+        creatorFilters.includes(campaign.creator_id);
       const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
       const matchesMasterCampaign = masterCampaignFilters.length === 0 || 
         (campaign.master_campaign_name && masterCampaignFilters.includes(campaign.master_campaign_name));
@@ -137,7 +134,9 @@ export default function Analytics() {
       
       selectedCampaignData.forEach(campaign => {
         const creatorId = campaign.creator_id;
-        const creatorName = campaign.creators?.name || 'Unknown Creator';
+        // Look up creator name from creators array
+        const creator = creators.find(c => c.id === creatorId);
+        const creatorName = creator?.name || campaign.creators?.name || 'Unknown Creator';
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, engagement: 0, campaigns: 0, creatorName };
@@ -180,7 +179,9 @@ export default function Analytics() {
       
       selectedCampaignData.forEach(campaign => {
         const creatorId = campaign.creator_id;
-        const creatorName = campaign.creators?.name || 'Unknown Creator';
+        // Look up creator name from creators array
+        const creator = creators.find(c => c.id === creatorId);
+        const creatorName = creator?.name || campaign.creators?.name || 'Unknown Creator';
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, creatorName };
@@ -202,7 +203,7 @@ export default function Analytics() {
         fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
       }));
     }
-  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode]);
+  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creators]);
 
   const handleCreatorFilterChange = (creatorId: string) => {
     setCreatorFilters(prev => 
