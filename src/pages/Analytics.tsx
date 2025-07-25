@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
+import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -58,7 +59,12 @@ export default function Analytics() {
                            campaign.master_campaign_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
-      const matchesCreator = creatorFilters.length === 0 || creatorFilters.includes(campaign.creator_id);
+      const matchesCreator = creatorFilters.length === 0 || 
+        // Check if any selected creator matches this campaign's creator
+        creatorFilters.some(filterId => {
+          const selectedCreator = creators.find(creator => creator.id === filterId);
+          return selectedCreator && campaign.creators?.name === selectedCreator.name;
+        });
       const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
       const matchesMasterCampaign = masterCampaignFilters.length === 0 || 
         (campaign.master_campaign_name && masterCampaignFilters.includes(campaign.master_campaign_name));
@@ -250,7 +256,7 @@ export default function Analytics() {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
       const campaignsToExport = selectedCampaigns.length > 0 
         ? campaigns.filter(c => selectedCampaigns.includes(c.id))
@@ -261,16 +267,17 @@ export default function Analytics() {
         return;
       }
 
-      const exporter = new PDFExporter();
-      const exportTitle = 'Campaign Analytics Report';
+      const exporter = new EnhancedPDFExporter();
+      const exportTitle = 'Enhanced Campaign Analytics Report';
       
-      exporter.exportMultipleCampaigns(campaignsToExport, exportTitle, {
+      await exporter.exportWithCharts(campaignsToExport, exportTitle, {
         includeAnalytics: true,
         includeContentUrls: true,
-        includeMasterCampaigns: true
+        includeMasterCampaigns: true,
+        includeCharts: true
       });
       
-      toast.success(`PDF report exported with ${campaignsToExport.length} campaigns`);
+      toast.success(`Enhanced PDF report exported with ${campaignsToExport.length} campaigns`);
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');
@@ -561,20 +568,22 @@ export default function Analytics() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="platform" />
-                  <YAxis />
-                  <Tooltip formatter={(value, name) => [
-                    typeof value === 'number' ? value.toLocaleString() : value,
-                    name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
-                  ]} />
-                  <Legend />
-                  <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
-                  <Bar dataKey="engagement" fill="hsl(var(--accent-foreground))" name="Engagement" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div data-chart="platform-performance">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="platform" />
+                    <YAxis />
+                    <Tooltip formatter={(value, name) => [
+                      typeof value === 'number' ? value.toLocaleString() : value,
+                      name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
+                    ]} />
+                    <Legend />
+                    <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
+                    <Bar dataKey="engagement" fill="hsl(var(--accent-foreground))" name="Engagement" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
 
@@ -597,24 +606,26 @@ export default function Analytics() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={({name, percent}) => `${name} ${(percent * 100).toFixed(1)}%`}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [value.toLocaleString(), 'Views']} />
-                </PieChart>
-              </ResponsiveContainer>
+              <div data-chart="view-distribution">
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={({name, percent}) => `${name} ${(percent * 100).toFixed(1)}%`}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [value.toLocaleString(), 'Views']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -626,7 +637,7 @@ export default function Analytics() {
             <CardDescription>Performance metrics by platform</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div data-chart="platform-breakdown" className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {Object.entries(platformBreakdown).map(([platform, data]) => (
                 <div key={platform} className="space-y-2 p-4 border rounded-lg">
                   <div className="flex items-center justify-between">

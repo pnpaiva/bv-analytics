@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
+import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Search, Filter, Download } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 import { PDFExporter } from '@/utils/pdfExporter';
+import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -36,30 +38,72 @@ export default function Campaigns() {
     setAnalyticsOpen(true);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
-      const exporter = new PDFExporter();
+      const exporter = new EnhancedPDFExporter();
       const exportTitle = searchTerm || statusFilter !== 'all' 
         ? `Filtered Campaigns Report` 
         : 'All Campaigns Report';
       
-      exporter.exportMultipleCampaigns(filteredCampaigns, exportTitle, {
+      await exporter.exportWithCharts(filteredCampaigns, exportTitle, {
         includeAnalytics: true,
         includeContentUrls: true,
-        includeMasterCampaigns: true
+        includeMasterCampaigns: true,
+        includeCharts: true
       });
       
-      toast.success('PDF report exported successfully');
+      toast.success('Enhanced PDF report exported successfully');
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');
     }
   };
 
-  const handleRefreshAll = () => {
-    refetch();
+  const handleRefreshAll = async () => {
     setRefreshAllDialogOpen(false);
-    toast.success('All campaigns refreshed');
+    
+    const campaignsToRefresh = campaigns.filter(c => c.status !== 'draft');
+    if (campaignsToRefresh.length === 0) {
+      toast.error('No campaigns to refresh');
+      return;
+    }
+
+    toast.info(`Refreshing ${campaignsToRefresh.length} campaigns...`);
+    
+    try {
+      // Refresh all campaigns in parallel
+      const refreshPromises = campaignsToRefresh.map(async (campaign) => {
+        try {
+          const response = await supabase.functions.invoke('refresh-campaign-analytics', {
+            body: { campaignId: campaign.id }
+          });
+          
+          if (response.error) {
+            console.error(`Failed to refresh campaign ${campaign.brand_name}:`, response.error);
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error(`Error refreshing campaign ${campaign.brand_name}:`, error);
+          return false;
+        }
+      });
+
+      const results = await Promise.all(refreshPromises);
+      const successCount = results.filter(Boolean).length;
+      
+      // Refetch campaigns data
+      refetch();
+      
+      if (successCount === campaignsToRefresh.length) {
+        toast.success(`All ${successCount} campaigns refreshed successfully`);
+      } else {
+        toast.warning(`${successCount} of ${campaignsToRefresh.length} campaigns refreshed successfully`);
+      }
+    } catch (error) {
+      console.error('Error during refresh all:', error);
+      toast.error('Failed to refresh campaigns');
+    }
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
