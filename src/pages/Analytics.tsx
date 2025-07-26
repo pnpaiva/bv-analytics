@@ -3,6 +3,7 @@ import { useCampaigns } from '@/hooks/useCampaigns';
 import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
+import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,13 @@ export default function Analytics() {
   const { data: creators = [] } = useCreators();
   const { data: clients = [] } = useClients();
   const { data: masterCampaigns = [] } = useMasterCampaigns();
+  
+  // Get campaign creators for all campaigns
+  const campaignCreatorsMap = useMemo(() => {
+    const map: { [campaignId: string]: any[] } = {};
+    // This will be populated by individual campaign creator queries
+    return map;
+  }, []);
 
   const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -133,10 +141,18 @@ export default function Analytics() {
       const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
-        const creatorId = campaign.creator_id;
-        // Look up creator name from creators array
+        // Get creator information from the campaign_creators relationship
+        // For now, we'll use the direct creator_id field and look up names
+        const creatorId = campaign.creator_id || 'unknown';
+        
+        // First try to find creator name from the creators list
+        let creatorName = 'Unknown Creator';
         const creator = creators.find(c => c.id === creatorId);
-        const creatorName = creator?.name || campaign.creators?.name || 'Unknown Creator';
+        if (creator) {
+          creatorName = creator.name;
+        } else if (campaign.creators?.name) {
+          creatorName = campaign.creators.name;
+        }
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, engagement: 0, campaigns: 0, creatorName };

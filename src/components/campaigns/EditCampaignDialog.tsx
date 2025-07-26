@@ -95,7 +95,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         masterCampaignName: campaign.master_campaign_name || '__no_master__',
       });
     }
-  }, [campaign, form]);
+  }, [campaign?.id]); // Only depend on campaign.id to prevent infinite rerenders
 
   // Update creators when campaign creators change
   React.useEffect(() => {
