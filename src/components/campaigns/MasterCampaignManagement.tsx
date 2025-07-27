@@ -68,14 +68,18 @@ export function MasterCampaignManagement() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await createMasterCampaign.mutateAsync({
-      name: formData.name,
-      start_date: formData.start_date || undefined,
-      end_date: formData.end_date || undefined,
-    });
-    
-    setCreateOpen(false);
-    resetForm();
+    try {
+      await createMasterCampaign.mutateAsync({
+        name: formData.name,
+        start_date: formData.start_date || undefined,
+        end_date: formData.end_date || undefined,
+      });
+      
+      setCreateOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error creating master campaign:', error);
+    }
   };
 
   const handleEdit = async (e: React.FormEvent) => {

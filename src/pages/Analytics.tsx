@@ -590,14 +590,25 @@ export default function Analytics() {
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="platform" />
-                    <YAxis />
-                    <Tooltip formatter={(value, name) => [
-                      typeof value === 'number' ? value.toLocaleString() : value,
-                      name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
-                    ]} />
+                    <YAxis tickFormatter={(value) => {
+                      if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                      if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                      return value.toString();
+                    }} />
+                    <Tooltip formatter={(value, name) => {
+                      const formatNumber = (num: number) => {
+                        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                        return num.toLocaleString();
+                      };
+                      return [
+                        typeof value === 'number' ? formatNumber(value) : value,
+                        name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
+                      ];
+                    }} />
                     <Legend />
                     <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
-                    <Bar dataKey="engagement" fill="hsl(var(--accent-foreground))" name="Engagement" />
+                    <Bar dataKey="engagement" fill="hsl(var(--brand-accent-green))" name="Engagement" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

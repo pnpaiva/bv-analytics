@@ -186,4 +186,14 @@ All colors MUST be HSL.
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--primary) / 0.5);
   }
+
+  /* Button hover fixes - change green to blue */
+  .hover\:bg-accent:hover {
+    background: hsl(var(--brand-primary-dark)) !important;
+    color: hsl(var(--brand-white)) !important;
+  }
+  
+  .hover\:text-accent-foreground:hover {
+    color: hsl(var(--brand-white)) !important;
+  }
 }

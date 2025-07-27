@@ -56,9 +56,11 @@ export function Navigation() {
           {/* Logo */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 brand-gradient rounded-lg flex items-center justify-center">
-                <span className="text-white font-heading font-black text-lg">B</span>
-              </div>
+              <img 
+                src="/lovable-uploads/f09b0589-e884-4eae-8a49-fe79fd9c060a.png" 
+                alt="Beyond Views Logo" 
+                className="w-8 h-8 rounded-lg"
+              />
               <div>
                 <h1 className="font-heading font-black text-xl text-foreground">Beyond Views</h1>
                 <p className="text-xs text-muted-foreground font-body">Analytics Platform</p>

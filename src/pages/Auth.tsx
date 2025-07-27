@@ -33,7 +33,11 @@ export default function Auth() {
       <div className="w-full max-w-md">
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-2">
-            <BarChart3 className="h-8 w-8 text-primary" />
+            <img 
+              src="/lovable-uploads/f09b0589-e884-4eae-8a49-fe79fd9c060a.png" 
+              alt="Beyond Views Logo" 
+              className="h-8 w-8"
+            />
             <h1 className="text-2xl font-bold">BV Analytics</h1>
           </div>
         </div>
