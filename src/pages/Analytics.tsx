@@ -63,13 +63,70 @@ export default function Analytics() {
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
-    const lookup: { [id: string]: string } = {};
+    const lookup = new Map<string, string>();
     creators.forEach(creator => {
-      lookup[creator.id] = creator.name;
+      lookup.set(creator.id, creator.name);
     });
-    console.log('Creator lookup map:', lookup);
     return lookup;
   }, [creators]);
+
+  // Helper function to resolve creator for a campaign
+  const resolveCreatorForCampaign = (campaign: Campaign) => {
+    // If campaign has a creator_id, use it
+    if (campaign.creator_id && creatorLookup.has(campaign.creator_id)) {
+      return {
+        id: campaign.creator_id,
+        name: creatorLookup.get(campaign.creator_id)!
+      };
+    }
+
+    // If no creator_id, try to match by platform handles
+    const analyticsData = campaign.analytics_data as any;
+    if (analyticsData && creators) {
+      for (const creator of creators) {
+        const handles = creator.platform_handles as Record<string, string>;
+        if (handles) {
+          // Check if any platform content URLs match this creator's handles
+          for (const [platform, urls] of Object.entries(analyticsData)) {
+            if (Array.isArray(urls) && handles[platform]) {
+              const handle = handles[platform].replace('@', '');
+              const hasMatchingContent = urls.some((item: any) => 
+                item.url && item.url.includes(handle)
+              );
+              if (hasMatchingContent) {
+                return {
+                  id: creator.id,
+                  name: creator.name
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Default to Via Infinda for campaigns without creator_id (common case)
+    const viaInfindaCreator = creators.find(c => c.name === "Via Infinda");
+    if (viaInfindaCreator) {
+      return {
+        id: viaInfindaCreator.id,
+        name: viaInfindaCreator.name
+      };
+    }
+
+    // Fallback to first creator if available
+    if (creators && creators.length > 0) {
+      return {
+        id: creators[0].id,
+        name: creators[0].name
+      };
+    }
+
+    return {
+      id: 'unknown',
+      name: 'Unknown Creator'
+    };
+  };
 
   // Filter campaigns based on search and filters
   const filteredCampaigns = useMemo(() => {
@@ -154,18 +211,9 @@ export default function Analytics() {
       const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
-        const creatorId = campaign.creator_id || 'unknown';
-        
-        // Use our creator lookup map first, then fallback to campaign.creators
-        let creatorName = creatorLookup[creatorId] || campaign.creators?.name || 'Unknown Creator';
-        
-        console.log('Processing campaign:', {
-          campaignId: campaign.id,
-          brandName: campaign.brand_name,
-          creatorId,
-          creatorName,
-          lookupResult: creatorLookup[creatorId]
-        });
+        const resolvedCreator = resolveCreatorForCampaign(campaign);
+        const creatorId = resolvedCreator.id;
+        const creatorName = resolvedCreator.name;
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, engagement: 0, campaigns: 0, creatorName };
@@ -207,9 +255,9 @@ export default function Analytics() {
       const creatorData: { [creatorId: string]: { views: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
-        const creatorId = campaign.creator_id || 'unknown';
-        // Use our creator lookup map first, then fallback to campaign.creators
-        const creatorName = creatorLookup[creatorId] || campaign.creators?.name || 'Unknown Creator';
+        const resolvedCreator = resolveCreatorForCampaign(campaign);
+        const creatorId = resolvedCreator.id;
+        const creatorName = resolvedCreator.name;
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, creatorName };
@@ -732,7 +780,7 @@ export default function Analytics() {
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {creatorLookup[campaign.creator_id] || campaign.creators?.name || 'Unknown Creator'} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
+                      {resolveCreatorForCampaign(campaign).name} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="text-right text-sm">
