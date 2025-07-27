@@ -152,6 +152,9 @@ export default function Analytics() {
           creatorName = creator.name;
         } else if (campaign.creators?.name) {
           creatorName = campaign.creators.name;
+        } else {
+          // Query campaigns with joins to get creator names
+          console.log('Creator ID not found in creators list:', creatorId);
         }
         
         if (!creatorData[creatorId]) {
@@ -194,10 +197,12 @@ export default function Analytics() {
       const creatorData: { [creatorId: string]: { views: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
-        const creatorId = campaign.creator_id;
+        const creatorId = campaign.creator_id || 'unknown';
         // Look up creator name from creators array
         const creator = creators.find(c => c.id === creatorId);
         const creatorName = creator?.name || campaign.creators?.name || 'Unknown Creator';
+        
+        console.log('Creator lookup:', { creatorId, creator, creatorName });
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, creatorName };
