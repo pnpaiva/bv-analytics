@@ -43,6 +43,9 @@ export default function Analytics() {
   const { data: clients = [] } = useClients();
   const { data: masterCampaigns = [] } = useMasterCampaigns();
   
+  console.log('Analytics - Campaigns:', campaigns);
+  console.log('Analytics - Creators:', creators);
+  
   // Get campaign creators for all campaigns
   const campaignCreatorsMap = useMemo(() => {
     const map: { [campaignId: string]: any[] } = {};
@@ -57,6 +60,16 @@ export default function Analytics() {
   const [clientFilters, setClientFilters] = useState<string[]>([]);
   const [masterCampaignFilters, setMasterCampaignFilters] = useState<string[]>([]);
   const [creatorViewMode, setCreatorViewMode] = useState(false);
+
+  // Create a creator lookup map for better performance
+  const creatorLookup = useMemo(() => {
+    const lookup: { [id: string]: string } = {};
+    creators.forEach(creator => {
+      lookup[creator.id] = creator.name;
+    });
+    console.log('Creator lookup map:', lookup);
+    return lookup;
+  }, [creators]);
 
   // Filter campaigns based on search and filters
   const filteredCampaigns = useMemo(() => {
@@ -141,21 +154,18 @@ export default function Analytics() {
       const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
-        // Get creator information from the campaign_creators relationship
-        // For now, we'll use the direct creator_id field and look up names
         const creatorId = campaign.creator_id || 'unknown';
         
-        // First try to find creator name from the creators list
-        let creatorName = 'Unknown Creator';
-        const creator = creators.find(c => c.id === creatorId);
-        if (creator) {
-          creatorName = creator.name;
-        } else if (campaign.creators?.name) {
-          creatorName = campaign.creators.name;
-        } else {
-          // Query campaigns with joins to get creator names
-          console.log('Creator ID not found in creators list:', creatorId);
-        }
+        // Use our creator lookup map first, then fallback to campaign.creators
+        let creatorName = creatorLookup[creatorId] || campaign.creators?.name || 'Unknown Creator';
+        
+        console.log('Processing campaign:', {
+          campaignId: campaign.id,
+          brandName: campaign.brand_name,
+          creatorId,
+          creatorName,
+          lookupResult: creatorLookup[creatorId]
+        });
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, engagement: 0, campaigns: 0, creatorName };
@@ -185,7 +195,7 @@ export default function Analytics() {
 
       return platformData;
     }
-  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode]);
+  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
 
   const pieData = useMemo(() => {
     const selectedCampaignData = selectedCampaigns.length > 0 
@@ -198,11 +208,8 @@ export default function Analytics() {
       
       selectedCampaignData.forEach(campaign => {
         const creatorId = campaign.creator_id || 'unknown';
-        // Look up creator name from creators array
-        const creator = creators.find(c => c.id === creatorId);
-        const creatorName = creator?.name || campaign.creators?.name || 'Unknown Creator';
-        
-        console.log('Creator lookup:', { creatorId, creator, creatorName });
+        // Use our creator lookup map first, then fallback to campaign.creators
+        const creatorName = creatorLookup[creatorId] || campaign.creators?.name || 'Unknown Creator';
         
         if (!creatorData[creatorId]) {
           creatorData[creatorId] = { views: 0, creatorName };
@@ -224,7 +231,7 @@ export default function Analytics() {
         fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
       }));
     }
-  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creators]);
+  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
 
   const handleCreatorFilterChange = (creatorId: string) => {
     setCreatorFilters(prev => 
@@ -725,7 +732,7 @@ export default function Analytics() {
                       </Badge>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {campaign.creators?.name} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
+                      {creatorLookup[campaign.creator_id] || campaign.creators?.name || 'Unknown Creator'} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="text-right text-sm">
