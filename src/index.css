@@ -1,3 +1,9 @@
+/* Primary Typography - Work Sans */
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700;900&display=swap');
+
+/* Secondary Typography - Acumin Variable Concept */
+@import url('https://fonts.adobe.com/fonts/acumin#fonts-section');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -30,6 +36,24 @@ All colors MUST be HSL.
     --color-accent-amber: 43 100% 72%; /* #FFCA6E */
     --color-accent-sky: 218 98% 75%; /* #7DB2FE */
     --color-accent-mint: 168 54% 67%; /* #81D3C6 */
+    
+    /* Font Families */
+    --font-primary: 'Work Sans', sans-serif;
+    --font-secondary: 'Acumin Variable Concept', sans-serif;
+    
+    /* Font Sizes (8px base grid) */
+    --text-xs: 12px;    /* Timestamps, metadata */
+    --text-sm: 14px;    /* Data labels */
+    --text-base: 16px;  /* Body text */
+    --text-lg: 18px;    /* Chart titles */
+    --text-xl: 24px;    /* Section headers */
+    --text-2xl: 32px;   /* Dashboard titles */
+    
+    /* Font Weights */
+    --font-regular: 400;
+    --font-semibold: 600;
+    --font-bold: 700;
+    --font-black: 900;
     
     /* Theme Colors - Light */
     --background: var(--color-white);
@@ -121,26 +145,34 @@ All colors MUST be HSL.
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Beyond Views Brand Typography */
+  /* Typography System */
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Work Sans', sans-serif;
-    font-weight: 900; /* Black */
+    font-family: var(--font-primary);
+    font-weight: var(--font-black);
   }
 
   .font-subheading {
-    font-family: 'Work Sans', sans-serif;
-    font-weight: 700; /* Bold */
+    font-family: var(--font-primary);
+    font-weight: var(--font-bold);
   }
 
   .font-body {
-    font-family: 'Work Sans', sans-serif;
-    font-weight: 400; /* Regular - fallback since Acumin isn't web font */
+    font-family: var(--font-secondary);
+    font-weight: var(--font-regular);
   }
 
   .font-body-bold {
-    font-family: 'Work Sans', sans-serif;
-    font-weight: 600; /* Semi-bold */
+    font-family: var(--font-secondary);
+    font-weight: var(--font-semibold);
   }
+
+  /* Text Size Classes */
+  .text-xs { font-size: var(--text-xs); }
+  .text-sm { font-size: var(--text-sm); }
+  .text-base { font-size: var(--text-base); }
+  .text-lg { font-size: var(--text-lg); }
+  .text-xl { font-size: var(--text-xl); }
+  .text-2xl { font-size: var(--text-2xl); }
 
   /* Brand Elements */
   .brand-gradient {
