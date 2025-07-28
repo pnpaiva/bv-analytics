@@ -9,94 +9,105 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Beyond Views Brand Colors */
-    --brand-primary: 240 51% 47%; /* #3333cc */
-    --brand-primary-dark: 240 76% 33%; /* #202089 */
-    --brand-accent-green: 136 100% 46%; /* #00ec41 */
-    --brand-black: 240 12% 7%; /* #0f0f13 */
-    --brand-white: 240 33% 99%; /* #fbfbfe */
-    --brand-pink: 0 75% 78%; /* #ff908f */
-    --brand-orange: 43 100% 72%; /* #ffca6e */
-    --brand-light-blue: 218 98% 75%; /* #7db2fe */
-    --brand-mint: 168 54% 67%; /* #81d3c6 */
+    /* Primary Brand Colors */
+    --color-primary: 240 51% 47%; /* #3333CC */
+    --color-primary-light: 231 70% 85%; /* #CFD8FF */
+    --color-primary-dark: 240 76% 33%; /* #202089 */
+    
+    /* Secondary Colors */
+    --color-secondary-orange: 16 100% 60%; /* #FF6B35 */
+    --color-secondary-teal: 172 67% 52%; /* #2DD4BF */
+    
+    /* Neutral Colors */
+    --color-white: 0 0% 100%; /* #FFFFFF */
+    --color-black: 240 12% 7%; /* #0F0F13 */
+    --color-gray-light: 240 33% 99%; /* #FBFBFE */
+    --color-gray-medium: 231 100% 95%; /* #E9EFFF */
+    --color-gray-dark: 219 45% 55%; /* #617DBC */
+    
+    /* Accent Colors */
+    --color-accent-coral: 0 75% 78%; /* #FF908F */
+    --color-accent-amber: 43 100% 72%; /* #FFCA6E */
+    --color-accent-sky: 218 98% 75%; /* #7DB2FE */
+    --color-accent-mint: 168 54% 67%; /* #81D3C6 */
     
     /* Theme Colors - Light */
-    --background: var(--brand-white);
-    --foreground: var(--brand-black);
-    --card: var(--brand-white);
-    --card-foreground: var(--brand-black);
-    --popover: var(--brand-white);
-    --popover-foreground: var(--brand-black);
-    --primary: var(--brand-primary);
-    --primary-foreground: var(--brand-white);
-    --secondary: 231 70% 85%; /* #cfd8ff - light theme secondary */
-    --secondary-foreground: var(--brand-black);
-    --muted: 231 70% 85%; /* #cfd8ff with opacity */
-    --muted-foreground: 240 51% 47%; /* brand primary with opacity */
-    --accent: var(--brand-accent-green);
-    --accent-foreground: var(--brand-white);
-    --destructive: var(--brand-pink);
-    --destructive-foreground: var(--brand-white);
-    --border: 231 70% 85%; /* #cfd8ff */
-    --input: 231 70% 90%; /* lighter version */
-    --ring: var(--brand-primary);
-    --chart-1: var(--brand-primary);
-    --chart-2: var(--brand-accent-green);
-    --chart-3: var(--brand-orange);
-    --chart-4: var(--brand-light-blue);
-    --chart-5: var(--brand-mint);
+    --background: var(--color-white);
+    --foreground: var(--color-black);
+    --card: var(--color-white);
+    --card-foreground: var(--color-black);
+    --popover: var(--color-white);
+    --popover-foreground: var(--color-black);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-white);
+    --secondary: var(--color-primary-light);
+    --secondary-foreground: var(--color-black);
+    --muted: var(--color-gray-medium);
+    --muted-foreground: var(--color-gray-dark);
+    --accent: var(--color-secondary-teal);
+    --accent-foreground: var(--color-white);
+    --destructive: var(--color-accent-coral);
+    --destructive-foreground: var(--color-white);
+    --border: var(--color-gray-medium);
+    --input: var(--color-gray-light);
+    --ring: var(--color-primary);
+    --chart-1: var(--color-primary);
+    --chart-2: var(--color-secondary-teal);
+    --chart-3: var(--color-secondary-orange);
+    --chart-4: var(--color-accent-sky);
+    --chart-5: var(--color-accent-mint);
     --radius: 0.75rem;
-    --success: var(--brand-accent-green);
-    --success-foreground: var(--brand-white);
-    --warning: var(--brand-orange);
-    --warning-foreground: var(--brand-black);
+    --success: var(--color-secondary-teal);
+    --success-foreground: var(--color-white);
+    --warning: var(--color-accent-amber);
+    --warning-foreground: var(--color-black);
 
     /* Sidebar */
-    --sidebar-background: var(--brand-white);
-    --sidebar-foreground: var(--brand-black);
-    --sidebar-primary: var(--brand-primary);
-    --sidebar-primary-foreground: var(--brand-white);
+    --sidebar-background: var(--color-white);
+    --sidebar-foreground: var(--color-black);
+    --sidebar-primary: var(--color-primary);
+    --sidebar-primary-foreground: var(--color-white);
     --sidebar-accent: var(--secondary);
-    --sidebar-accent-foreground: var(--brand-black);
+    --sidebar-accent-foreground: var(--color-black);
     --sidebar-border: var(--border);
-    --sidebar-ring: var(--brand-primary);
+    --sidebar-ring: var(--color-primary);
 
     /* Brand Gradients */
-    --brand-gradient: linear-gradient(135deg, hsl(var(--brand-primary)) 0%, hsl(var(--brand-accent-green)) 100%);
-    --brand-gradient-subtle: linear-gradient(135deg, hsl(var(--brand-primary) / 0.1) 0%, hsl(var(--brand-accent-green) / 0.1) 100%);
+    --brand-gradient: linear-gradient(135deg, hsl(var(--color-primary)) 0%, hsl(var(--color-secondary-teal)) 100%);
+    --brand-gradient-subtle: linear-gradient(135deg, hsl(var(--color-primary) / 0.1) 0%, hsl(var(--color-secondary-teal) / 0.1) 100%);
   }
 
   .dark {
     /* Theme Colors - Dark */
-    --background: var(--brand-black);
-    --foreground: var(--brand-white);
+    --background: var(--color-black);
+    --foreground: var(--color-white);
     --card: 240 6% 9%; /* #181818 - dark theme secondary */
-    --card-foreground: var(--brand-white);
+    --card-foreground: var(--color-white);
     --popover: 240 6% 9%; /* #181818 */
-    --popover-foreground: var(--brand-white);
-    --primary: var(--brand-primary);
-    --primary-foreground: var(--brand-white);
+    --popover-foreground: var(--color-white);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-white);
     --secondary: 240 6% 9%; /* #181818 - dark theme secondary */
-    --secondary-foreground: var(--brand-white);
+    --secondary-foreground: var(--color-white);
     --muted: 240 6% 9%; /* #181818 with opacity */
     --muted-foreground: 240 33% 85%;
-    --accent: var(--brand-accent-green);
-    --accent-foreground: var(--brand-black);
-    --destructive: var(--brand-pink);
-    --destructive-foreground: var(--brand-white);
-    --border: 240 51% 47%; /* brand primary with opacity */
+    --accent: var(--color-secondary-teal);
+    --accent-foreground: var(--color-black);
+    --destructive: var(--color-accent-coral);
+    --destructive-foreground: var(--color-white);
+    --border: var(--color-primary);
     --input: 240 6% 9%; /* #181818 */
-    --ring: var(--brand-primary);
+    --ring: var(--color-primary);
     
     /* Sidebar Dark */
-    --sidebar-background: var(--brand-black);
-    --sidebar-foreground: var(--brand-white);
-    --sidebar-primary: var(--brand-primary);
-    --sidebar-primary-foreground: var(--brand-white);
+    --sidebar-background: var(--color-black);
+    --sidebar-foreground: var(--color-white);
+    --sidebar-primary: var(--color-primary);
+    --sidebar-primary-foreground: var(--color-white);
     --sidebar-accent: 240 6% 9%;
-    --sidebar-accent-foreground: var(--brand-white);
+    --sidebar-accent-foreground: var(--color-white);
     --sidebar-border: 240 6% 9%;
-    --sidebar-ring: var(--brand-primary);
+    --sidebar-ring: var(--color-primary);
   }
 }
 
@@ -189,11 +200,11 @@ All colors MUST be HSL.
 
   /* Button hover fixes - change green to blue */
   .hover\:bg-accent:hover {
-    background: hsl(var(--brand-primary-dark)) !important;
-    color: hsl(var(--brand-white)) !important;
+    background: hsl(var(--color-primary-dark)) !important;
+    color: hsl(var(--color-white)) !important;
   }
   
   .hover\:text-accent-foreground:hover {
-    color: hsl(var(--brand-white)) !important;
+    color: hsl(var(--color-white)) !important;
   }
 }
