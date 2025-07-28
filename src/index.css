@@ -85,6 +85,8 @@ All colors MUST be HSL.
     --success-foreground: var(--color-white);
     --warning: var(--color-accent-amber);
     --warning-foreground: var(--color-black);
+    --teal: var(--color-secondary-teal);
+    --orange: var(--color-secondary-orange);
 
     /* Sidebar */
     --sidebar-background: var(--color-white);
