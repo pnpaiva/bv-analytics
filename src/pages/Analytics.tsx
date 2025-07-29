@@ -55,12 +55,12 @@ export default function Analytics() {
     return map;
   }, []);
 
-  const [selectedCampaigns, setSelectedCampaigns] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [creatorFilters, setCreatorFilters] = useState<string[]>([]);
   const [clientFilters, setClientFilters] = useState<string[]>([]);
   const [masterCampaignFilters, setMasterCampaignFilters] = useState<string[]>([]);
+  const [campaignFilters, setCampaignFilters] = useState<string[]>([]);
   const [creatorViewMode, setCreatorViewMode] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -153,8 +153,9 @@ export default function Analytics() {
 
   // Calculate aggregate metrics for selected campaigns
   const aggregateMetrics = useMemo((): AggregateMetrics => {
-    const selectedCampaignData = selectedCampaigns.length > 0 
-      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+    // Use campaign filters instead of selectedCampaigns
+    const selectedCampaignData = campaignFilters.length > 0 
+      ? campaigns.filter(c => campaignFilters.includes(c.id))
       : filteredCampaigns;
 
     const totalViews = selectedCampaignData.reduce((sum, c) => sum + (c.total_views || 0), 0);
@@ -171,12 +172,12 @@ export default function Analytics() {
       totalDealValue,
       campaignCount: selectedCampaignData.length
     };
-  }, [campaigns, selectedCampaigns, filteredCampaigns]);
+  }, [campaigns, campaignFilters, filteredCampaigns]);
 
   // Calculate platform breakdown
   const platformBreakdown = useMemo((): PlatformBreakdown => {
-    const selectedCampaignData = selectedCampaigns.length > 0 
-      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+    const selectedCampaignData = campaignFilters.length > 0 
+      ? campaigns.filter(c => campaignFilters.includes(c.id))
       : filteredCampaigns;
 
     const breakdown: PlatformBreakdown = {};
@@ -201,12 +202,12 @@ export default function Analytics() {
     });
 
     return breakdown;
-  }, [campaigns, selectedCampaigns, filteredCampaigns]);
+  }, [campaigns, campaignFilters, filteredCampaigns]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    const selectedCampaignData = selectedCampaigns.length > 0 
-      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+    const selectedCampaignData = campaignFilters.length > 0 
+      ? campaigns.filter(c => campaignFilters.includes(c.id))
       : filteredCampaigns;
 
     if (creatorViewMode) {
@@ -246,11 +247,11 @@ export default function Analytics() {
 
       return platformData;
     }
-  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
+  }, [platformBreakdown, campaignFilters, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
 
   const pieData = useMemo(() => {
-    const selectedCampaignData = selectedCampaigns.length > 0 
-      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+    const selectedCampaignData = campaignFilters.length > 0 
+      ? campaigns.filter(c => campaignFilters.includes(c.id))
       : filteredCampaigns;
 
     if (creatorViewMode) {
@@ -290,12 +291,12 @@ export default function Analytics() {
         fill: platformColors[index % platformColors.length]
       }));
     }
-  }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
+  }, [platformBreakdown, campaignFilters, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
 
   // Video analytics data
   const videoAnalytics = useMemo(() => {
-    const selectedCampaignData = selectedCampaigns.length > 0 
-      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+    const selectedCampaignData = campaignFilters.length > 0 
+      ? campaigns.filter(c => campaignFilters.includes(c.id))
       : filteredCampaigns;
 
     const videos: Array<{
@@ -331,7 +332,7 @@ export default function Analytics() {
     });
 
     return videos.sort((a, b) => b.views - a.views);
-  }, [campaigns, selectedCampaigns, filteredCampaigns]);
+  }, [campaigns, campaignFilters, filteredCampaigns]);
 
   const topVideosByPlatform = useMemo(() => {
     const platformGroups: { [platform: string]: typeof videoAnalytics } = {};
@@ -375,6 +376,18 @@ export default function Analytics() {
     setClientFilters(prev => prev.filter(id => id !== clientId));
   };
 
+  const handleCampaignFilterChange = (campaignId: string) => {
+    setCampaignFilters(prev => 
+      prev.includes(campaignId) 
+        ? prev.filter(id => id !== campaignId)
+        : [...prev, campaignId]
+    );
+  };
+
+  const removeCampaignFilter = (campaignId: string) => {
+    setCampaignFilters(prev => prev.filter(id => id !== campaignId));
+  };
+
   const handleMasterCampaignFilterChange = (masterCampaignName: string) => {
     setMasterCampaignFilters(prev => 
       prev.includes(masterCampaignName) 
@@ -387,26 +400,10 @@ export default function Analytics() {
     setMasterCampaignFilters(prev => prev.filter(name => name !== masterCampaignName));
   };
 
-  const handleCampaignSelection = (campaignId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedCampaigns(prev => [...prev, campaignId]);
-    } else {
-      setSelectedCampaigns(prev => prev.filter(id => id !== campaignId));
-    }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedCampaigns.length === filteredCampaigns.length) {
-      setSelectedCampaigns([]);
-    } else {
-      setSelectedCampaigns(filteredCampaigns.map(c => c.id));
-    }
-  };
-
   const handleExportPDF = async () => {
     try {
-      const campaignsToExport = selectedCampaigns.length > 0 
-        ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+      const campaignsToExport = campaignFilters.length > 0 
+        ? campaigns.filter(c => campaignFilters.includes(c.id))
         : filteredCampaigns;
 
       if (campaignsToExport.length === 0) {
@@ -469,7 +466,7 @@ export default function Analytics() {
               Export PDF
             </Button>
             <Badge variant="outline" className="text-sm">
-              {selectedCampaigns.length > 0 ? `${selectedCampaigns.length} selected` : `${filteredCampaigns.length} campaigns`}
+              {campaignFilters.length > 0 ? `${campaignFilters.length} campaigns selected` : `${filteredCampaigns.length} campaigns`}
             </Badge>
           </div>
         </div>
@@ -483,7 +480,7 @@ export default function Analytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="search">Search</Label>
                 <div className="relative">
@@ -626,68 +623,39 @@ export default function Analytics() {
               </div>
 
               <div className="space-y-2">
-                <Label>&nbsp;</Label>
-                <Button
-                  variant="outline"
-                  onClick={handleSelectAll}
-                  className="w-full"
-                >
-                  {selectedCampaigns.length === filteredCampaigns.length ? 'Deselect All' : 'Select All'}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Campaign Selection Filter */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Campaign Selection</CardTitle>
-            <CardDescription>Select specific campaigns to include in the analysis above</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSelectAll}
-                >
-                  {selectedCampaigns.length === filteredCampaigns.length ? 'Deselect All' : 'Select All'}
-                </Button>
-                <Badge variant="outline">
-                  {selectedCampaigns.length} of {filteredCampaigns.length} selected
-                </Badge>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                {filteredCampaigns.map((campaign) => (
-                  <div key={campaign.id} className="flex items-center space-x-4 p-3 border rounded-lg hover:bg-muted/50">
-                    <Checkbox
-                      checked={selectedCampaigns.includes(campaign.id)}
-                      onCheckedChange={(checked) => handleCampaignSelection(campaign.id, checked as boolean)}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm">{campaign.brand_name}</h4>
-                        <Badge variant={
-                          campaign.status === 'completed' ? 'default' :
-                          campaign.status === 'analyzing' ? 'secondary' :
-                          campaign.status === 'error' ? 'destructive' : 'outline'
-                        } className="text-xs">
-                          {campaign.status}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {resolveCreatorForCampaign(campaign).name} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
-                      </div>
+                <Label htmlFor="campaigns">Campaigns</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={handleCampaignFilterChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select campaigns..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredCampaigns.map((campaign) => (
+                        <SelectItem key={campaign.id} value={campaign.id}>
+                          {campaign.brand_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {campaignFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {campaignFilters.map((campaignId) => {
+                        const campaign = campaigns.find(c => c.id === campaignId);
+                        return campaign ? (
+                          <Badge key={campaignId} variant="secondary" className="text-xs">
+                            {campaign.brand_name}
+                            <button 
+                              onClick={() => removeCampaignFilter(campaignId)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
                     </div>
-                    <div className="text-right text-xs">
-                      <div className="font-medium">{campaign.total_views?.toLocaleString() || 0} views</div>
-                      <div className="text-muted-foreground">{campaign.engagement_rate?.toFixed(2) || 0}% eng.</div>
-                    </div>
-                  </div>
-                ))}
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
