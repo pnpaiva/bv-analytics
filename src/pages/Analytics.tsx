@@ -14,12 +14,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X } from 'lucide-react';
+import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface AggregateMetrics {
   totalViews: number;
@@ -60,6 +62,7 @@ export default function Analytics() {
   const [clientFilters, setClientFilters] = useState<string[]>([]);
   const [masterCampaignFilters, setMasterCampaignFilters] = useState<string[]>([]);
   const [creatorViewMode, setCreatorViewMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -269,17 +272,84 @@ export default function Analytics() {
       return Object.values(creatorData).map((data, index) => ({
         name: data.creatorName,
         value: data.views,
-        fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
+        fill: index === 0 ? 'hsl(var(--primary))' : 'hsl(var(--brand-accent-green))'
       }));
     } else {
-      // Group by platform
+      // Group by platform - match bar chart colors
+      const platformColors = [
+        'hsl(var(--primary))',        // YouTube
+        'hsl(var(--brand-accent-green))', // Instagram  
+        'hsl(var(--teal))',          // TikTok
+        'hsl(var(--orange))',        // Additional platforms
+        'hsl(var(--secondary))',     // Additional platforms
+      ];
+      
       return Object.entries(platformBreakdown).map(([platform, data], index) => ({
         name: platform.charAt(0).toUpperCase() + platform.slice(1),
         value: data.views,
-        fill: `hsl(${(index * 137.5) % 360}, 70%, 50%)`
+        fill: platformColors[index % platformColors.length]
       }));
     }
   }, [platformBreakdown, selectedCampaigns, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
+
+  // Video analytics data
+  const videoAnalytics = useMemo(() => {
+    const selectedCampaignData = selectedCampaigns.length > 0 
+      ? campaigns.filter(c => selectedCampaigns.includes(c.id))
+      : filteredCampaigns;
+
+    const videos: Array<{
+      id: string;
+      title: string;
+      platform: string;
+      campaign: string;
+      views: number;
+      engagement: number;
+      engagementRate: number;
+      url: string;
+    }> = [];
+
+    selectedCampaignData.forEach(campaign => {
+      if (campaign.analytics_data) {
+        Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
+          if (Array.isArray(platformData)) {
+            platformData.forEach((video: any, index: number) => {
+              videos.push({
+                id: `${campaign.id}-${platform}-${index}`,
+                title: video.title || `${platform} Video ${index + 1}`,
+                platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+                campaign: campaign.brand_name,
+                views: video.views || 0,
+                engagement: video.engagement || 0,
+                engagementRate: video.views > 0 ? ((video.engagement / video.views) * 100) : 0,
+                url: video.url || ''
+              });
+            });
+          }
+        });
+      }
+    });
+
+    return videos.sort((a, b) => b.views - a.views);
+  }, [campaigns, selectedCampaigns, filteredCampaigns]);
+
+  const topVideosByPlatform = useMemo(() => {
+    const platformGroups: { [platform: string]: typeof videoAnalytics } = {};
+    
+    videoAnalytics.forEach(video => {
+      if (!platformGroups[video.platform]) {
+        platformGroups[video.platform] = [];
+      }
+      platformGroups[video.platform].push(video);
+    });
+
+    return Object.entries(platformGroups).map(([platform, videos]) => ({
+      platform,
+      videos: videos.slice(0, 5), // Top 5 videos per platform
+      totalViews: videos.reduce((sum, v) => sum + v.views, 0),
+      totalEngagement: videos.reduce((sum, v) => sum + v.engagement, 0)
+    }));
+  }, [videoAnalytics]);
 
   const handleCreatorFilterChange = (creatorId: string) => {
     setCreatorFilters(prev => 
@@ -624,7 +694,16 @@ export default function Analytics() {
           </Card>
         </div>
 
-        {/* Charts Section */}
+        {/* Main Content Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="videos">Video Analytics</TabsTrigger>
+            <TabsTrigger value="campaigns">Campaign Selection</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Bar Chart - Platform Views & Engagement */}
           <Card>
@@ -753,8 +832,142 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
 
-        {/* Campaign Selection */}
+          <TabsContent value="videos" className="space-y-6">
+            {/* Video Analytics Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Videos Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="w-4 h-4" />
+                    Top Performing Videos
+                  </CardTitle>
+                  <CardDescription>Videos ranked by view count</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={videoAnalytics.slice(0, 10)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="title" 
+                        tick={{ fontSize: 10 }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis tickFormatter={(value) => {
+                        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                        if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                        return value.toString();
+                      }} />
+                      <Tooltip formatter={(value, name) => [
+                        typeof value === 'number' ? value.toLocaleString() : value,
+                        name === 'views' ? 'Views' : 'Engagement'
+                      ]} />
+                      <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Platform Video Performance */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Platform Video Performance</CardTitle>
+                  <CardDescription>Total views and engagement by platform</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={topVideosByPlatform}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="platform" />
+                      <YAxis tickFormatter={(value) => {
+                        if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                        if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                        return value.toString();
+                      }} />
+                      <Tooltip formatter={(value) => [value.toLocaleString(), 'Total']} />
+                      <Bar dataKey="totalViews" fill="hsl(var(--primary))" name="Total Views" />
+                      <Bar dataKey="totalEngagement" fill="hsl(var(--brand-accent-green))" name="Total Engagement" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Top Videos Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Performing Videos</CardTitle>
+                <CardDescription>Detailed breakdown of video performance metrics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Video</TableHead>
+                        <TableHead>Platform</TableHead>
+                        <TableHead>Campaign</TableHead>
+                        <TableHead className="text-right">Views</TableHead>
+                        <TableHead className="text-right">Engagement</TableHead>
+                        <TableHead className="text-right">Eng. Rate</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {videoAnalytics.slice(0, 20).map((video) => (
+                        <TableRow key={video.id}>
+                          <TableCell className="font-medium max-w-[200px] truncate">
+                            {video.title}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{video.platform}</Badge>
+                          </TableCell>
+                          <TableCell className="max-w-[150px] truncate">
+                            {video.campaign}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {video.views.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {video.engagement.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {video.engagementRate.toFixed(2)}%
+                          </TableCell>
+                          <TableCell>
+                            {video.url && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                asChild
+                              >
+                                <a 
+                                  href={video.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1"
+                                >
+                                  <Play className="w-3 h-3" />
+                                  Watch
+                                </a>
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="campaigns" className="space-y-6">
+            {/* Campaign Selection */}
         <Card>
           <CardHeader>
             <CardTitle>Campaign Selection</CardTitle>
@@ -792,6 +1005,8 @@ export default function Analytics() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
