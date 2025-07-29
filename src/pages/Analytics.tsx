@@ -639,6 +639,60 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
+        {/* Campaign Selection Filter */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Campaign Selection</CardTitle>
+            <CardDescription>Select specific campaigns to include in the analysis above</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSelectAll}
+                >
+                  {selectedCampaigns.length === filteredCampaigns.length ? 'Deselect All' : 'Select All'}
+                </Button>
+                <Badge variant="outline">
+                  {selectedCampaigns.length} of {filteredCampaigns.length} selected
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                {filteredCampaigns.map((campaign) => (
+                  <div key={campaign.id} className="flex items-center space-x-4 p-3 border rounded-lg hover:bg-muted/50">
+                    <Checkbox
+                      checked={selectedCampaigns.includes(campaign.id)}
+                      onCheckedChange={(checked) => handleCampaignSelection(campaign.id, checked as boolean)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-sm">{campaign.brand_name}</h4>
+                        <Badge variant={
+                          campaign.status === 'completed' ? 'default' :
+                          campaign.status === 'analyzing' ? 'secondary' :
+                          campaign.status === 'error' ? 'destructive' : 'outline'
+                        } className="text-xs">
+                          {campaign.status}
+                        </Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {resolveCreatorForCampaign(campaign).name} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="text-right text-xs">
+                      <div className="font-medium">{campaign.total_views?.toLocaleString() || 0} views</div>
+                      <div className="text-muted-foreground">{campaign.engagement_rate?.toFixed(2) || 0}% eng.</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Aggregate Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
@@ -696,10 +750,9 @@ export default function Analytics() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="videos">Video Analytics</TabsTrigger>
-            <TabsTrigger value="campaigns">Campaign Selection</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -964,47 +1017,6 @@ export default function Analytics() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="campaigns" className="space-y-6">
-            {/* Campaign Selection */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Campaign Selection</CardTitle>
-            <CardDescription>Select campaigns to include in the aggregate analysis</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredCampaigns.map((campaign) => (
-                <div key={campaign.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-                  <Checkbox
-                    checked={selectedCampaigns.includes(campaign.id)}
-                    onCheckedChange={(checked) => handleCampaignSelection(campaign.id, checked as boolean)}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium">{campaign.brand_name}</h4>
-                      <Badge variant={
-                        campaign.status === 'completed' ? 'default' :
-                        campaign.status === 'analyzing' ? 'secondary' :
-                        campaign.status === 'error' ? 'destructive' : 'outline'
-                      }>
-                        {campaign.status}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {resolveCreatorForCampaign(campaign).name} • {campaign.clients?.name} • {new Date(campaign.campaign_date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="text-right text-sm">
-                    <div className="font-medium">{campaign.total_views?.toLocaleString() || 0} views</div>
-                    <div className="text-muted-foreground">{campaign.engagement_rate?.toFixed(2) || 0}% engagement</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
           </TabsContent>
         </Tabs>
       </div>
