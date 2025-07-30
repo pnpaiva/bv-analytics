@@ -518,6 +518,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       roster_analytics: {
         Row: {
           created_at: string
@@ -809,6 +833,10 @@ export type Database = {
       create_admin_account: {
         Args: { admin_email: string; admin_password: string }
         Returns: string
+      }
+      create_secure_admin_account: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       direct_update_campaign: {
         Args: {
