@@ -34,8 +34,8 @@ export function Navigation() {
   };
 
   const navItems = [
-    { to: '/campaigns', icon: FileText, label: 'Campaigns' },
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/campaigns', icon: FileText, label: 'Campaigns' },
     { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
   ];
 
@@ -114,7 +114,10 @@ export function Navigation() {
                 align="end" 
                 className="w-56 bg-popover border border-border shadow-lg"
               >
-                <DropdownMenuItem className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50">
+                <DropdownMenuItem 
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50"
+                >
                   <User className="w-4 h-4" />
                   <span className="font-body">Profile</span>
                 </DropdownMenuItem>

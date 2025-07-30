@@ -27,7 +27,6 @@ interface AggregateMetrics {
   totalViews: number;
   totalEngagement: number;
   avgEngagementRate: number;
-  totalDealValue: number;
   campaignCount: number;
 }
 
@@ -141,8 +140,11 @@ export default function Analytics() {
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
       const matchesCreator = creatorFilters.length === 0 || 
-        // Check if any selected creator matches this campaign's creator_id
-        creatorFilters.includes(campaign.creator_id);
+        // Check if any selected creator matches this campaign's resolved creator
+        (() => {
+          const resolvedCreator = resolveCreatorForCampaign(campaign);
+          return creatorFilters.includes(resolvedCreator.id);
+        })();
       const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
       const matchesMasterCampaign = masterCampaignFilters.length === 0 || 
         (campaign.master_campaign_name && masterCampaignFilters.includes(campaign.master_campaign_name));
@@ -160,16 +162,12 @@ export default function Analytics() {
 
     const totalViews = selectedCampaignData.reduce((sum, c) => sum + (c.total_views || 0), 0);
     const totalEngagement = selectedCampaignData.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
-    const totalDealValue = selectedCampaignData.reduce((sum, c) => sum + (c.deal_value || 0), 0);
-    const avgEngagementRate = selectedCampaignData.length > 0
-      ? selectedCampaignData.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / selectedCampaignData.length
-      : 0;
+    const avgEngagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
 
     return {
       totalViews,
       totalEngagement,
       avgEngagementRate,
-      totalDealValue,
       campaignCount: selectedCampaignData.length
     };
   }, [campaigns, campaignFilters, filteredCampaigns]);
