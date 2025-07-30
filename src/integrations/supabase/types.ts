@@ -934,6 +934,16 @@ export type Database = {
           campaign_date: string
         }[]
       }
+      get_user_profile: {
+        Args: { user_id: string }
+        Returns: {
+          id: string
+          display_name: string
+          bio: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
       has_role: {
         Args: {
           _user_id: string
@@ -991,6 +1001,14 @@ export type Database = {
           p_subscribers?: number
           p_total_views?: number
           p_video_count?: number
+        }
+        Returns: undefined
+      }
+      upsert_user_profile: {
+        Args: {
+          profile_id: string
+          display_name_param?: string
+          bio_param?: string
         }
         Returns: undefined
       }

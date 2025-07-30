@@ -181,7 +181,7 @@ export default function AdminDashboard() {
     if (!selectedUser) return;
 
     try {
-      await deleteUserMutation.mutateAsync(selectedUser.user_id);
+      await deleteUserMutation.mutateAsync(selectedUser.user?.id || selectedUser.user_id);
       setIsDeleteDialogOpen(false);
       setSelectedUser(null);
     } catch (error) {

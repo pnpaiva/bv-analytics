@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,88 +8,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRoles';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Mail, Shield, Calendar, Save } from 'lucide-react';
-
-interface UserProfile {
-  id: string;
-  display_name?: string;
-  bio?: string;
-  created_at: string;
-  updated_at: string;
-}
 
 export default function Profile() {
   const { user } = useAuth();
   const userRoleQuery = useUserRole();
   const userRole = userRoleQuery.data?.role;
   
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
-    display_name: '',
-    bio: ''
+    display_name: user?.user_metadata?.display_name || '',
+    bio: user?.user_metadata?.bio || ''
   });
-
-  useEffect(() => {
-    if (user) {
-      fetchProfile();
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Check if profile exists - use RPC or edge function since profiles table doesn't exist in types
-      const { data, error } = await supabase.rpc('get_user_profile', { user_id: user?.id });
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
-        console.error('Profile fetch error:', error);
-        // For now, just set empty profile if function doesn't exist
-        setProfile(null);
-        return;
-      }
-
-      if (data) {
-        setProfile(data as UserProfile);
-        setFormData({
-          display_name: data.display_name || '',
-          bio: data.bio || ''
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      // Don't show error toast for now since profiles is new
-      setProfile(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSave = async () => {
     if (!user) return;
 
     try {
       setIsSaving(true);
-
-      // Use RPC function to save profile
-      const { error } = await supabase.rpc('upsert_user_profile', {
-        profile_id: user.id,
-        display_name_param: formData.display_name || null,
-        bio_param: formData.bio || null
-      });
-
-      if (error) {
-        console.error('Profile save error:', error);
-        toast.error('Failed to save profile');
-        return;
-      }
-
-      toast.success('Profile updated successfully');
-      fetchProfile();
+      // For now, just show success message
+      // In the future, this will save to the profiles table
+      toast.success('Profile functionality coming soon!');
     } catch (error) {
       console.error('Error saving profile:', error);
       toast.error('Failed to save profile');
@@ -97,22 +37,6 @@ export default function Profile() {
       setIsSaving(false);
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <div className="container mx-auto p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading profile...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -181,7 +105,7 @@ export default function Profile() {
             <CardHeader>
               <CardTitle>Edit Profile</CardTitle>
               <CardDescription>
-                Update your profile information and bio
+                Profile management coming soon! For now, you can view your account information.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -193,6 +117,7 @@ export default function Profile() {
                     placeholder="Enter your display name"
                     value={formData.display_name}
                     onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
+                    disabled
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     This is how your name will appear to others
@@ -207,6 +132,7 @@ export default function Profile() {
                     value={formData.bio}
                     onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                     rows={4}
+                    disabled
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     A brief description about yourself (optional)
