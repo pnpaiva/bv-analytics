@@ -245,6 +245,7 @@ export type Database = {
       }
       campaigns: {
         Row: {
+          airtable_id: string | null
           analytics_data: Json | null
           analytics_updated_at: string | null
           brand_name: string
@@ -272,6 +273,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          airtable_id?: string | null
           analytics_data?: Json | null
           analytics_updated_at?: string | null
           brand_name: string
@@ -299,6 +301,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          airtable_id?: string | null
           analytics_data?: Json | null
           analytics_updated_at?: string | null
           brand_name?: string

@@ -5,36 +5,70 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRole } from '@/hooks/useUserRoles';
+import { useProfile, useUpdateProfile } from '@/hooks/useProfileManagement';
 import { toast } from 'sonner';
-import { User, Mail, Shield, Calendar, Save } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Mail, Shield, Calendar, Save, Upload } from 'lucide-react';
 
 export default function Profile() {
   const { user } = useAuth();
   const userRoleQuery = useUserRole();
   const userRole = userRoleQuery.data?.role;
+  const { data: profile } = useProfile();
+  const updateProfile = useUpdateProfile();
   
-  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
-    display_name: user?.user_metadata?.display_name || '',
-    bio: user?.user_metadata?.bio || ''
+    display_name: '',
+    bio: ''
   });
+
+  // Update form data when profile loads
+  React.useEffect(() => {
+    if (profile) {
+      setFormData({
+        display_name: profile.display_name || '',
+        bio: profile.bio || ''
+      });
+    }
+  }, [profile]);
 
   const handleSave = async () => {
     if (!user) return;
+    updateProfile.mutate(formData);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
 
     try {
-      setIsSaving(true);
-      // For now, just show success message
-      // In the future, this will save to the profiles table
-      toast.success('Profile functionality coming soon!');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update user metadata with avatar URL
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: data.publicUrl }
+      });
+
+      if (updateError) throw updateError;
+
+      toast.success('Profile picture updated successfully');
     } catch (error) {
-      console.error('Error saving profile:', error);
-      toast.error('Failed to save profile');
-    } finally {
-      setIsSaving(false);
+      console.error('Error uploading image:', error);
+      toast.error('Failed to update profile picture');
     }
   };
 
@@ -63,14 +97,36 @@ export default function Profile() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex flex-col items-center space-y-4">
-                <Avatar className="w-20 h-20 ring-2 ring-primary/20">
-                  <AvatarFallback className="bg-primary/10 text-primary font-subheading text-xl">
-                    {user?.email?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="relative">
+                  <Avatar className="w-20 h-20 ring-2 ring-primary/20">
+                    {user?.user_metadata?.avatar_url ? (
+                      <AvatarImage 
+                        src={user.user_metadata.avatar_url} 
+                        alt="Profile picture" 
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-primary/10 text-primary font-subheading text-xl">
+                        {user?.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <label 
+                    htmlFor="avatar-upload" 
+                    className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer hover:bg-primary/90 transition-colors"
+                  >
+                    <Upload className="w-3 h-3" />
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
                 <div className="text-center">
                   <h3 className="font-semibold text-lg">
-                    {formData.display_name || 'No display name set'}
+                    {formData.display_name || user?.email?.split('@')[0] || 'No display name set'}
                   </h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1 justify-center">
                     <Mail className="w-4 h-4" />
@@ -105,7 +161,7 @@ export default function Profile() {
             <CardHeader>
               <CardTitle>Edit Profile</CardTitle>
               <CardDescription>
-                Profile management coming soon! For now, you can view your account information.
+                Update your profile information and preferences.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -117,7 +173,6 @@ export default function Profile() {
                     placeholder="Enter your display name"
                     value={formData.display_name}
                     onChange={(e) => setFormData(prev => ({ ...prev, display_name: e.target.value }))}
-                    disabled
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     This is how your name will appear to others
@@ -132,7 +187,6 @@ export default function Profile() {
                     value={formData.bio}
                     onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
                     rows={4}
-                    disabled
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     A brief description about yourself (optional)
@@ -143,11 +197,11 @@ export default function Profile() {
               <div className="flex justify-end">
                 <Button 
                   onClick={handleSave}
-                  disabled={isSaving}
+                  disabled={updateProfile.isPending}
                   className="flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  {isSaving ? 'Saving...' : 'Save Changes'}
+                  {updateProfile.isPending ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </CardContent>

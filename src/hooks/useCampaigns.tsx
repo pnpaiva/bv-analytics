@@ -20,6 +20,7 @@ export interface Campaign {
   master_campaign_end_date?: string;
   logo_url?: string;
   master_campaign_logo_url?: string;
+  airtable_id?: string;
   content_urls?: Record<string, string[]>;
   analytics_data?: any;
   analytics_updated_at?: string;

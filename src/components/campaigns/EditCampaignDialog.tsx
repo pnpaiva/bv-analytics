@@ -48,6 +48,7 @@ const formSchema = z.object({
   client_id: z.string().optional(),
   logo_url: z.string().optional(),
   masterCampaignName: z.string().optional(),
+  airtable_id: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -79,6 +80,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       client_id: '',
       logo_url: '',
       masterCampaignName: '',
+      airtable_id: '',
     },
   });
 
@@ -93,6 +95,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         client_id: campaign.client_id || '',
         logo_url: campaign.logo_url || '',
         masterCampaignName: campaign.master_campaign_name || '__no_master__',
+        airtable_id: campaign.airtable_id || '',
       });
     }
   }, [campaign?.id]); // Only depend on campaign.id to prevent infinite rerenders
@@ -142,6 +145,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
           client_id: data.client_id || null,
           logo_url: data.logo_url || null,
           master_campaign_name: data.masterCampaignName === '__no_master__' ? null : data.masterCampaignName || null,
+          airtable_id: data.airtable_id || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', campaign.id);
@@ -224,8 +228,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
               />
             </div>
 
-            {/* Campaign Month and Deal Value */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Campaign Month, Deal Value, and Airtable ID */}
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="campaign_month"
@@ -248,6 +252,20 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
                     <FormLabel>Deal Value</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="airtable_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Airtable ID</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter Airtable ID" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -62,6 +62,7 @@ export default function Analytics() {
   const [campaignFilters, setCampaignFilters] = useState<string[]>([]);
   const [creatorViewMode, setCreatorViewMode] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -302,6 +303,7 @@ export default function Analytics() {
       title: string;
       platform: string;
       campaign: string;
+      creator: string;
       views: number;
       engagement: number;
       engagementRate: number;
@@ -309,6 +311,8 @@ export default function Analytics() {
     }> = [];
 
     selectedCampaignData.forEach(campaign => {
+      const resolvedCreator = resolveCreatorForCampaign(campaign);
+      
       if (campaign.analytics_data) {
         Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
           if (Array.isArray(platformData)) {
@@ -318,6 +322,7 @@ export default function Analytics() {
                 title: video.title || `${platform} Video ${index + 1}`,
                 platform: platform.charAt(0).toUpperCase() + platform.slice(1),
                 campaign: campaign.brand_name,
+                creator: resolvedCreator.name,
                 views: video.views || 0,
                 engagement: video.engagement || 0,
                 engagementRate: video.views > 0 ? ((video.engagement / video.views) * 100) : 0,
@@ -330,12 +335,22 @@ export default function Analytics() {
     });
 
     return videos.sort((a, b) => b.views - a.views);
-  }, [campaigns, campaignFilters, filteredCampaigns]);
+  }, [campaigns, campaignFilters, filteredCampaigns, creatorLookup]);
+
+  // Filtered video analytics based on platform filter
+  const filteredVideoAnalytics = useMemo(() => {
+    if (videoPlatformFilter === 'all') {
+      return videoAnalytics;
+    }
+    return videoAnalytics.filter(video => 
+      video.platform.toLowerCase() === videoPlatformFilter.toLowerCase()
+    );
+  }, [videoAnalytics, videoPlatformFilter]);
 
   const topVideosByPlatform = useMemo(() => {
-    const platformGroups: { [platform: string]: typeof videoAnalytics } = {};
+    const platformGroups: { [platform: string]: typeof filteredVideoAnalytics } = {};
     
-    videoAnalytics.forEach(video => {
+    filteredVideoAnalytics.forEach(video => {
       if (!platformGroups[video.platform]) {
         platformGroups[video.platform] = [];
       }
@@ -348,7 +363,7 @@ export default function Analytics() {
       totalViews: videos.reduce((sum, v) => sum + v.views, 0),
       totalEngagement: videos.reduce((sum, v) => sum + v.engagement, 0)
     }));
-  }, [videoAnalytics]);
+  }, [filteredVideoAnalytics]);
 
   const handleCreatorFilterChange = (creatorId: string) => {
     setCreatorFilters(prev => 
@@ -843,6 +858,26 @@ export default function Analytics() {
           </TabsContent>
 
           <TabsContent value="videos" className="space-y-6">
+            {/* Platform Filter for Videos */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Filter by Platform</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={videoPlatformFilter} onValueChange={setVideoPlatformFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Platforms</SelectItem>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="instagram">Instagram</SelectItem>
+                    <SelectItem value="tiktok">TikTok</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+            
             {/* Video Analytics Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Top Videos Chart */}
@@ -856,7 +891,7 @@ export default function Analytics() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={videoAnalytics.slice(0, 10)}>
+                    <BarChart data={filteredVideoAnalytics.slice(0, 10)}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="title" 
@@ -919,6 +954,7 @@ export default function Analytics() {
                         <TableHead>Video</TableHead>
                         <TableHead>Platform</TableHead>
                         <TableHead>Campaign</TableHead>
+                        <TableHead>Creator</TableHead>
                         <TableHead className="text-right">Views</TableHead>
                         <TableHead className="text-right">Engagement</TableHead>
                         <TableHead className="text-right">Eng. Rate</TableHead>
@@ -926,7 +962,7 @@ export default function Analytics() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {videoAnalytics.slice(0, 20).map((video) => (
+                      {filteredVideoAnalytics.slice(0, 20).map((video) => (
                         <TableRow key={video.id}>
                           <TableCell className="font-medium max-w-[200px] truncate">
                             {video.title}
@@ -936,6 +972,9 @@ export default function Analytics() {
                           </TableCell>
                           <TableCell className="max-w-[150px] truncate">
                             {video.campaign}
+                          </TableCell>
+                          <TableCell className="max-w-[150px] truncate">
+                            {video.creator}
                           </TableCell>
                           <TableCell className="text-right">
                             {video.views.toLocaleString()}
