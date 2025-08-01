@@ -181,7 +181,17 @@ Deno.serve(async (req) => {
     // Calculate engagement rate
     const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
 
-    console.log('Final totals:', { totalViews, totalEngagement, engagementRate });
+    console.log('Final totals for campaign:', campaignId, { 
+      totalViews, 
+      totalEngagement, 
+      engagementRate,
+      urlCounts: {
+        youtube: allUrls.youtube.length,
+        instagram: allUrls.instagram.length,
+        tiktok: allUrls.tiktok.length
+      },
+      platformResults 
+    });
 
     // Update campaign with analytics using the simplified function
     const { error: updateError } = await supabase.rpc('update_campaign_analytics', {

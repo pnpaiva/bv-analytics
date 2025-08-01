@@ -159,6 +159,19 @@ export default function Analytics() {
     const totalEngagement = selectedCampaignData.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
     const avgEngagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
 
+    console.log('Analytics - Aggregate calculation:', {
+      campaignCount: selectedCampaignData.length,
+      totalViews,
+      totalEngagement,
+      avgEngagementRate,
+      campaigns: selectedCampaignData.map(c => ({
+        name: c.brand_name,
+        views: c.total_views,
+        engagement: c.total_engagement,
+        analytics_data: c.analytics_data
+      }))
+    });
+
     return {
       totalViews,
       totalEngagement,
