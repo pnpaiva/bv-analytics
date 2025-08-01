@@ -32,15 +32,22 @@ Deno.serve(async (req) => {
     const apifyApiKey = Deno.env.get('APIFY_API_KEY');
     
     if (!apifyApiKey) {
-      console.log('Apify API key not found, returning mock data');
-      // Return mock data when API key is not available
+      console.log('Apify API key not found, returning consistent mock data for:', url);
+      
+      // Generate consistent mock data based on URL hash to avoid random variations
+      const urlHash = url.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      const seed = Math.abs(urlHash);
+      
       const mockData = {
-        views: Math.floor(Math.random() * 200000) + 20000,
-        engagement: Math.floor(Math.random() * 15000) + 1500,
-        likes: Math.floor(Math.random() * 12000) + 1200,
-        comments: Math.floor(Math.random() * 2000) + 200,
-        shares: Math.floor(Math.random() * 1000) + 100,
-        rate: Number((Math.random() * 10 + 5).toFixed(2))
+        views: 20000 + (seed % 180000), // Range: 20,000 - 200,000
+        engagement: 1500 + (seed % 13500), // Range: 1,500 - 15,000
+        likes: 1200 + (seed % 10800), // Range: 1,200 - 12,000
+        comments: 200 + (seed % 1800), // Range: 200 - 2,000
+        shares: 100 + (seed % 900), // Range: 100 - 1,000
+        rate: Number((5 + (seed % 10)).toFixed(2)) // Range: 5 - 15
       };
       
       return new Response(
@@ -123,14 +130,21 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error fetching TikTok analytics:', error);
     
-    // Return mock data on error
+    // Return consistent mock data on error (same as when no API key)
+    const { url: requestUrl } = await req.json().catch(() => ({ url: 'default' }));
+    const urlHash = (requestUrl || 'error').split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const seed = Math.abs(urlHash);
+    
     const mockData = {
-      views: Math.floor(Math.random() * 200000) + 20000,
-      engagement: Math.floor(Math.random() * 15000) + 1500,
-      likes: Math.floor(Math.random() * 12000) + 1200,
-      comments: Math.floor(Math.random() * 2000) + 200,
-      shares: Math.floor(Math.random() * 1000) + 100,
-      rate: Number((Math.random() * 10 + 5).toFixed(2))
+      views: 20000 + (seed % 180000),
+      engagement: 1500 + (seed % 13500),
+      likes: 1200 + (seed % 10800),
+      comments: 200 + (seed % 1800),
+      shares: 100 + (seed % 900),
+      rate: Number((5 + (seed % 10)).toFixed(2))
     };
     
     return new Response(

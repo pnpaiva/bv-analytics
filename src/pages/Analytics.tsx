@@ -73,9 +73,30 @@ export default function Analytics() {
     return lookup;
   }, [creators]);
 
-  // Helper function to resolve creator for a campaign
+  // Get campaign creators data using the hook
+  const { data: campaignCreators = [] } = useCampaignCreators();
+
+  // Helper function to resolve creator for a campaign using campaign_creators
   const resolveCreatorForCampaign = (campaign: Campaign) => {
-    // If campaign has a creator_id, use it
+    if (!campaignCreators || !creators) {
+      return { id: 'unknown', name: 'Unknown Creator' };
+    }
+
+    // Find all creators associated with this campaign
+    const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+    
+    if (campaignCreatorData.length > 0) {
+      // Use the first creator if multiple (most campaigns have one main creator)
+      const creator = creators.find(c => c.id === campaignCreatorData[0].creator_id);
+      if (creator) {
+        return {
+          id: creator.id,
+          name: creator.name
+        };
+      }
+    }
+
+    // Fallback logic using campaign.creator_id if no campaign_creators association
     if (campaign.creator_id && creatorLookup.has(campaign.creator_id)) {
       return {
         id: campaign.creator_id,
@@ -83,32 +104,7 @@ export default function Analytics() {
       };
     }
 
-    // If no creator_id, try to match by platform handles
-    const analyticsData = campaign.analytics_data as any;
-    if (analyticsData && creators) {
-      for (const creator of creators) {
-        const handles = creator.platform_handles as Record<string, string>;
-        if (handles) {
-          // Check if any platform content URLs match this creator's handles
-          for (const [platform, urls] of Object.entries(analyticsData)) {
-            if (Array.isArray(urls) && handles[platform]) {
-              const handle = handles[platform].replace('@', '');
-              const hasMatchingContent = urls.some((item: any) => 
-                item.url && item.url.includes(handle)
-              );
-              if (hasMatchingContent) {
-                return {
-                  id: creator.id,
-                  name: creator.name
-                };
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Default to Via Infinda for campaigns without creator_id (common case)
+    // Fallback to Via Infinda for campaigns without associated creators
     const viaInfindaCreator = creators.find(c => c.name === "Via Infinda");
     if (viaInfindaCreator) {
       return {
@@ -117,8 +113,8 @@ export default function Analytics() {
       };
     }
 
-    // Fallback to first creator if available
-    if (creators && creators.length > 0) {
+    // Final fallback
+    if (creators.length > 0) {
       return {
         id: creators[0].id,
         name: creators[0].name
@@ -156,10 +152,8 @@ export default function Analytics() {
 
   // Calculate aggregate metrics for selected campaigns
   const aggregateMetrics = useMemo((): AggregateMetrics => {
-    // Use campaign filters instead of selectedCampaigns
-    const selectedCampaignData = campaignFilters.length > 0 
-      ? campaigns.filter(c => campaignFilters.includes(c.id))
-      : filteredCampaigns;
+    // Use filtered campaigns that match current filters
+    const selectedCampaignData = filteredCampaigns;
 
     const totalViews = selectedCampaignData.reduce((sum, c) => sum + (c.total_views || 0), 0);
     const totalEngagement = selectedCampaignData.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
@@ -171,14 +165,11 @@ export default function Analytics() {
       avgEngagementRate,
       campaignCount: selectedCampaignData.length
     };
-  }, [campaigns, campaignFilters, filteredCampaigns]);
+  }, [filteredCampaigns]);
 
   // Calculate platform breakdown
   const platformBreakdown = useMemo((): PlatformBreakdown => {
-    const selectedCampaignData = campaignFilters.length > 0 
-      ? campaigns.filter(c => campaignFilters.includes(c.id))
-      : filteredCampaigns;
-
+    const selectedCampaignData = filteredCampaigns;
     const breakdown: PlatformBreakdown = {};
 
     selectedCampaignData.forEach(campaign => {
@@ -201,13 +192,11 @@ export default function Analytics() {
     });
 
     return breakdown;
-  }, [campaigns, campaignFilters, filteredCampaigns]);
+  }, [filteredCampaigns]);
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    const selectedCampaignData = campaignFilters.length > 0 
-      ? campaigns.filter(c => campaignFilters.includes(c.id))
-      : filteredCampaigns;
+    const selectedCampaignData = filteredCampaigns;
 
     if (creatorViewMode) {
       // Group by creator
@@ -246,7 +235,7 @@ export default function Analytics() {
 
       return platformData;
     }
-  }, [platformBreakdown, campaignFilters, campaigns, filteredCampaigns, creatorViewMode, creatorLookup]);
+  }, [platformBreakdown, filteredCampaigns, creatorViewMode]);
 
   const pieData = useMemo(() => {
     const selectedCampaignData = campaignFilters.length > 0 

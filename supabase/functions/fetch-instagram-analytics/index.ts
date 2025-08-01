@@ -32,14 +32,21 @@ Deno.serve(async (req) => {
     const apifyApiKey = Deno.env.get('APIFY_API_KEY');
     
     if (!apifyApiKey) {
-      console.log('Apify API key not found, returning mock data');
-      // Return mock data when API key is not available
+      console.log('Apify API key not found, returning consistent mock data for:', url);
+      
+      // Generate consistent mock data based on URL hash to avoid random variations
+      const urlHash = url.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      const seed = Math.abs(urlHash);
+      
       const mockData = {
-        views: Math.floor(Math.random() * 50000) + 5000,
-        engagement: Math.floor(Math.random() * 3000) + 300,
-        likes: Math.floor(Math.random() * 2500) + 250,
-        comments: Math.floor(Math.random() * 400) + 40,
-        rate: Number((Math.random() * 8 + 4).toFixed(2))
+        views: 5000 + (seed % 45000), // Range: 5,000 - 50,000
+        engagement: 300 + (seed % 2700), // Range: 300 - 3,000
+        likes: 250 + (seed % 2250), // Range: 250 - 2,500
+        comments: 40 + (seed % 360), // Range: 40 - 400
+        rate: Number((4 + (seed % 8)).toFixed(2)) // Range: 4 - 12
       };
       
       return new Response(
@@ -165,13 +172,20 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error fetching Instagram analytics:', error);
     
-    // Return mock data on error
+    // Return consistent mock data on error (same as when no API key)
+    const { url: requestUrl } = await req.json().catch(() => ({ url: 'default' }));
+    const urlHash = (requestUrl || 'error').split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    const seed = Math.abs(urlHash);
+    
     const mockData = {
-      views: Math.floor(Math.random() * 50000) + 5000,
-      engagement: Math.floor(Math.random() * 3000) + 300,
-      likes: Math.floor(Math.random() * 2500) + 250,
-      comments: Math.floor(Math.random() * 400) + 40,
-      rate: Number((Math.random() * 8 + 4).toFixed(2))
+      views: 5000 + (seed % 45000),
+      engagement: 300 + (seed % 2700),
+      likes: 250 + (seed % 2250),
+      comments: 40 + (seed % 360),
+      rate: Number((4 + (seed % 8)).toFixed(2))
     };
     
     return new Response(
