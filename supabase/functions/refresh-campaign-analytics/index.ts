@@ -113,90 +113,145 @@ Deno.serve(async (req) => {
       }
 
       console.log('Aggregated URLs:', allUrls);
+      console.log('URL counts - YouTube:', allUrls.youtube.length, 'Instagram:', allUrls.instagram.length, 'TikTok:', allUrls.tiktok.length);
       
-      // Process YouTube URLs
+      // Process YouTube URLs with retry logic
       if (allUrls.youtube.length > 0) {
         console.log('Processing YouTube URLs:', allUrls.youtube.length);
         platformResults.youtube = [];
         
-        for (const url of allUrls.youtube) {
-          try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/fetch-youtube-analytics`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({ url }),
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              totalViews += data.views || 0;
-              totalEngagement += data.engagement || 0;
-              platformResults.youtube.push({ url, ...data });
-              console.log('YouTube data:', data);
+        for (let i = 0; i < allUrls.youtube.length; i++) {
+          const url = allUrls.youtube[i];
+          let retries = 3;
+          
+          while (retries > 0) {
+            try {
+              console.log(`Processing YouTube URL ${i + 1}/${allUrls.youtube.length}: ${url}`);
+              const response = await fetch(`${supabaseUrl}/functions/v1/fetch-youtube-analytics`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({ url }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                totalViews += data.views || 0;
+                totalEngagement += data.engagement || 0;
+                platformResults.youtube.push({ url, ...data });
+                console.log('YouTube data:', data);
+                break; // Success, exit retry loop
+              } else {
+                console.error(`YouTube API failed for ${url}, status: ${response.status}`);
+                retries--;
+                if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+              }
+            } catch (error) {
+              console.error('Error processing YouTube URL:', url, error);
+              retries--;
+              if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
             }
-          } catch (error) {
-            console.error('Error processing YouTube URL:', url, error);
+          }
+          
+          // Add delay between requests to avoid rate limiting
+          if (i < allUrls.youtube.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
       }
 
-      // Process Instagram URLs
+      // Process Instagram URLs with retry logic
       if (allUrls.instagram.length > 0) {
         console.log('Processing Instagram URLs:', allUrls.instagram.length);
         platformResults.instagram = [];
         
-        for (const url of allUrls.instagram) {
-          try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/fetch-instagram-analytics`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({ url }),
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              totalViews += data.views || 0;
-              totalEngagement += data.engagement || 0;
-              platformResults.instagram.push({ url, ...data });
-              console.log('Instagram data:', data);
+        for (let i = 0; i < allUrls.instagram.length; i++) {
+          const url = allUrls.instagram[i];
+          let retries = 3;
+          
+          while (retries > 0) {
+            try {
+              console.log(`Processing Instagram URL ${i + 1}/${allUrls.instagram.length}: ${url}`);
+              const response = await fetch(`${supabaseUrl}/functions/v1/fetch-instagram-analytics`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({ url }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                totalViews += data.views || 0;
+                totalEngagement += data.engagement || 0;
+                platformResults.instagram.push({ url, ...data });
+                console.log('Instagram data:', data);
+                break; // Success, exit retry loop
+              } else {
+                console.error(`Instagram API failed for ${url}, status: ${response.status}`);
+                retries--;
+                if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+              }
+            } catch (error) {
+              console.error('Error processing Instagram URL:', url, error);
+              retries--;
+              if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
             }
-          } catch (error) {
-            console.error('Error processing Instagram URL:', url, error);
+          }
+          
+          // Add delay between requests to avoid rate limiting
+          if (i < allUrls.instagram.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
       }
 
-      // Process TikTok URLs
+      // Process TikTok URLs with retry logic
       if (allUrls.tiktok.length > 0) {
         console.log('Processing TikTok URLs:', allUrls.tiktok.length);
         platformResults.tiktok = [];
         
-        for (const url of allUrls.tiktok) {
-          try {
-            const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tiktok-analytics`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${supabaseKey}`,
-              },
-              body: JSON.stringify({ url }),
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              totalViews += data.views || 0;
-              totalEngagement += data.engagement || 0;
-              platformResults.tiktok.push({ url, ...data });
-              console.log('TikTok data:', data);
+        for (let i = 0; i < allUrls.tiktok.length; i++) {
+          const url = allUrls.tiktok[i];
+          let retries = 3;
+          
+          while (retries > 0) {
+            try {
+              console.log(`Processing TikTok URL ${i + 1}/${allUrls.tiktok.length}: ${url}`);
+              const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tiktok-analytics`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({ url }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                totalViews += data.views || 0;
+                totalEngagement += data.engagement || 0;
+                platformResults.tiktok.push({ url, ...data });
+                console.log('TikTok data:', data);
+                break; // Success, exit retry loop
+              } else {
+                console.error(`TikTok API failed for ${url}, status: ${response.status}`);
+                retries--;
+                if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+              }
+            } catch (error) {
+              console.error('Error processing TikTok URL:', url, error);
+              retries--;
+              if (retries > 0) await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
             }
-          } catch (error) {
-            console.error('Error processing TikTok URL:', url, error);
+          }
+          
+          // Add delay between requests to avoid rate limiting  
+          if (i < allUrls.tiktok.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 500));
           }
         }
       }
