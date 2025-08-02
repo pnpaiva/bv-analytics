@@ -14,11 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUserRole } from '@/hooks/useUserRoles';
+import { useProfile } from '@/hooks/useProfileManagement';
+import { AvatarImage } from '@/components/ui/avatar';
 
 export function Navigation() {
   const { user } = useAuth();
   const userRoleQuery = useUserRole();
   const userRole = userRoleQuery.data?.role;
+  const { data: profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -100,12 +103,21 @@ export function Navigation() {
                   className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-muted/50 transition-brand"
                 >
                   <Avatar className="w-8 h-8 ring-2 ring-primary/20">
+                    {user?.user_metadata?.avatar_url ? (
+                      <AvatarImage 
+                        src={user.user_metadata.avatar_url} 
+                        alt="Profile"
+                        className="object-cover"
+                      />
+                    ) : null}
                     <AvatarFallback className="bg-primary/10 text-primary font-subheading text-sm">
-                      {user?.email?.charAt(0).toUpperCase()}
+                      {profile?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:block text-left">
-                    <p className="text-sm font-subheading text-foreground">{user?.email}</p>
+                    <p className="text-sm font-subheading text-foreground">
+                      {profile?.display_name || user?.email}
+                    </p>
                     <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
                   </div>
                 </Button>

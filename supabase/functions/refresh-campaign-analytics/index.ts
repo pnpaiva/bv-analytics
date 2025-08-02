@@ -185,11 +185,6 @@ Deno.serve(async (req) => {
       totalViews, 
       totalEngagement, 
       engagementRate,
-      urlCounts: {
-        youtube: allUrls.youtube.length,
-        instagram: allUrls.instagram.length,
-        tiktok: allUrls.tiktok.length
-      },
       platformResults 
     });
 
