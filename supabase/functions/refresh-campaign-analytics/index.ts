@@ -77,13 +77,37 @@ Deno.serve(async (req) => {
           const urls = creator.content_urls as Record<string, string[]>;
           
           if (urls.youtube && Array.isArray(urls.youtube)) {
-            allUrls.youtube.push(...urls.youtube.filter(url => url.trim()));
+            const validYouTubeUrls = urls.youtube.filter(url => 
+              url && 
+              url.trim() && 
+              !url.toLowerCase().includes('placeholder') &&
+              !url.toLowerCase().includes('example') &&
+              !url.toLowerCase().includes('test') &&
+              (url.includes('youtube.com') || url.includes('youtu.be'))
+            );
+            allUrls.youtube.push(...validYouTubeUrls);
           }
           if (urls.instagram && Array.isArray(urls.instagram)) {
-            allUrls.instagram.push(...urls.instagram.filter(url => url.trim()));
+            const validInstagramUrls = urls.instagram.filter(url => 
+              url && 
+              url.trim() && 
+              !url.toLowerCase().includes('placeholder') &&
+              !url.toLowerCase().includes('example') &&
+              !url.toLowerCase().includes('test') &&
+              url.includes('instagram.com')
+            );
+            allUrls.instagram.push(...validInstagramUrls);
           }
           if (urls.tiktok && Array.isArray(urls.tiktok)) {
-            allUrls.tiktok.push(...urls.tiktok.filter(url => url.trim()));
+            const validTikTokUrls = urls.tiktok.filter(url => 
+              url && 
+              url.trim() && 
+              !url.toLowerCase().includes('placeholder') &&
+              !url.toLowerCase().includes('example') &&
+              !url.toLowerCase().includes('test') &&
+              url.includes('tiktok.com')
+            );
+            allUrls.tiktok.push(...validTikTokUrls);
           }
         }
       }
