@@ -297,6 +297,36 @@ Deno.serve(async (req) => {
       platformResults 
     });
 
+    // Save individual URL analytics to daily tracking table
+    if (platformResults) {
+      for (const [platform, urls] of Object.entries(platformResults)) {
+        if (Array.isArray(urls)) {
+          for (const urlData of urls) {
+            try {
+              await supabase.rpc('upsert_campaign_url_analytics', {
+                p_campaign_id: campaignId,
+                p_content_url: urlData.url,
+                p_platform: platform,
+                p_date_recorded: new Date().toISOString().split('T')[0], // Today's date
+                p_views: urlData.views || 0,
+                p_likes: urlData.likes || 0,
+                p_comments: urlData.comments || 0,
+                p_shares: urlData.shares || 0,
+                p_engagement: urlData.engagement || 0,
+                p_engagement_rate: urlData.rate || 0,
+                p_analytics_metadata: {
+                  fetched_at: new Date().toISOString(),
+                  api_source: platform
+                }
+              });
+            } catch (error) {
+              console.error(`Error saving URL analytics for ${urlData.url}:`, error);
+            }
+          }
+        }
+      }
+    }
+
     // Update campaign with analytics using the simplified function
     const { error: updateError } = await supabase.rpc('update_campaign_analytics', {
       p_campaign_id: campaignId,

@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Campaign } from '@/hooks/useCampaigns';
+import { useCampaignTimeline } from '@/hooks/useCampaignTimeline';
+import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
 import { Eye, Heart, Share2, MessageCircle, Download, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -21,79 +23,91 @@ interface CampaignAnalyticsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Generate realistic timeline data from campaign based on actual video data
-const generateTimelineData = (campaign: Campaign) => {
-  if (!campaign.analytics_data) return [];
-  
-  const analyticsData = campaign.analytics_data as any;
-  const allVideos: Array<{url: string, views: number, engagement: number, platform: string}> = [];
-  
-  // Collect all videos from all platforms
-  if (analyticsData.youtube?.length > 0) {
-    analyticsData.youtube.forEach((video: any) => {
-      allVideos.push({
-        url: video.url,
-        views: video.views || 0,
-        engagement: video.engagement || 0,
-        platform: 'YouTube'
-      });
-    });
-  }
-  
-  if (analyticsData.instagram?.length > 0) {
-    analyticsData.instagram.forEach((video: any) => {
-      allVideos.push({
-        url: video.url,
-        views: video.views || 0,
-        engagement: video.engagement || 0,
-        platform: 'Instagram'
-      });
-    });
-  }
-  
-  if (analyticsData.tiktok?.length > 0) {
-    analyticsData.tiktok.forEach((video: any) => {
-      allVideos.push({
-        url: video.url,
-        views: video.views || 0,
-        engagement: video.engagement || 0,
-        platform: 'TikTok'
-      });
-    });
-  }
-  
-  if (allVideos.length === 0) return [];
-  
-  // Create timeline based on video release simulation
-  const baseDate = new Date(campaign.campaign_date);
-  const timelineData = [];
-  
-  // Simulate videos being released over time
-  const totalVideos = allVideos.length;
-  const daysToSpread = Math.min(totalVideos, 7); // Spread over up to 7 days
-  
-  for (let i = 0; i < daysToSpread; i++) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() + i);
+// Generate realistic timeline data from actual database
+const generateTimelineData = (campaign: Campaign, timelineData: any[]) => {
+  if (!timelineData || timelineData.length === 0) {
+    // Fallback to old method if no timeline data available
+    if (!campaign.analytics_data) return [];
     
-    // Calculate how many videos would be "released" by this day
-    const videosReleased = Math.ceil((i + 1) * totalVideos / daysToSpread);
-    const videosToInclude = allVideos.slice(0, videosReleased);
+    const analyticsData = campaign.analytics_data as any;
+    const allVideos: Array<{url: string, views: number, engagement: number, platform: string}> = [];
     
-    const views = videosToInclude.reduce((sum, v) => sum + v.views, 0);
-    const engagement = videosToInclude.reduce((sum, v) => sum + v.engagement, 0);
-    const engagementRate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+    // Collect all videos from all platforms
+    if (analyticsData.youtube?.length > 0) {
+      analyticsData.youtube.forEach((video: any) => {
+        allVideos.push({
+          url: video.url,
+          views: video.views || 0,
+          engagement: video.engagement || 0,
+          platform: 'YouTube'
+        });
+      });
+    }
     
-    timelineData.push({
-      date: date.toISOString().split('T')[0],
-      views,
-      engagement,
-      engagementRate,
-      videosCount: videosReleased
-    });
+    if (analyticsData.instagram?.length > 0) {
+      analyticsData.instagram.forEach((video: any) => {
+        allVideos.push({
+          url: video.url,
+          views: video.views || 0,
+          engagement: video.engagement || 0,
+          platform: 'Instagram'
+        });
+      });
+    }
+    
+    if (analyticsData.tiktok?.length > 0) {
+      analyticsData.tiktok.forEach((video: any) => {
+        allVideos.push({
+          url: video.url,
+          views: video.views || 0,
+          engagement: video.engagement || 0,
+          platform: 'TikTok'
+        });
+      });
+    }
+    
+    if (allVideos.length === 0) return [];
+    
+    // Create timeline based on video release simulation
+    const baseDate = new Date(campaign.campaign_date);
+    const timelineData = [];
+    
+    // Simulate videos being released over time
+    const totalVideos = allVideos.length;
+    const daysToSpread = Math.min(totalVideos, 7); // Spread over up to 7 days
+    
+    for (let i = 0; i < daysToSpread; i++) {
+      const date = new Date(baseDate);
+      date.setDate(date.getDate() + i);
+      
+      // Calculate how many videos would be "released" by this day
+      const videosReleased = Math.ceil((i + 1) * totalVideos / daysToSpread);
+      const videosToInclude = allVideos.slice(0, videosReleased);
+      
+      const views = videosToInclude.reduce((sum, v) => sum + v.views, 0);
+      const engagement = videosToInclude.reduce((sum, v) => sum + v.engagement, 0);
+      const engagementRate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+      
+      timelineData.push({
+        date: date.toISOString().split('T')[0],
+        views,
+        engagement,
+        engagementRate,
+        videosCount: videosReleased
+      });
+    }
+    
+    return timelineData;
   }
   
-  return timelineData;
+  // Use actual timeline data from database
+  return timelineData.map((day: any) => ({
+    date: day.date_recorded,
+    views: day.total_views,
+    engagement: day.total_engagement,
+    engagementRate: Number(day.engagement_rate.toFixed(2)),
+    platformBreakdown: day.platform_breakdown
+  }));
 };
 
 // Helper function to get platform data with all videos
@@ -157,6 +171,10 @@ const getPlatformDataStatic = (campaign: Campaign) => {
 export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: CampaignAnalyticsModalProps) {
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Fetch real timeline data from database
+  const { data: timelineData = [] } = useCampaignTimeline(campaign?.id || '', 30);
+  const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign?.id || '');
+
   if (!campaign) return null;
 
   // Extract real platform data from campaign analytics (aggregating all videos)
@@ -218,7 +236,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   };
 
   const platformData = getPlatformData();
-  const timelineData = generateTimelineData(campaign);
+  const finalTimelineData = generateTimelineData(campaign, timelineData);
 
   const handleExport = () => {
     const data = {
@@ -227,7 +245,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
       totalEngagement: campaign.total_engagement,
       engagementRate: campaign.engagement_rate,
       platforms: platformData,
-      timeline: timelineData,
+      timeline: finalTimelineData,
     };
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -325,7 +343,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={timelineData}>
+                  <LineChart data={finalTimelineData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -406,7 +424,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={timelineData}>
+                  <LineChart data={finalTimelineData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -430,7 +448,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {timelineData.map((day, index) => (
+                  {finalTimelineData.map((day, index) => (
                     <div key={index} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{format(new Date(day.date), 'MMMM d, yyyy')}</p>
