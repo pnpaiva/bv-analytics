@@ -243,6 +243,75 @@ export type Database = {
           },
         ]
       }
+      campaign_url_analytics: {
+        Row: {
+          analytics_metadata: Json | null
+          campaign_id: string
+          comments: number | null
+          content_url: string
+          created_at: string
+          date_recorded: string
+          engagement: number | null
+          engagement_rate: number | null
+          fetched_at: string
+          id: string
+          likes: number | null
+          platform: string
+          shares: number | null
+          updated_at: string
+          views: number | null
+        }
+        Insert: {
+          analytics_metadata?: Json | null
+          campaign_id: string
+          comments?: number | null
+          content_url: string
+          created_at?: string
+          date_recorded?: string
+          engagement?: number | null
+          engagement_rate?: number | null
+          fetched_at?: string
+          id?: string
+          likes?: number | null
+          platform: string
+          shares?: number | null
+          updated_at?: string
+          views?: number | null
+        }
+        Update: {
+          analytics_metadata?: Json | null
+          campaign_id?: string
+          comments?: number | null
+          content_url?: string
+          created_at?: string
+          date_recorded?: string
+          engagement?: number | null
+          engagement_rate?: number | null
+          fetched_at?: string
+          id?: string
+          likes?: number | null
+          platform?: string
+          shares?: number | null
+          updated_at?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_url_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_url_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_analytics"
+            referencedColumns: ["campaign_id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           airtable_id: string | null
@@ -861,6 +930,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      get_campaign_timeline: {
+        Args: { p_campaign_id: string; p_days_back?: number }
+        Returns: {
+          date_recorded: string
+          total_views: number
+          total_engagement: number
+          engagement_rate: number
+          platform_breakdown: Json
+        }[]
+      }
       get_campaign_trends: {
         Args: {
           start_date?: string
@@ -873,6 +952,22 @@ export type Database = {
           total_engagement: number
           campaign_count: number
           avg_engagement_rate: number
+        }[]
+      }
+      get_campaign_url_analytics: {
+        Args: {
+          p_campaign_id: string
+          p_start_date?: string
+          p_end_date?: string
+        }
+        Returns: {
+          url: string
+          platform: string
+          total_views: number
+          total_engagement: number
+          avg_engagement_rate: number
+          latest_date: string
+          daily_data: Json
         }[]
       }
       get_current_user_role: {
@@ -1004,6 +1099,22 @@ export type Database = {
           p_subscribers?: number
           p_total_views?: number
           p_video_count?: number
+        }
+        Returns: undefined
+      }
+      upsert_campaign_url_analytics: {
+        Args: {
+          p_campaign_id: string
+          p_content_url: string
+          p_platform: string
+          p_date_recorded: string
+          p_views?: number
+          p_likes?: number
+          p_comments?: number
+          p_shares?: number
+          p_engagement?: number
+          p_engagement_rate?: number
+          p_analytics_metadata?: Json
         }
         Returns: undefined
       }
