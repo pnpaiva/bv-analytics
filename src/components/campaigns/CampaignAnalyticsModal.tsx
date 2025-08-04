@@ -21,74 +21,133 @@ interface CampaignAnalyticsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Generate realistic timeline data from campaign
+// Generate realistic timeline data from campaign based on actual video data
 const generateTimelineData = (campaign: Campaign) => {
-  const platforms = getPlatformDataStatic(campaign);
-  const totalViews = platforms.reduce((sum, p) => sum + p.views, 0);
-  const totalEngagement = platforms.reduce((sum, p) => sum + p.engagement, 0);
+  if (!campaign.analytics_data) return [];
   
-  // Create a 5-day progression showing cumulative growth
+  const analyticsData = campaign.analytics_data as any;
+  const allVideos: Array<{url: string, views: number, engagement: number, platform: string}> = [];
+  
+  // Collect all videos from all platforms
+  if (analyticsData.youtube?.length > 0) {
+    analyticsData.youtube.forEach((video: any) => {
+      allVideos.push({
+        url: video.url,
+        views: video.views || 0,
+        engagement: video.engagement || 0,
+        platform: 'YouTube'
+      });
+    });
+  }
+  
+  if (analyticsData.instagram?.length > 0) {
+    analyticsData.instagram.forEach((video: any) => {
+      allVideos.push({
+        url: video.url,
+        views: video.views || 0,
+        engagement: video.engagement || 0,
+        platform: 'Instagram'
+      });
+    });
+  }
+  
+  if (analyticsData.tiktok?.length > 0) {
+    analyticsData.tiktok.forEach((video: any) => {
+      allVideos.push({
+        url: video.url,
+        views: video.views || 0,
+        engagement: video.engagement || 0,
+        platform: 'TikTok'
+      });
+    });
+  }
+  
+  if (allVideos.length === 0) return [];
+  
+  // Create timeline based on video release simulation
   const baseDate = new Date(campaign.campaign_date);
   const timelineData = [];
   
-  for (let i = 0; i < 5; i++) {
+  // Simulate videos being released over time
+  const totalVideos = allVideos.length;
+  const daysToSpread = Math.min(totalVideos, 7); // Spread over up to 7 days
+  
+  for (let i = 0; i < daysToSpread; i++) {
     const date = new Date(baseDate);
     date.setDate(date.getDate() + i);
     
-    // Simulate gradual accumulation over time
-    const progress = (i + 1) / 5;
-    const views = Math.round(totalViews * progress);
-    const engagement = Math.round(totalEngagement * progress);
+    // Calculate how many videos would be "released" by this day
+    const videosReleased = Math.ceil((i + 1) * totalVideos / daysToSpread);
+    const videosToInclude = allVideos.slice(0, videosReleased);
+    
+    const views = videosToInclude.reduce((sum, v) => sum + v.views, 0);
+    const engagement = videosToInclude.reduce((sum, v) => sum + v.engagement, 0);
     const engagementRate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
     
     timelineData.push({
       date: date.toISOString().split('T')[0],
       views,
       engagement,
-      engagementRate
+      engagementRate,
+      videosCount: videosReleased
     });
   }
   
   return timelineData;
 };
 
-// Helper function to get platform data (used in timeline generation)
+// Helper function to get platform data with all videos
 const getPlatformDataStatic = (campaign: Campaign) => {
   if (!campaign.analytics_data) return [];
   
   const platforms = [];
   const analyticsData = campaign.analytics_data as any;
   
+  // YouTube - aggregate all videos
   if (analyticsData.youtube?.length > 0) {
-    const youtubeData = analyticsData.youtube[0];
+    const totalViews = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+    const totalEngagement = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
+    const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    
     platforms.push({
       platform: 'YouTube',
-      views: youtubeData.views || 0,
-      engagement: youtubeData.engagement || 0,
-      rate: youtubeData.rate || 0,
-      url: youtubeData.url
+      views: totalViews,
+      engagement: totalEngagement,
+      rate: avgRate,
+      videoCount: analyticsData.youtube.length,
+      urls: analyticsData.youtube.map((v: any) => v.url)
     });
   }
   
+  // Instagram - aggregate all videos
   if (analyticsData.instagram?.length > 0) {
-    const instagramData = analyticsData.instagram[0];
+    const totalViews = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+    const totalEngagement = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
+    const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    
     platforms.push({
       platform: 'Instagram',
-      views: instagramData.views || 0,
-      engagement: instagramData.engagement || 0,
-      rate: instagramData.rate || 0,
-      url: instagramData.url
+      views: totalViews,
+      engagement: totalEngagement,
+      rate: avgRate,
+      videoCount: analyticsData.instagram.length,
+      urls: analyticsData.instagram.map((v: any) => v.url)
     });
   }
   
+  // TikTok - aggregate all videos
   if (analyticsData.tiktok?.length > 0) {
-    const tiktokData = analyticsData.tiktok[0];
+    const totalViews = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+    const totalEngagement = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
+    const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    
     platforms.push({
       platform: 'TikTok',
-      views: tiktokData.views || 0,
-      engagement: tiktokData.engagement || 0,
-      rate: tiktokData.rate || 0,
-      url: tiktokData.url
+      views: totalViews,
+      engagement: totalEngagement,
+      rate: avgRate,
+      videoCount: analyticsData.tiktok.length,
+      urls: analyticsData.tiktok.map((v: any) => v.url)
     });
   }
   
@@ -100,43 +159,58 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
 
   if (!campaign) return null;
 
-  // Extract real platform data from campaign analytics
+  // Extract real platform data from campaign analytics (aggregating all videos)
   const getPlatformData = () => {
     if (!campaign.analytics_data) return [];
     
     const platforms = [];
     const analyticsData = campaign.analytics_data as any;
     
+    // YouTube - aggregate all videos
     if (analyticsData.youtube?.length > 0) {
-      const youtubeData = analyticsData.youtube[0];
+      const totalViews = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+      const totalEngagement = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
+      const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+      
       platforms.push({
         platform: 'YouTube',
-        views: youtubeData.views || 0,
-        engagement: youtubeData.engagement || 0,
-        rate: youtubeData.rate || 0,
-        url: youtubeData.url
+        views: totalViews,
+        engagement: totalEngagement,
+        rate: avgRate,
+        videoCount: analyticsData.youtube.length,
+        urls: analyticsData.youtube.map((v: any) => v.url)
       });
     }
     
+    // Instagram - aggregate all videos
     if (analyticsData.instagram?.length > 0) {
-      const instagramData = analyticsData.instagram[0];
+      const totalViews = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+      const totalEngagement = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
+      const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+      
       platforms.push({
         platform: 'Instagram',
-        views: instagramData.views || 0,
-        engagement: instagramData.engagement || 0,
-        rate: instagramData.rate || 0,
-        url: instagramData.url
+        views: totalViews,
+        engagement: totalEngagement,
+        rate: avgRate,
+        videoCount: analyticsData.instagram.length,
+        urls: analyticsData.instagram.map((v: any) => v.url)
       });
     }
     
+    // TikTok - aggregate all videos
     if (analyticsData.tiktok?.length > 0) {
-      const tiktokData = analyticsData.tiktok[0];
+      const totalViews = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
+      const totalEngagement = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
+      const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+      
       platforms.push({
         platform: 'TikTok',
-        views: tiktokData.views || 0,
-        engagement: tiktokData.engagement || 0,
-        rate: tiktokData.rate || 0,
-        url: tiktokData.url
+        views: totalViews,
+        engagement: totalEngagement,
+        rate: avgRate,
+        videoCount: analyticsData.tiktok.length,
+        urls: analyticsData.tiktok.map((v: any) => v.url)
       });
     }
     
@@ -292,6 +366,12 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                         <span className="text-sm text-muted-foreground">Rate:</span>
                         <span className="font-medium">{platform.rate}%</span>
                       </div>
+                      {platform.videoCount && (
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Videos:</span>
+                          <span className="font-medium">{platform.videoCount}</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -355,7 +435,8 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                       <div>
                         <p className="font-medium">{format(new Date(day.date), 'MMMM d, yyyy')}</p>
                         <p className="text-sm text-muted-foreground">
-                          {day.views.toLocaleString()} views • {day.engagement} engagement
+                          {day.views.toLocaleString()} views • {day.engagement.toLocaleString()} engagement
+                          {day.videosCount && ` • ${day.videosCount} videos`}
                         </p>
                       </div>
                       <Badge variant="outline">{day.engagementRate}%</Badge>
