@@ -116,13 +116,8 @@ Deno.serve(async (req) => {
             }
           }
 
-          console.log(`Campaign ${campaignId} URLs:`, {
-            youtube: allUrls.youtube.length,
-            instagram: allUrls.instagram.length,
-            tiktok: allUrls.tiktok.length
-          });
 
-          // If no URLs found, mark as completed with zero analytics
+          // If no URLs found, mark as completed
           if (allUrls.youtube.length === 0 && allUrls.instagram.length === 0 && allUrls.tiktok.length === 0) {
             await supabase.rpc('update_campaign_analytics', {
               p_campaign_id: campaignId,
@@ -131,33 +126,104 @@ Deno.serve(async (req) => {
               p_engagement_rate: 0,
               p_analytics_data: {}
             });
-            
             return { campaignId, success: true };
           }
 
-          // Process analytics using existing refresh function
-          const refreshResponse = await fetch(`${supabaseUrl}/functions/v1/refresh-campaign-analytics`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseKey}`,
-            },
-            body: JSON.stringify({ campaignId }),
-          });
-          
-          if (refreshResponse.ok) {
-            const refreshData = await refreshResponse.json();
-            console.log(`Campaign ${campaignId} analytics updated:`, {
-              views: refreshData.totalViews,
-              engagement: refreshData.totalEngagement,
-              rate: refreshData.engagementRate
-            });
-            
-            return { campaignId, success: true };
-          } else {
-            const errorText = await refreshResponse.text();
-            throw new Error(`Analytics refresh failed: ${errorText}`);
+          // Process analytics directly to avoid redundant function calls
+          let totalViews = 0;
+          let totalEngagement = 0;
+          let platformResults: any = {};
+
+          // Process YouTube URLs efficiently
+          if (allUrls.youtube.length > 0) {
+            platformResults.youtube = [];
+            for (const url of allUrls.youtube) {
+              try {
+                const response = await fetch(`${supabaseUrl}/functions/v1/fetch-youtube-analytics`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                  body: JSON.stringify({ url }),
+                });
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  totalViews += data.views || 0;
+                  totalEngagement += data.engagement || 0;
+                  platformResults.youtube.push({ url, ...data });
+                }
+              } catch (error) {
+                console.error(`Error processing YouTube URL ${url}:`, error);
+              }
+            }
           }
+
+          // Process Instagram URLs efficiently  
+          if (allUrls.instagram.length > 0) {
+            platformResults.instagram = [];
+            for (const url of allUrls.instagram) {
+              try {
+                const response = await fetch(`${supabaseUrl}/functions/v1/fetch-instagram-analytics`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                  body: JSON.stringify({ url }),
+                });
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  totalViews += data.views || 0;
+                  totalEngagement += data.engagement || 0;
+                  platformResults.instagram.push({ url, ...data });
+                }
+              } catch (error) {
+                console.error(`Error processing Instagram URL ${url}:`, error);
+              }
+            }
+          }
+
+          // Process TikTok URLs efficiently
+          if (allUrls.tiktok.length > 0) {
+            platformResults.tiktok = [];
+            for (const url of allUrls.tiktok) {
+              try {
+                const response = await fetch(`${supabaseUrl}/functions/v1/fetch-tiktok-analytics`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                  body: JSON.stringify({ url }),
+                });
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  totalViews += data.views || 0;
+                  totalEngagement += data.engagement || 0;
+                  platformResults.tiktok.push({ url, ...data });
+                }
+              } catch (error) {
+                console.error(`Error processing TikTok URL ${url}:`, error);
+              }
+            }
+          }
+
+          // Calculate engagement rate and update campaign
+          const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+
+          await supabase.rpc('update_campaign_analytics', {
+            p_campaign_id: campaignId,
+            p_total_views: totalViews,
+            p_total_engagement: totalEngagement,
+            p_engagement_rate: engagementRate,
+            p_analytics_data: platformResults
+          });
+
+          return { campaignId, success: true };
 
         } catch (error) {
           console.error(`Error processing campaign ${campaignId}:`, error);

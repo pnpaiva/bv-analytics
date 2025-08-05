@@ -98,7 +98,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         airtable_id: campaign.airtable_id || '',
       });
     }
-  }, [campaign?.id, form]); // Added form to dependencies
+  }, [campaign?.id]); // Remove form dependency to prevent loop
 
   // Update creators when campaign creators change
   React.useEffect(() => {
