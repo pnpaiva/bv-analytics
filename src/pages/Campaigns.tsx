@@ -12,6 +12,7 @@ import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight } from '
 import { Loader2 } from 'lucide-react';
 import { PDFExporter } from '@/utils/pdfExporter';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+import { ExportCustomizationDialog, ExportCustomizationOptions } from '@/components/campaigns/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -30,6 +31,7 @@ export default function Campaigns() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [refreshAllDialogOpen, setRefreshAllDialogOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
   
@@ -40,18 +42,19 @@ export default function Campaigns() {
     setAnalyticsOpen(true);
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (options: ExportCustomizationOptions) => {
     try {
       const exporter = new EnhancedPDFExporter();
-      const exportTitle = searchTerm || statusFilter !== 'all' 
+      const exportTitle = options.customTitle || (searchTerm || statusFilter !== 'all' 
         ? `Filtered Campaigns Report` 
-        : 'All Campaigns Report';
+        : 'All Campaigns Report');
       
       await exporter.exportWithCharts(filteredCampaigns, exportTitle, {
-        includeAnalytics: true,
-        includeContentUrls: true,
-        includeMasterCampaigns: true,
-        includeCharts: true
+        includeAnalytics: options.includeAnalytics,
+        includeContentUrls: options.includeContentUrls,
+        includeMasterCampaigns: options.includeMasterCampaigns,
+        includeCharts: options.includeCharts,
+        includeLogo: options.includeLogo
       });
       
       toast.success('Enhanced PDF report exported successfully');
@@ -73,34 +76,29 @@ export default function Campaigns() {
     toast.info(`Refreshing ${campaignsToRefresh.length} campaigns...`);
     
     try {
-      // Refresh all campaigns in parallel
-      const refreshPromises = campaignsToRefresh.map(async (campaign) => {
-        try {
-          const response = await supabase.functions.invoke('refresh-campaign-analytics', {
-            body: { campaignId: campaign.id }
-          });
-          
-          if (response.error) {
-            console.error(`Failed to refresh campaign ${campaign.brand_name}:`, response.error);
-            return false;
-          }
-          return true;
-        } catch (error) {
-          console.error(`Error refreshing campaign ${campaign.brand_name}:`, error);
-          return false;
-        }
+      // Use the new batch refresh function
+      const campaignIds = campaignsToRefresh.map(c => c.id);
+      const response = await supabase.functions.invoke('refresh-all-campaigns-with-apify', {
+        body: { campaignIds }
       });
+      
+      if (response.error) {
+        console.error('Batch refresh failed:', response.error);
+        toast.error('Failed to refresh campaigns');
+        return;
+      }
 
-      const results = await Promise.all(refreshPromises);
-      const successCount = results.filter(Boolean).length;
+      const result = response.data;
       
       // Refetch campaigns data
       refetch();
       
-      if (successCount === campaignsToRefresh.length) {
-        toast.success(`All ${successCount} campaigns refreshed successfully`);
+      if (result.successful === campaignIds.length) {
+        toast.success(`All ${result.successful} campaigns refreshed successfully`);
+      } else if (result.successful > 0) {
+        toast.warning(`${result.successful} of ${campaignIds.length} campaigns refreshed successfully`);
       } else {
-        toast.warning(`${successCount} of ${campaignsToRefresh.length} campaigns refreshed successfully`);
+        toast.error('Failed to refresh any campaigns');
       }
     } catch (error) {
       console.error('Error during refresh all:', error);
@@ -155,7 +153,7 @@ export default function Campaigns() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={handleExportPDF} disabled={filteredCampaigns.length === 0}>
+            <Button variant="outline" onClick={() => setExportDialogOpen(true)} disabled={filteredCampaigns.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>
@@ -301,6 +299,16 @@ export default function Campaigns() {
           campaign={selectedCampaign}
           open={analyticsOpen}
           onOpenChange={setAnalyticsOpen}
+        />
+
+        <ExportCustomizationDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          onExport={handleExportPDF}
+          campaignCount={filteredCampaigns.length}
+          defaultTitle={searchTerm || statusFilter !== 'all' 
+            ? `Filtered Campaigns Report` 
+            : 'All Campaigns Report'}
         />
 
         <AlertDialog open={refreshAllDialogOpen} onOpenChange={setRefreshAllDialogOpen}>

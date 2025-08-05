@@ -18,6 +18,7 @@ import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -63,6 +64,7 @@ export default function Analytics() {
   const [creatorViewMode, setCreatorViewMode] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -212,7 +214,7 @@ export default function Analytics() {
     const selectedCampaignData = filteredCampaigns;
 
     if (creatorViewMode) {
-      // Group by creator
+      // Group by creator - ensure we capture all unique creators from filtered campaigns
       const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
@@ -229,13 +231,17 @@ export default function Analytics() {
         creatorData[creatorId].campaigns += 1;
       });
 
-      return Object.values(creatorData).map((data) => ({
-        platform: data.creatorName,
-        views: data.views,
-        engagement: data.engagement,
-        campaigns: data.campaigns,
-        engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
-      }));
+      // Sort by views descending to show most active creators first
+      return Object.values(creatorData)
+        .filter(data => data.views > 0 || data.campaigns > 0) // Only show creators with activity
+        .sort((a, b) => b.views - a.views)
+        .map((data) => ({
+          platform: data.creatorName,
+          views: data.views,
+          engagement: data.engagement,
+          campaigns: data.campaigns,
+          engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
+        }));
     } else {
       // Group by platform
       const platformData = Object.entries(platformBreakdown).map(([platform, data]) => ({
@@ -246,9 +252,9 @@ export default function Analytics() {
         engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
       }));
 
-      return platformData;
+      return platformData.filter(data => data.views > 0 || data.campaigns > 0);
     }
-  }, [platformBreakdown, filteredCampaigns, creatorViewMode]);
+  }, [platformBreakdown, filteredCampaigns, creatorViewMode, resolveCreatorForCampaign]);
 
   const pieData = useMemo(() => {
     const selectedCampaignData = campaignFilters.length > 0 
@@ -415,7 +421,7 @@ export default function Analytics() {
     setMasterCampaignFilters(prev => prev.filter(name => name !== masterCampaignName));
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (options: AnalyticsExportOptions) => {
     try {
       const campaignsToExport = campaignFilters.length > 0 
         ? campaigns.filter(c => campaignFilters.includes(c.id))
@@ -427,13 +433,14 @@ export default function Analytics() {
       }
 
       const exporter = new EnhancedPDFExporter();
-      const exportTitle = 'Enhanced Campaign Analytics Report';
+      const exportTitle = options.customTitle || 'Enhanced Campaign Analytics Report';
       
       await exporter.exportWithCharts(campaignsToExport, exportTitle, {
-        includeAnalytics: true,
-        includeContentUrls: true,
-        includeMasterCampaigns: true,
-        includeCharts: true
+        includeAnalytics: options.includeAnalytics,
+        includeContentUrls: options.includeContentUrls,
+        includeMasterCampaigns: options.includeMasterCampaigns,
+        includeCharts: options.includeCharts,
+        includeLogo: options.includeLogo
       });
       
       toast.success(`Enhanced PDF report exported with ${campaignsToExport.length} campaigns`);
@@ -473,7 +480,7 @@ export default function Analytics() {
           </div>
           <div className="flex items-center gap-4">
             <Button 
-              onClick={handleExportPDF} 
+              onClick={() => setExportDialogOpen(true)} 
               disabled={filteredCampaigns.length === 0}
               variant="outline"
             >
@@ -1015,6 +1022,14 @@ export default function Analytics() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <AnalyticsExportCustomizationDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          onExport={handleExportPDF}
+          campaignCount={filteredCampaigns.length}
+          defaultTitle="Analytics Dashboard Report"
+        />
       </div>
     </div>
   );
