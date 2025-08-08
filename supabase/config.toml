@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.refresh-campaign-analytics]
 verify_jwt = false
+
+[functions.refresh-campaigns-with-progress]
+verify_jwt = false
