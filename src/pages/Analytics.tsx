@@ -78,6 +78,42 @@ export default function Analytics() {
   // Get campaign creators data using the hook
   const { data: campaignCreators = [] } = useCampaignCreators();
 
+  // Build URL -> creator mapping per campaign
+  const normalizeUrl = (url?: string) => {
+    if (!url) return '';
+    try {
+      const u = new URL(url);
+      u.hash = '';
+      u.search = '';
+      return u.toString().replace(/\/$/, '');
+    } catch {
+      return url.trim().replace(/\/$/, '');
+    }
+  };
+
+  const urlToCreatorByCampaign = useMemo(() => {
+    const map = new Map<string, Map<string, string>>();
+    (campaignCreators || []).forEach(cc => {
+      const inner = map.get(cc.campaign_id) ?? new Map<string, string>();
+      const content = cc.content_urls || {} as Record<string, string[]>;
+      Object.values(content).forEach((arr) => {
+        (arr || []).forEach((raw) => {
+          const norm = normalizeUrl(raw);
+          if (norm) inner.set(norm, cc.creator_id);
+        });
+      });
+      map.set(cc.campaign_id, inner);
+    });
+    return map;
+  }, [campaignCreators]);
+
+  const getCreatorIdForUrl = (campaignId: string, url?: string) => {
+    const inner = urlToCreatorByCampaign.get(campaignId);
+    if (!inner || !url) return undefined;
+    const norm = normalizeUrl(url);
+    return inner.get(norm);
+  };
+
   // Helper function to resolve creator for a campaign using campaign_creators
   const resolveCreatorForCampaign = (campaign: Campaign) => {
     if (!campaignCreators || !creators) {
@@ -139,10 +175,29 @@ export default function Analytics() {
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
       const matchesCreator = creatorFilters.length === 0 || 
-        // Check if any selected creator matches this campaign's resolved creator
+        // Check if any selected creator has URLs within this campaign's analytics
         (() => {
-          const resolvedCreator = resolveCreatorForCampaign(campaign);
-          return creatorFilters.includes(resolvedCreator.id);
+          const creatorIdsInCampaign = new Set<string>();
+
+          if (campaign.analytics_data) {
+            Object.values(campaign.analytics_data).forEach((platformData: any) => {
+              if (Array.isArray(platformData)) {
+                platformData.forEach((item: any) => {
+                  const cid = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
+                  if (cid) creatorIdsInCampaign.add(cid);
+                });
+              }
+            });
+          }
+
+          // Fallback: include linked creators even if analytics_data is missing
+          if (creatorIdsInCampaign.size === 0) {
+            (campaignCreators || [])
+              .filter(cc => cc.campaign_id === campaign.id)
+              .forEach(cc => creatorIdsInCampaign.add(cc.creator_id));
+          }
+
+          return [...creatorIdsInCampaign].some(id => creatorFilters.includes(id));
         })();
       const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
       const matchesMasterCampaign = masterCampaignFilters.length === 0 || 
@@ -214,32 +269,48 @@ export default function Analytics() {
     const selectedCampaignData = filteredCampaigns;
 
     if (creatorViewMode) {
-      // Group by creator - ensure we capture all unique creators from filtered campaigns
-      const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: number; creatorName: string } } = {};
-      
+      // Build by creator using URL-level attribution
+      const creatorData: { [creatorId: string]: { views: number; engagement: number; campaigns: Set<string>; creatorName: string } } = {};
+
       selectedCampaignData.forEach(campaign => {
-        const resolvedCreator = resolveCreatorForCampaign(campaign);
-        const creatorId = resolvedCreator.id;
-        const creatorName = resolvedCreator.name;
-        
-        if (!creatorData[creatorId]) {
-          creatorData[creatorId] = { views: 0, engagement: 0, campaigns: 0, creatorName };
+        const addToCreator = (creatorId?: string, views: number = 0, engagement: number = 0) => {
+          if (!creatorId) return;
+          const creatorName = creatorLookup.get(creatorId) || 'Unknown Creator';
+          if (!creatorData[creatorId]) {
+            creatorData[creatorId] = { views: 0, engagement: 0, campaigns: new Set<string>(), creatorName };
+          }
+          creatorData[creatorId].views += views;
+          creatorData[creatorId].engagement += engagement;
+          creatorData[creatorId].campaigns.add(campaign.id);
+        };
+
+        if (campaign.analytics_data) {
+          Object.entries(campaign.analytics_data).forEach(([_, platformData]: [string, any]) => {
+            if (Array.isArray(platformData)) {
+              platformData.forEach((item: any) => {
+                const cid = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
+                if (cid) {
+                  addToCreator(cid, item.views || 0, item.engagement || 0);
+                }
+              });
+            }
+          });
+        } else {
+          // Fallback to resolved creator totals when no granular data
+          const fallback = resolveCreatorForCampaign(campaign);
+          addToCreator(fallback.id, campaign.total_views || 0, campaign.total_engagement || 0);
         }
-        
-        creatorData[creatorId].views += campaign.total_views || 0;
-        creatorData[creatorId].engagement += campaign.total_engagement || 0;
-        creatorData[creatorId].campaigns += 1;
       });
 
       // Sort by views descending to show most active creators first
       return Object.values(creatorData)
-        .filter(data => data.views > 0 || data.campaigns > 0) // Only show creators with activity
+        .filter(data => data.views > 0 || data.campaigns.size > 0)
         .sort((a, b) => b.views - a.views)
         .map((data) => ({
           platform: data.creatorName,
           views: data.views,
           engagement: data.engagement,
-          campaigns: data.campaigns,
+          campaigns: data.campaigns.size,
           engagementRate: data.views > 0 ? ((data.engagement / data.views) * 100) : 0
         }));
     } else {
@@ -261,23 +332,28 @@ export default function Analytics() {
       ? campaigns.filter(c => campaignFilters.includes(c.id))
       : filteredCampaigns;
 
-    if (creatorViewMode) {
-      // Group by creator
-      const creatorData: { [creatorId: string]: { views: number; creatorName: string } } = {};
+  if (creatorViewMode) {
+      // Group by creator using URL-level attribution
+      const creatorViews: { [creatorId: string]: { views: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
-        const resolvedCreator = resolveCreatorForCampaign(campaign);
-        const creatorId = resolvedCreator.id;
-        const creatorName = resolvedCreator.name;
-        
-        if (!creatorData[creatorId]) {
-          creatorData[creatorId] = { views: 0, creatorName };
+        if (campaign.analytics_data) {
+          Object.entries(campaign.analytics_data).forEach(([_, platformData]: [string, any]) => {
+            if (Array.isArray(platformData)) {
+              platformData.forEach((item: any) => {
+                const cid = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
+                if (cid) {
+                  const name = creatorLookup.get(cid) || 'Unknown Creator';
+                  if (!creatorViews[cid]) creatorViews[cid] = { views: 0, creatorName: name };
+                  creatorViews[cid].views += item.views || 0;
+                }
+              });
+            }
+          });
         }
-        
-        creatorData[creatorId].views += campaign.total_views || 0;
       });
 
-      return Object.values(creatorData).map((data, index) => ({
+      return Object.values(creatorViews).map((data, index) => ({
         name: data.creatorName,
         value: data.views,
         fill: index === 0 ? 'hsl(var(--primary))' : 'hsl(var(--brand-accent-green))'
@@ -330,7 +406,11 @@ export default function Analytics() {
                 title: video.title || `${platform} Video ${index + 1}`,
                 platform: platform.charAt(0).toUpperCase() + platform.slice(1),
                 campaign: campaign.brand_name,
-                creator: resolvedCreator.name,
+                creator: (() => {
+                  const cid = getCreatorIdForUrl(campaign.id, video.url || video.content_url);
+                  if (cid) return creatorLookup.get(cid) || 'Unknown Creator';
+                  return resolvedCreator.name;
+                })(),
                 views: video.views || 0,
                 engagement: video.engagement || 0,
                 engagementRate: video.views > 0 ? ((video.engagement / video.views) * 100) : 0,
@@ -756,7 +836,7 @@ export default function Analytics() {
               </div>
             </CardHeader>
             <CardContent>
-              <div data-chart="platform-performance">
+              <div data-chart={creatorViewMode ? "creator-performance" : "platform-performance"}>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />

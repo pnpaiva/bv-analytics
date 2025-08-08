@@ -44,7 +44,7 @@ export function useCampaignCreators(campaignId?: string) {
 
       return data as CampaignCreator[];
     },
-    enabled: !!campaignId,
+    enabled: true,
   });
 }
 
