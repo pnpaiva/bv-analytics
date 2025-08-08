@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { RefreshProgressDialog } from '@/components/campaigns/RefreshProgressDialog';
 
 export default function Campaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -34,6 +35,7 @@ export default function Campaigns() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
+  const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
   
   const { data: campaigns = [], isLoading, refetch } = useCampaigns();
 
@@ -73,37 +75,14 @@ export default function Campaigns() {
       return;
     }
 
-    toast.info(`Refreshing ${campaignsToRefresh.length} campaigns...`);
-    
-    try {
-      // Use the new batch refresh function
-      const campaignIds = campaignsToRefresh.map(c => c.id);
-      const response = await supabase.functions.invoke('refresh-all-campaigns-with-apify', {
-        body: { campaignIds }
-      });
-      
-      if (response.error) {
-        console.error('Batch refresh failed:', response.error);
-        toast.error('Failed to refresh campaigns');
-        return;
-      }
+    // Open the progress dialog instead of running the refresh directly
+    setRefreshProgressOpen(true);
+  };
 
-      const result = response.data;
-      
-      // Refetch campaigns data
-      refetch();
-      
-      if (result.successful === campaignIds.length) {
-        toast.success(`All ${result.successful} campaigns refreshed successfully`);
-      } else if (result.successful > 0) {
-        toast.warning(`${result.successful} of ${campaignIds.length} campaigns refreshed successfully`);
-      } else {
-        toast.error('Failed to refresh any campaigns');
-      }
-    } catch (error) {
-      console.error('Error during refresh all:', error);
-      toast.error('Failed to refresh campaigns');
-    }
+  const handleRefreshComplete = () => {
+    // Refetch campaigns data
+    refetch();
+    toast.success('Campaign refresh completed');
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -309,6 +288,13 @@ export default function Campaigns() {
           defaultTitle={searchTerm || statusFilter !== 'all' 
             ? `Filtered Campaigns Report` 
             : 'All Campaigns Report'}
+        />
+
+        <RefreshProgressDialog
+          open={refreshProgressOpen}
+          onOpenChange={setRefreshProgressOpen}
+          campaignIds={campaigns.filter(c => c.status !== 'draft').map(c => c.id)}
+          onComplete={handleRefreshComplete}
         />
 
         <AlertDialog open={refreshAllDialogOpen} onOpenChange={setRefreshAllDialogOpen}>
