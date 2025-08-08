@@ -97,16 +97,18 @@ export function RefreshProgressDialog({
                 } else if (data.type === 'error') {
                   console.error('Stream error:', data.message);
                   break;
-                } else if (data.campaignId) {
+                } else if ((data as ProgressUpdate).campaignId) {
+                  const update = data as ProgressUpdate;
                   setProgress(prev => ({
                     ...prev,
-                    [data.campaignId]: data
+                    [update.campaignId]: update
                   }));
                   
                   // Update overall progress
                   setProgress(currentProgress => {
-                    const allProgress = Object.values({ ...currentProgress, [data.campaignId]: data });
-                    const completedCount = allProgress.filter(p => p.status === 'completed' || p.status === 'error').length;
+                    const next: Record<string, ProgressUpdate> = { ...currentProgress, [update.campaignId]: update };
+                    const allProgress = Object.values(next) as ProgressUpdate[];
+                    const completedCount = allProgress.filter((p) => p.status === 'completed' || p.status === 'error').length;
                     const newOverallProgress = Math.round((completedCount / campaignIds.length) * 100);
                     setOverallProgress(newOverallProgress);
                     return currentProgress;
