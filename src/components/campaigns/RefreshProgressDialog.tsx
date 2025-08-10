@@ -88,34 +88,39 @@ export function RefreshProgressDialog({
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
+                console.log('Received SSE data:', data);
                 
                 if (data.type === 'complete') {
+                  console.log('Refresh complete');
                   setIsComplete(true);
                   setOverallProgress(100);
                   onComplete();
                   break;
                 } else if (data.type === 'error') {
                   console.error('Stream error:', data.message);
+                  setIsComplete(true);
                   break;
-                } else if ((data as ProgressUpdate).campaignId) {
+                } else if (data.campaignId) {
                   const update = data as ProgressUpdate;
-                  setProgress(prev => ({
-                    ...prev,
-                    [update.campaignId]: update
-                  }));
+                  console.log('Updating campaign progress:', update);
                   
-                  // Update overall progress
-                  setProgress(currentProgress => {
-                    const next: Record<string, ProgressUpdate> = { ...currentProgress, [update.campaignId]: update };
-                    const allProgress = Object.values(next) as ProgressUpdate[];
-                    const completedCount = allProgress.filter((p) => p.status === 'completed' || p.status === 'error').length;
+                  setProgress(prev => {
+                    const next = {
+                      ...prev,
+                      [update.campaignId]: update
+                    };
+                    
+                    // Calculate overall progress
+                    const allProgress = Object.values(next);
+                    const completedCount = allProgress.filter(p => p.status === 'completed' || p.status === 'error').length;
                     const newOverallProgress = Math.round((completedCount / campaignIds.length) * 100);
                     setOverallProgress(newOverallProgress);
-                    return currentProgress;
+                    
+                    return next;
                   });
                 }
               } catch (e) {
-                console.error('Error parsing progress data:', e);
+                console.error('Error parsing progress data:', e, 'Raw line:', line);
               }
             }
           }
