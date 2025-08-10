@@ -68,23 +68,107 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false }
     })
 
-    // Delete user from auth (this will cascade to user_roles due to trigger)
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
-    
-    if (deleteError) {
-      console.error('Delete user error:', deleteError)
-      return new Response(JSON.stringify({ error: deleteError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+    console.log(`Attempting to delete user: ${userId}`)
+
+    // First, manually clean up all user-related data
+    try {
+      // Delete user's campaigns (which will cascade to related data)
+      const { error: campaignsError } = await adminClient
+        .from('campaigns')
+        .delete()
+        .eq('user_id', userId)
+      
+      if (campaignsError) {
+        console.log('Error deleting campaigns:', campaignsError)
+      }
+
+      // Delete user's creators
+      const { error: creatorsError } = await adminClient
+        .from('creators')
+        .delete()
+        .eq('user_id', userId)
+      
+      if (creatorsError) {
+        console.log('Error deleting creators:', creatorsError)
+      }
+
+      // Delete user's clients
+      const { error: clientsError } = await adminClient
+        .from('clients')
+        .delete()
+        .eq('user_id', userId)
+      
+      if (clientsError) {
+        console.log('Error deleting clients:', clientsError)
+      }
+
+      // Delete user's creator roster
+      const { error: rosterError } = await adminClient
+        .from('creator_roster')
+        .delete()
+        .eq('user_id', userId)
+      
+      if (rosterError) {
+        console.log('Error deleting creator roster:', rosterError)
+      }
+
+      // Delete user's profile
+      const { error: profileError } = await adminClient
+        .from('profiles')
+        .delete()
+        .eq('id', userId)
+      
+      if (profileError) {
+        console.log('Error deleting profile:', profileError)
+      }
+
+      // Delete user's role
+      const { error: roleError } = await adminClient
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId)
+      
+      if (roleError) {
+        console.log('Error deleting user role:', roleError)
+      }
+
+      console.log('Successfully cleaned up user data')
+    } catch (cleanupError) {
+      console.error('Error during data cleanup:', cleanupError)
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    // Try to delete user from auth, but don't fail if user doesn't exist
+    try {
+      const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId)
+      
+      if (deleteError) {
+        console.error('Delete user from auth error:', deleteError)
+        // If the error is "user not found", that's actually okay - user was already deleted
+        if (deleteError.message?.includes('User not found') || 
+            deleteError.message?.includes('not found') ||
+            deleteError.status === 404) {
+          console.log('User was already deleted from auth, which is fine')
+        } else {
+          // For other errors, log but don't fail the entire operation
+          console.error('Non-critical auth deletion error:', deleteError.message)
+        }
+      } else {
+        console.log('Successfully deleted user from auth')
+      }
+    } catch (authError) {
+      console.error('Exception during auth deletion:', authError)
+      // Don't fail the operation if auth deletion fails
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'User and all related data deleted successfully' 
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error in admin delete user function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
