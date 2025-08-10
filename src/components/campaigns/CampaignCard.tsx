@@ -10,7 +10,7 @@ import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube,
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
-import { PDFExporter } from '@/utils/pdfExporter';
+import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -84,10 +84,10 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
     queryClient.invalidateQueries({ queryKey: ['campaigns'] });
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
-      const exporter = new PDFExporter();
-      exporter.exportSingleCampaign(campaign, {
+      const exporter = new PremiumPDFExporter();
+      await exporter.exportSingleCampaignPremium(campaign, {
         includeAnalytics: true,
         includeContentUrls: true,
         includeMasterCampaigns: true

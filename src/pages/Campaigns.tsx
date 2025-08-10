@@ -10,8 +10,8 @@ import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
-import { PDFExporter } from '@/utils/pdfExporter';
-import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+
+import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
 import { ExportCustomizationDialog, ExportCustomizationOptions } from '@/components/campaigns/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import {
@@ -46,12 +46,12 @@ export default function Campaigns() {
 
   const handleExportPDF = async (options: ExportCustomizationOptions) => {
     try {
-      const exporter = new EnhancedPDFExporter();
+      const exporter = new PremiumPDFExporter();
       const exportTitle = options.customTitle || (searchTerm || statusFilter !== 'all' 
         ? `Filtered Campaigns Report` 
         : 'All Campaigns Report');
       
-      await exporter.exportWithCharts(filteredCampaigns, exportTitle, {
+      await exporter.exportPremiumReport(filteredCampaigns, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
         includeMasterCampaigns: options.includeMasterCampaigns,
@@ -59,7 +59,7 @@ export default function Campaigns() {
         includeLogo: options.includeLogo
       });
       
-      toast.success('Enhanced PDF report exported successfully');
+      toast.success('Premium PDF report exported successfully');
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');

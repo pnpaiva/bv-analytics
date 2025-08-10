@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
-import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
@@ -512,10 +512,10 @@ export default function Analytics() {
         return;
       }
 
-      const exporter = new EnhancedPDFExporter();
-      const exportTitle = options.customTitle || 'Enhanced Campaign Analytics Report';
+      const exporter = new PremiumPDFExporter();
+      const exportTitle = options.customTitle || 'Premium Campaign Analytics Report';
       
-      await exporter.exportWithCharts(campaignsToExport, exportTitle, {
+      await exporter.exportPremiumReport(campaignsToExport, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
         includeMasterCampaigns: options.includeMasterCampaigns,

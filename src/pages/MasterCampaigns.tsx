@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download, Settings, UserPlus, Building } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
-import { PDFExporter, MasterCampaignData } from '@/utils/pdfExporter';
+import { PremiumPDFExporter, MasterCampaignData } from '@/utils/premiumPdfExporter';
 import { toast } from 'sonner';
 import { MasterCampaignManagement } from '@/components/campaigns/MasterCampaignManagement';
 import { CreatorManagement } from '@/components/campaigns/CreatorManagement';
@@ -109,7 +109,7 @@ export default function MasterCampaigns() {
         return;
       }
 
-      const exporter = new PDFExporter();
+      const exporter = new PremiumPDFExporter();
       const masterCampaignData: MasterCampaignData[] = filteredMasterCampaigns.map(mc => ({
         name: mc.name,
         campaigns: mc.campaigns,
