@@ -64,6 +64,7 @@ export default function Analytics() {
   const [creatorViewMode, setCreatorViewMode] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
+  const [usePercentEngagement, setUsePercentEngagement] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Create a creator lookup map for better performance
@@ -471,9 +472,10 @@ export default function Analytics() {
   const bubbleSeries = useMemo(() => {
     const groups: Record<string, Array<{ x: number; y: number; size: number; url: string; title: string; campaign: string; creator: string; platform: string }>> = {};
     filteredVideoAnalytics.forEach(v => {
-      const size = Math.max(5, Math.min(25, v.engagementRate || (v.views ? (v.engagement / v.views) * 100 : 0)));
+      const rate = v.engagementRate || (v.views ? (v.engagement / v.views) * 100 : 0);
+      const size = Math.max(5, Math.min(25, rate));
       const item = {
-        x: v.engagement,
+        x: usePercentEngagement ? rate : v.engagement,
         y: v.views,
         size,
         url: v.url,
@@ -485,7 +487,7 @@ export default function Analytics() {
       (groups[v.platform] ||= []).push(item);
     });
     return groups;
-  }, [filteredVideoAnalytics]);
+  }, [filteredVideoAnalytics, usePercentEngagement]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -495,7 +497,7 @@ export default function Analytics() {
         <div className="font-medium">{p.title}</div>
         <div className="text-muted-foreground">{p.platform} • {p.creator}</div>
         <div>Views: {p.y.toLocaleString()}</div>
-        <div>Engagement: {p.x.toLocaleString()}</div>
+        <div>{usePercentEngagement ? 'Engagement %' : 'Engagement'}: {usePercentEngagement ? `${(p.x as number).toFixed(1)}%` : (p.x as number).toLocaleString()}</div>
         <div>Eng. Rate: {p.size.toFixed(1)}%</div>
       </div>
     );
@@ -1012,6 +1014,11 @@ export default function Analytics() {
                     <SelectItem value="tiktok">TikTok</SelectItem>
                   </SelectContent>
                 </Select>
+                <div className="mt-4">
+                  <Button variant="outline" size="sm" onClick={() => setUsePercentEngagement((p) => !p)}>
+                    {usePercentEngagement ? 'X: Engagement %' : 'X: Total Engagement'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
             
@@ -1079,15 +1086,35 @@ export default function Analytics() {
 
             {/* Video Performance Distribution (Bubble Chart) */}
             <Card>
-              <CardHeader>
-                <CardTitle>Video Performance Distribution</CardTitle>
-                <CardDescription>Y: Views, X: Engagement. Click any bubble to open the video.</CardDescription>
-              </CardHeader>
+            <CardHeader>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Video Performance Distribution</CardTitle>
+                  <CardDescription>Y: Views, X: {usePercentEngagement ? 'Engagement %' : 'Engagement total'}. Clique em qualquer bolha para abrir o vídeo.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={videoPlatformFilter} onValueChange={setVideoPlatformFilter}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Plataforma" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas plataformas</SelectItem>
+                      <SelectItem value="youtube">YouTube</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="tiktok">TikTok</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" size="sm" onClick={() => setUsePercentEngagement((p) => !p)}>
+                    {usePercentEngagement ? 'X: Engajamento %' : 'X: Engajamento total'}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={360}>
                   <ScatterChart margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" dataKey="x" name="Engagement" tickFormatter={numberCompact} />
+                    <XAxis type="number" dataKey="x" name={usePercentEngagement ? 'Engagement %' : 'Engagement'} tickFormatter={usePercentEngagement ? ((v: number) => `${v.toFixed(1)}%`) : numberCompact} />
                     <YAxis type="number" dataKey="y" name="Views" tickFormatter={numberCompact} />
                     <ZAxis type="number" dataKey="size" range={[60, 300]} name="Eng. Rate" />
                     <Tooltip content={renderBubbleTooltip as any} />
