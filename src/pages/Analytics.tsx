@@ -1090,7 +1090,7 @@ export default function Analytics() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <CardTitle>Video Performance Distribution</CardTitle>
-                  <CardDescription>Y: Views, X: {usePercentEngagement ? 'Engagement %' : 'Engagement total'}. Clique em qualquer bolha para abrir o vídeo.</CardDescription>
+                  <CardDescription>Y: Views, X: {usePercentEngagement ? 'Engagement %' : 'Engagement total'}. Click on Any Bubble to Open the Video.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
                   <Select value={videoPlatformFilter} onValueChange={setVideoPlatformFilter}>
@@ -1098,14 +1098,14 @@ export default function Analytics() {
                       <SelectValue placeholder="Plataforma" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todas plataformas</SelectItem>
+                      <SelectItem value="all">All plataforms</SelectItem>
                       <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="instagram">Instagram</SelectItem>
                       <SelectItem value="tiktok">TikTok</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="sm" onClick={() => setUsePercentEngagement((p) => !p)}>
-                    {usePercentEngagement ? 'X: Engajamento %' : 'X: Engajamento total'}
+                    {usePercentEngagement ? 'X: Engagement %' : 'X: Total Engagement'}
                   </Button>
                 </div>
               </div>
