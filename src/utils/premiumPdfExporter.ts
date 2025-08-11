@@ -175,46 +175,45 @@ export class PremiumPDFExporter {
     this.resetTextStyle();
   }
 
-  private addMetricCard(title: string, value: string, subtitle?: string, color: [number, number, number] = COLORS.primary) {
-    const cardWidth = 45;
-    const cardHeight = 25;
-    
+  private addMetricCard(x: number, y: number, width: number, title: string, value: string, subtitle?: string, color: [number, number, number] = COLORS.primary) {
+    const cardHeight = 28;
+
     // Card background
     this.doc.setFillColor(255, 255, 255);
     this.doc.setDrawColor(color[0], color[1], color[2]);
-    this.doc.setLineWidth(1);
-    this.doc.roundedRect(this.margin, this.currentY, cardWidth, cardHeight, 3, 3, 'FD');
-    
+    this.doc.setLineWidth(0.8);
+    this.doc.roundedRect(x, y, width, cardHeight, 3, 3, 'FD');
+
     // Accent bar on top
     this.doc.setFillColor(color[0], color[1], color[2]);
-    this.doc.roundedRect(this.margin, this.currentY, cardWidth, 3, 3, 3, 'F');
-    
+    this.doc.roundedRect(x, y, width, 3, 3, 3, 'F');
+
     // Card content
     this.doc.setTextColor(color[0], color[1], color[2]);
     this.doc.setFontSize(18);
     this.doc.setFont('helvetica', 'bold');
-    
+
     // Center the value
     const valueWidth = this.doc.getTextWidth(value);
-    const valueX = this.margin + (cardWidth - valueWidth) / 2;
-    this.doc.text(value, valueX, this.currentY + 12);
-    
+    const valueX = x + (width - valueWidth) / 2;
+    this.doc.text(value, valueX, y + 13);
+
     // Title
     this.doc.setFontSize(9);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.textLight);
     const titleWidth = this.doc.getTextWidth(title);
-    const titleX = this.margin + (cardWidth - titleWidth) / 2;
-    this.doc.text(title, titleX, this.currentY + 18);
-    
+    const titleX = x + (width - titleWidth) / 2;
+    this.doc.text(title, Math.max(x + 3, titleX), y + 19);
+
     if (subtitle) {
       this.doc.setFontSize(8);
       const subtitleWidth = this.doc.getTextWidth(subtitle);
-      const subtitleX = this.margin + (cardWidth - subtitleWidth) / 2;
-      this.doc.text(subtitle, subtitleX, this.currentY + 22);
+      const subtitleX = x + (width - subtitleWidth) / 2;
+      this.doc.text(subtitle, Math.max(x + 3, subtitleX), y + 23);
     }
-    
-    return cardWidth + 5; // Return width for positioning next card
+
+    return cardHeight;
   }
 
   private addKeyValuePair(key: string, value: string, indent: number = 0, bold: boolean = false) {
@@ -340,36 +339,38 @@ export class PremiumPDFExporter {
     
     const totalValue = campaigns.reduce((sum, c) => sum + (c.deal_value || 0), 0);
     
-    // Metric cards layout
-    let cardX = this.margin;
-    const cardSpacing = 5;
-    
-    // Views card
-    const cardWidth1 = this.addMetricCard('Total Views', totalViews.toLocaleString(), undefined, COLORS.primary);
-    cardX += cardWidth1;
-    
-    // Engagement rate card  
-    this.currentY -= 25; // Reset Y for same row
-    this.margin = cardX;
-    const cardWidth2 = this.addMetricCard('Avg Engagement', `${avgEngagementRate.toFixed(1)}%`, undefined, COLORS.accent);
-    cardX += cardWidth2;
-    
-    // Campaigns card
-    this.currentY -= 25; // Reset Y for same row
-    this.margin = cardX;
-    const cardWidth3 = this.addMetricCard('Campaigns', campaigns.length.toString(), undefined, COLORS.secondary);
-    
-    // Deal value card
+    // Metric cards layout using a 3-column grid (wraps to next row)
+    const spacing = 6;
+    const cols = 3;
+    const cardWidth = (this.contentWidth - spacing * (cols - 1)) / cols;
+    const cardHeight = 28;
+
+    const metricCards: Array<{ title: string; value: string; color: [number, number, number] }> = [
+      { title: 'Total Views', value: totalViews.toLocaleString(), color: COLORS.primary },
+      { title: 'Avg Engagement', value: `${avgEngagementRate.toFixed(1)}%`, color: COLORS.accent },
+      { title: 'Campaigns', value: campaigns.length.toString(), color: COLORS.secondary },
+    ];
     if (totalValue > 0) {
-      cardX += cardWidth3;
-      this.currentY -= 25; // Reset Y for same row
-      this.margin = cardX;
-      this.addMetricCard('Total Value', `$${totalValue.toLocaleString()}`, undefined, COLORS.warning);
+      metricCards.push({ title: 'Total Value', value: `$${totalValue.toLocaleString()}`, color: COLORS.warning });
     }
-    
-    // Reset margin
-    this.margin = 25;
-    this.currentY += 35;
+
+    // Draw in rows of 3
+    let rowY = this.currentY;
+    this.checkPageBreak(cardHeight + 10);
+    metricCards.forEach((m, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = this.margin + col * (cardWidth + spacing);
+      if (i > 0 && col === 0) {
+        // move to next row
+        rowY += cardHeight + 8;
+        this.checkPageBreak(cardHeight + 10);
+      }
+      this.addMetricCard(x, rowY, cardWidth, m.title, m.value, undefined, m.color);
+    });
+
+    this.currentY = rowY + cardHeight + 14;
+
     
     // Key insights
     const insights = this.generateInsights(campaigns);
@@ -558,26 +559,29 @@ export class PremiumPDFExporter {
     const totalViews = masterCampaigns.reduce((sum, mc) => sum + mc.totalViews, 0);
     const totalEngagement = masterCampaigns.reduce((sum, mc) => sum + mc.totalEngagement, 0);
 
-    let cardX = this.margin;
-    
-    // Master campaigns card
-    const cardWidth1 = this.addMetricCard('Master Campaigns', masterCampaigns.length.toString(), undefined, COLORS.secondary);
-    cardX += cardWidth1;
-    
-    // Total campaigns card  
-    this.currentY -= 25;
-    this.margin = cardX;
-    const cardWidth2 = this.addMetricCard('Total Campaigns', totalCampaigns.toString(), undefined, COLORS.primary);
-    cardX += cardWidth2;
-    
-    // Total views card
-    this.currentY -= 25;
-    this.margin = cardX;
-    this.addMetricCard('Total Views', totalViews.toLocaleString(), undefined, COLORS.accent);
-    
-    // Reset margin
-    this.margin = 25;
-    this.currentY += 35;
+    // Metric cards for master summary (3-column grid)
+    const spacing2 = 6;
+    const cols2 = 3;
+    const cardWidth2 = (this.contentWidth - spacing2 * (cols2 - 1)) / cols2;
+    const cardHeight2 = 28;
+
+    let rowY2 = this.currentY;
+    this.checkPageBreak(cardHeight2 + 10);
+
+    const masterMetricCards: Array<{ title: string; value: string; color: [number, number, number] }> = [
+      { title: 'Master Campaigns', value: masterCampaigns.length.toString(), color: COLORS.secondary },
+      { title: 'Total Campaigns', value: totalCampaigns.toString(), color: COLORS.primary },
+      { title: 'Total Views', value: totalViews.toLocaleString(), color: COLORS.accent },
+    ];
+
+    masterMetricCards.forEach((m, i) => {
+      const col = i % cols2;
+      const x = this.margin + col * (cardWidth2 + spacing2);
+      this.addMetricCard(x, rowY2, cardWidth2, m.title, m.value, undefined, m.color);
+    });
+
+    this.currentY = rowY2 + cardHeight2 + 14;
+
 
     // Individual master campaigns
     masterCampaigns.forEach((masterCampaign) => {
