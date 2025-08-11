@@ -20,7 +20,7 @@ import { PDFExporter } from '@/utils/pdfExporter';
 import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
 import { toast } from 'sonner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter, ZAxis } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -452,6 +452,54 @@ export default function Analytics() {
       totalEngagement: videos.reduce((sum, v) => sum + v.engagement, 0)
     }));
   }, [filteredVideoAnalytics]);
+
+  // Bubble distribution helpers and data
+  const getPlatformColor = (platform: string) => {
+    const p = platform.toLowerCase();
+    if (p.includes('youtube')) return 'hsl(var(--primary))';
+    if (p.includes('instagram')) return 'hsl(var(--brand-accent-green))';
+    if (p.includes('tiktok')) return 'hsl(var(--teal))';
+    return 'hsl(var(--secondary))';
+  };
+
+  const numberCompact = (value: number) => {
+    if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + 'M';
+    if (value >= 1_000) return (value / 1_000).toFixed(1) + 'K';
+    return value.toString();
+  };
+
+  const bubbleSeries = useMemo(() => {
+    const groups: Record<string, Array<{ x: number; y: number; size: number; url: string; title: string; campaign: string; creator: string; platform: string }>> = {};
+    filteredVideoAnalytics.forEach(v => {
+      const size = Math.max(5, Math.min(25, v.engagementRate || (v.views ? (v.engagement / v.views) * 100 : 0)));
+      const item = {
+        x: v.engagement,
+        y: v.views,
+        size,
+        url: v.url,
+        title: v.title,
+        campaign: v.campaign,
+        creator: v.creator,
+        platform: v.platform,
+      };
+      (groups[v.platform] ||= []).push(item);
+    });
+    return groups;
+  }, [filteredVideoAnalytics]);
+
+  const renderBubbleTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    const p = payload[0].payload;
+    return (
+      <div className="rounded-md border bg-background p-2 text-xs">
+        <div className="font-medium">{p.title}</div>
+        <div className="text-muted-foreground">{p.platform} • {p.creator}</div>
+        <div>Views: {p.y.toLocaleString()}</div>
+        <div>Engagement: {p.x.toLocaleString()}</div>
+        <div>Eng. Rate: {p.size.toFixed(1)}%</div>
+      </div>
+    );
+  };
 
   const handleCreatorFilterChange = (creatorId: string) => {
     setCreatorFilters(prev => 
@@ -1028,6 +1076,39 @@ export default function Analytics() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Video Performance Distribution (Bubble Chart) */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Video Performance Distribution</CardTitle>
+                <CardDescription>Y: Views, X: Engagement. Click any bubble to open the video.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={360}>
+                  <ScatterChart margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" dataKey="x" name="Engagement" tickFormatter={numberCompact} />
+                    <YAxis type="number" dataKey="y" name="Views" tickFormatter={numberCompact} />
+                    <ZAxis type="number" dataKey="size" range={[60, 300]} name="Eng. Rate" />
+                    <Tooltip content={renderBubbleTooltip as any} />
+                    <Legend />
+                    {Object.entries(bubbleSeries).map(([platform, data]) => (
+                      <Scatter
+                        key={platform}
+                        name={platform}
+                        data={data as any[]}
+                        fill={getPlatformColor(platform)}
+                        onClick={(e: any) => {
+                          const p = (e && (e as any).node && (e as any).node.payload) || (e as any).payload;
+                          const url = p?.url;
+                          if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                        }}
+                      />
+                    ))}
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
             {/* Top Videos Table */}
             <Card>
