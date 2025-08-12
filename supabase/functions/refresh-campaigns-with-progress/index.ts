@@ -42,14 +42,97 @@ Deno.serve(async (req) => {
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        
-        const sendProgress = (progress: ProgressUpdate) => {
-          const data = `data: ${JSON.stringify(progress)}\n\n`;
-          controller.enqueue(encoder.encode(data));
+        const send = (obj: unknown) => controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+        const withRetry = async <T>(fn: () => Promise<T>, attempts = 3, baseDelay = 1200): Promise<T> => {
+          let lastErr: any;
+          for (let i = 0; i < attempts; i++) {
+            try {
+              return await fn();
+            } catch (err) {
+              lastErr = err;
+              // Exponential backoff with jitter
+              const jitter = Math.floor(Math.random() * 300);
+              await sleep(baseDelay * Math.pow(2, i) + jitter);
+            }
+          }
+          throw lastErr;
+        };
+
+        const normalizeUrl = (platform: string, raw: string): string => {
+          let url = raw.trim();
+          // Strip tracking params
+          try {
+            const u = new URL(url);
+            // Keep path; remove common trackers
+            u.searchParams.delete('utm_source');
+            u.searchParams.delete('utm_medium');
+            u.searchParams.delete('utm_campaign');
+            u.searchParams.delete('si');
+            url = u.toString();
+          } catch (_) {
+            // Not a valid absolute URL, best effort normalization below
+          }
+
+          const lower = url.toLowerCase();
+          if (platform === 'youtube') {
+            // Convert youtu.be/<id> to youtube.com/watch?v=<id>
+            const short = lower.match(/https?:\/\/youtu\.be\/([a-z0-9_-]{6,})/i);
+            if (short) return `https://www.youtube.com/watch?v=${short[1]}`;
+            const shorts = lower.match(/https?:\/\/(?:www\.)?youtube\.com\/shorts\/([a-z0-9_-]{6,})/i);
+            if (shorts) return `https://www.youtube.com/watch?v=${shorts[1]}`;
+            return url;
+          }
+          if (platform === 'instagram') {
+            // Ensure canonical format ends with /
+            return url.replace(/\/?(#.*)?$/, '/');
+          }
+          if (platform === 'tiktok') {
+            // Strip trailing slashes and query
+            try {
+              const u = new URL(url);
+              u.search = '';
+              return u.toString().replace(/\/$/, '');
+            } catch { return url.replace(/\/$/, ''); }
+          }
+          return url;
+        };
+
+        const collectUrls = (campaign: any): { url: string; platform: 'youtube'|'instagram'|'tiktok' }[] => {
+          const collected: { url: string; platform: 'youtube'|'instagram'|'tiktok' }[] = [];
+          if (!campaign.campaign_creators) return collected;
+
+          for (const creator of campaign.campaign_creators) {
+            const urls = creator?.content_urls as Record<string, unknown> | null;
+            if (!urls || typeof urls !== 'object') continue;
+
+            const pushAll = (arr: unknown[], platform: 'youtube'|'instagram'|'tiktok', predicate: (u: string) => boolean) => {
+              for (const raw of arr) {
+                if (!raw || typeof raw !== 'string') continue;
+                const clean = raw.trim();
+                if (predicate(clean)) collected.push({ url: normalizeUrl(platform, clean), platform });
+              }
+            };
+
+            const yt = Array.isArray((urls as any).youtube) ? (urls as any).youtube as unknown[] : [];
+            pushAll(yt, 'youtube', (u) => /youtube\.com\/watch\?|youtu\.be\//i.test(u) || /youtube\.com\/shorts\//i.test(u));
+
+            const ig = Array.isArray((urls as any).instagram) ? (urls as any).instagram as unknown[] : [];
+            pushAll(ig, 'instagram', (u) => /instagram\.com\/(p|reel|tv)\//i.test(u));
+
+            const tt = Array.isArray((urls as any).tiktok) ? (urls as any).tiktok as unknown[] : [];
+            pushAll(tt, 'tiktok', (u) => /tiktok\.com\/@.+\/video\//i.test(u));
+          }
+
+          // Deduplicate by normalized URL
+          const seen = new Set<string>();
+          return collected.filter(({ url }) => (seen.has(url) ? false : (seen.add(url), true)));
         };
 
         try {
-          // Get campaign details
+          // Fetch campaigns
           const { data: campaigns, error: campaignError } = await supabase
             .from('campaigns')
             .select(`
@@ -62,177 +145,87 @@ Deno.serve(async (req) => {
             `)
             .in('id', campaignIds);
 
-          if (campaignError || !campaigns) {
-            throw new Error(`Failed to fetch campaigns: ${campaignError?.message}`);
-          }
+          if (campaignError || !campaigns) throw new Error(`Failed to fetch campaigns: ${campaignError?.message}`);
 
-          // Process campaigns sequentially to avoid overwhelming APIs
           for (const campaign of campaigns) {
-            const campaignProgress: ProgressUpdate = {
+            const progress: ProgressUpdate = {
               campaignId: campaign.id,
               campaignName: campaign.brand_name,
               status: 'processing',
               processedUrls: 0,
-              totalUrls: 0
+              totalUrls: 0,
             };
 
-            try {
-              // Set campaign status to analyzing
-              await supabase.rpc('set_campaign_status', {
-                p_campaign_id: campaign.id,
-                p_status: 'analyzing'
-              });
+            // Move to analyzing
+            await supabase.rpc('set_campaign_status', { p_campaign_id: campaign.id, p_status: 'analyzing' });
 
-              // Collect all URLs from campaign creators
-              const allUrls: { url: string; platform: string }[] = [];
-              
-              if (campaign.campaign_creators) {
-                for (const creator of campaign.campaign_creators) {
-                  if (creator.content_urls && typeof creator.content_urls === 'object') {
-                    const urls = creator.content_urls as Record<string, string[]>;
-                    
-                    // YouTube URLs
-                    if (urls.youtube && Array.isArray(urls.youtube)) {
-                      const validYouTubeUrls = urls.youtube.filter(url => {
-                        if (!url || typeof url !== 'string') return false;
-                        const cleanUrl = url.trim().toLowerCase();
-                        return cleanUrl.includes('youtube.com/watch') || 
-                               cleanUrl.includes('youtu.be/') ||
-                               cleanUrl.includes('youtube.com/shorts/');
-                      });
-                      allUrls.push(...validYouTubeUrls.map(url => ({ url, platform: 'youtube' })));
-                    }
-                    
-                    // Instagram URLs
-                    if (urls.instagram && Array.isArray(urls.instagram)) {
-                      const validInstagramUrls = urls.instagram.filter(url => {
-                        if (!url || typeof url !== 'string') return false;
-                        const cleanUrl = url.trim().toLowerCase();
-                        return cleanUrl.includes('instagram.com/p/') || 
-                               cleanUrl.includes('instagram.com/reel/') ||
-                               cleanUrl.includes('instagram.com/tv/');
-                      });
-                      allUrls.push(...validInstagramUrls.map(url => ({ url, platform: 'instagram' })));
-                    }
-                    
-                    // TikTok URLs
-                    if (urls.tiktok && Array.isArray(urls.tiktok)) {
-                      const validTikTokUrls = urls.tiktok.filter(url => {
-                        if (!url || typeof url !== 'string') return false;
-                        const cleanUrl = url.trim().toLowerCase();
-                        return cleanUrl.includes('tiktok.com/@') && cleanUrl.includes('/video/');
-                      });
-                      allUrls.push(...validTikTokUrls.map(url => ({ url, platform: 'tiktok' })));
-                    }
-                  }
-                }
-              }
+            // Gather, normalize and dedupe URLs
+            const urls = collectUrls(campaign);
+            progress.totalUrls = urls.length;
+            send(progress);
 
-              campaignProgress.totalUrls = allUrls.length;
-              sendProgress(campaignProgress);
-
-              if (allUrls.length === 0) {
-                campaignProgress.status = 'completed';
-                sendProgress(campaignProgress);
-                
-                await supabase.rpc('update_campaign_analytics', {
-                  p_campaign_id: campaign.id,
-                  p_total_views: 0,
-                  p_total_engagement: 0,
-                  p_engagement_rate: 0,
-                  p_analytics_data: {}
-                });
-                continue;
-              }
-
-              // Process URLs and accumulate results
-              let totalViews = 0;
-              let totalEngagement = 0;
-              let platformResults: any = {};
-
-              // Process URLs in batches of 3 to avoid rate limits
-              const batchSize = 3;
-              for (let i = 0; i < allUrls.length; i += batchSize) {
-                const batch = allUrls.slice(i, i + batchSize);
-                
-                const batchPromises = batch.map(async ({ url, platform }) => {
-                  try {
-                    const response = await supabase.functions.invoke(`fetch-${platform}-analytics`, {
-                      body: { url }
-                    });
-                    
-                    if (response.data) {
-                      const data = response.data;
-                      totalViews += data.views || 0;
-                      totalEngagement += data.engagement || 0;
-                      
-                      if (!platformResults[platform]) {
-                        platformResults[platform] = [];
-                      }
-                      platformResults[platform].push({ url, ...data });
-                      
-                      return { success: true };
-                    } else {
-                      console.error(`Error processing ${platform} URL ${url}:`, response.error);
-                      return { success: false };
-                    }
-                  } catch (error) {
-                    console.error(`Error processing ${platform} URL ${url}:`, error);
-                    return { success: false };
-                  }
-                });
-
-                await Promise.all(batchPromises);
-                
-                // Update progress
-                campaignProgress.processedUrls = Math.min(i + batchSize, allUrls.length);
-                sendProgress(campaignProgress);
-
-                // Add delay between batches to respect rate limits
-                if (i + batchSize < allUrls.length) {
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-              }
-
-              // Calculate engagement rate and update campaign
-              const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
-
+            if (urls.length === 0) {
               await supabase.rpc('update_campaign_analytics', {
                 p_campaign_id: campaign.id,
-                p_total_views: totalViews,
-                p_total_engagement: totalEngagement,
-                p_engagement_rate: engagementRate,
-                p_analytics_data: platformResults
+                p_total_views: 0,
+                p_total_engagement: 0,
+                p_engagement_rate: 0,
+                p_analytics_data: {},
               });
-
-              campaignProgress.status = 'completed';
-              sendProgress(campaignProgress);
-
-            } catch (error) {
-              console.error(`Error processing campaign ${campaign.id}:`, error);
-              
-              campaignProgress.status = 'error';
-              campaignProgress.error = error.message;
-              sendProgress(campaignProgress);
-              
-              // Set status to error
-              try {
-                await supabase.rpc('set_campaign_status', {
-                  p_campaign_id: campaign.id,
-                  p_status: 'error'
-                });
-              } catch (statusError) {
-                console.error(`Failed to update status for campaign ${campaign.id}:`, statusError);
-              }
+              progress.status = 'completed';
+              send(progress);
+              continue;
             }
+
+            let totalViews = 0;
+            let totalEngagement = 0;
+            const platformResults: Record<string, any[]> = {};
+
+            // Sequential processing with retries and per-platform pacing
+            const perPlatformDelay: Record<string, number> = { youtube: 900, instagram: 1400, tiktok: 1400 };
+
+            for (const { url, platform } of urls) {
+              try {
+                const res = await withRetry(async () => {
+                  const r = await supabase.functions.invoke(`fetch-${platform}-analytics`, { body: { url } });
+                  if (r.error) throw new Error(r.error.message || 'invoke error');
+                  if (!r.data) throw new Error('empty response');
+                  return r.data as { views?: number; engagement?: number; [k: string]: unknown };
+                }, 3, 1200);
+
+                totalViews += res.views || 0;
+                totalEngagement += res.engagement || 0;
+                if (!platformResults[platform]) platformResults[platform] = [];
+                platformResults[platform].push({ url, ...res });
+              } catch (err) {
+                console.error(`Final failure processing ${platform} URL ${url}:`, err);
+                if (!platformResults[platform]) platformResults[platform] = [];
+                platformResults[platform].push({ url, error: String(err && (err as any).message || err) });
+              }
+
+              // Update progress after each URL
+              progress.processedUrls += 1;
+              send(progress);
+              await sleep(perPlatformDelay[platform] ?? 1200);
+            }
+
+            const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+            await supabase.rpc('update_campaign_analytics', {
+              p_campaign_id: campaign.id,
+              p_total_views: totalViews,
+              p_total_engagement: totalEngagement,
+              p_engagement_rate: engagementRate,
+              p_analytics_data: platformResults,
+            });
+
+            progress.status = 'completed';
+            send(progress);
           }
 
-          // Send completion signal
-          controller.enqueue(encoder.encode('data: {"type": "complete"}\n\n'));
-          
-        } catch (error) {
+          send({ type: 'complete' });
+        } catch (error: any) {
           console.error('Error in progressive refresh:', error);
-          controller.enqueue(encoder.encode(`data: {"type": "error", "message": "${error.message}"}\n\n`));
+          send({ type: 'error', message: String(error?.message || error) });
         } finally {
           controller.close();
         }
