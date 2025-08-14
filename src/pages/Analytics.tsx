@@ -470,8 +470,36 @@ export default function Analytics() {
   };
 
   const bubbleSeries = useMemo(() => {
+    // Apply bubble chart specific filters
+    let bubbleVideoData = filteredVideoAnalytics;
+    
+    // Apply campaign filter
+    if (campaignFilters.length > 0) {
+      bubbleVideoData = bubbleVideoData.filter(v => 
+        campaigns.some(c => c.id && campaignFilters.includes(c.id) && c.brand_name === v.campaign)
+      );
+    }
+    
+    // Apply creator filter
+    if (creatorFilters.length > 0) {
+      bubbleVideoData = bubbleVideoData.filter(v => 
+        creators.some(c => c.id && creatorFilters.includes(c.id) && c.name === v.creator)
+      );
+    }
+    
+    // Apply master campaign filter
+    if (masterCampaignFilters.length > 0) {
+      bubbleVideoData = bubbleVideoData.filter(v => 
+        campaigns.some(c => 
+          c.brand_name === v.campaign && 
+          c.master_campaign_name && 
+          masterCampaignFilters.includes(c.master_campaign_name)
+        )
+      );
+    }
+    
     const groups: Record<string, Array<{ x: number; y: number; size: number; url: string; title: string; campaign: string; creator: string; platform: string }>> = {};
-    filteredVideoAnalytics.forEach(v => {
+    bubbleVideoData.forEach(v => {
       const rate = v.engagementRate || (v.views ? (v.engagement / v.views) * 100 : 0);
       const size = Math.max(5, Math.min(25, rate));
       const item = {
@@ -487,7 +515,7 @@ export default function Analytics() {
       (groups[v.platform] ||= []).push(item);
     });
     return groups;
-  }, [filteredVideoAnalytics, usePercentEngagement]);
+  }, [filteredVideoAnalytics, usePercentEngagement, campaignFilters, creatorFilters, masterCampaignFilters, campaigns, creators]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -1092,18 +1120,73 @@ export default function Analytics() {
                   <CardTitle>Video Performance Distribution</CardTitle>
                   <CardDescription>Y: Views, X: {usePercentEngagement ? 'Engagement %' : 'Engagement total'}. Click on Any Bubble to Open the Video.</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Select value={videoPlatformFilter} onValueChange={setVideoPlatformFilter}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Plataforma" />
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Platform" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All plataforms</SelectItem>
+                      <SelectItem value="all">All Platforms</SelectItem>
                       <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="instagram">Instagram</SelectItem>
                       <SelectItem value="tiktok">TikTok</SelectItem>
                     </SelectContent>
                   </Select>
+                  
+                  {/* Creator Filter for Bubble Chart */}
+                  <Select 
+                    value={creatorFilters.length === 1 ? creatorFilters[0] : "all"} 
+                    onValueChange={(value) => setCreatorFilters(value === "all" ? [] : [value])}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Creator" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Creators</SelectItem>
+                      {creators.map(creator => (
+                        <SelectItem key={creator.id} value={creator.id}>
+                          {creator.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Campaign Filter for Bubble Chart */}
+                  <Select 
+                    value={campaignFilters.length === 1 ? campaignFilters[0] : "all"} 
+                    onValueChange={(value) => setCampaignFilters(value === "all" ? [] : [value])}
+                  >
+                    <SelectTrigger className="w-36">
+                      <SelectValue placeholder="Campaign" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Campaigns</SelectItem>
+                      {campaigns.map(campaign => (
+                        <SelectItem key={campaign.id} value={campaign.id}>
+                          {campaign.brand_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Master Campaign Filter for Bubble Chart */}
+                  <Select 
+                    value={masterCampaignFilters.length === 1 ? masterCampaignFilters[0] : "all"} 
+                    onValueChange={(value) => setMasterCampaignFilters(value === "all" ? [] : [value])}
+                  >
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Master Campaign" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Master Campaigns</SelectItem>
+                      {Array.from(new Set(campaigns.map(c => c.master_campaign_name).filter(Boolean))).map(name => (
+                        <SelectItem key={name} value={name!}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
                   <Button variant="outline" size="sm" onClick={() => setUsePercentEngagement((p) => !p)}>
                     {usePercentEngagement ? 'X: Engagement %' : 'X: Total Engagement'}
                   </Button>

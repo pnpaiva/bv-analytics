@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, FileText, Users, Building, LogOut, User, Settings } from 'lucide-react';
+import { BarChart3, FileText, Users, Building, LogOut, User, Settings, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +40,7 @@ export function Navigation() {
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/campaigns', icon: FileText, label: 'Campaigns' },
     { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
+    { to: '/creator-profiles', icon: UserCircle, label: 'Creator Profiles' },
   ];
 
   // Add admin dashboard for admin users

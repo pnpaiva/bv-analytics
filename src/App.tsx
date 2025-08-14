@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Campaigns from "./pages/Campaigns";
 import Analytics from "./pages/Analytics";
 import MasterCampaigns from "./pages/MasterCampaigns";
+import CreatorProfiles from "./pages/CreatorProfiles";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -40,6 +41,11 @@ const App = () => (
             <Route path="/master-campaigns" element={
               <ProtectedRoute>
                 <MasterCampaigns />
+              </ProtectedRoute>
+            } />
+            <Route path="/creator-profiles" element={
+              <ProtectedRoute>
+                <CreatorProfiles />
               </ProtectedRoute>
             } />
             <Route path="/admin" element={
