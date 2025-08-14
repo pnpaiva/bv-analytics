@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -913,18 +913,18 @@ export type Database = {
       direct_update_campaign: {
         Args: {
           p_campaign_id: string
+          p_comments: number
+          p_likes: number
           p_video_url: string
           p_views: number
-          p_likes: number
-          p_comments: number
         }
         Returns: undefined
       }
       direct_update_roster: {
         Args: {
-          p_creator_roster_id: string
           p_channel_id: string
           p_channel_name: string
+          p_creator_roster_id: string
           p_subscribers: number
           p_total_views: number
         }
@@ -934,40 +934,40 @@ export type Database = {
         Args: { p_campaign_id: string; p_days_back?: number }
         Returns: {
           date_recorded: string
-          total_views: number
-          total_engagement: number
           engagement_rate: number
           platform_breakdown: Json
+          total_engagement: number
+          total_views: number
         }[]
       }
       get_campaign_trends: {
         Args: {
-          start_date?: string
           end_date?: string
           group_by_period?: string
+          start_date?: string
         }
         Returns: {
-          period: string
-          total_views: number
-          total_engagement: number
-          campaign_count: number
           avg_engagement_rate: number
+          campaign_count: number
+          period: string
+          total_engagement: number
+          total_views: number
         }[]
       }
       get_campaign_url_analytics: {
         Args: {
           p_campaign_id: string
-          p_start_date?: string
           p_end_date?: string
+          p_start_date?: string
         }
         Returns: {
-          url: string
-          platform: string
-          total_views: number
-          total_engagement: number
           avg_engagement_rate: number
-          latest_date: string
           daily_data: Json
+          latest_date: string
+          platform: string
+          total_engagement: number
+          total_views: number
+          url: string
         }[]
       }
       get_current_user_role: {
@@ -977,75 +977,86 @@ export type Database = {
       get_dashboard_metrics: {
         Args:
           | {
-              start_date?: string
-              end_date?: string
-              creator_ids?: string[]
-              client_ids?: string[]
               campaign_ids?: string[]
+              client_ids?: string[]
+              creator_ids?: string[]
+              end_date?: string
+              master_campaigns?: string[]
               platforms?: string[]
+              start_date?: string
             }
           | {
-              start_date?: string
-              end_date?: string
-              creator_ids?: string[]
-              client_ids?: string[]
               campaign_ids?: string[]
+              client_ids?: string[]
+              creator_ids?: string[]
+              end_date?: string
               platforms?: string[]
-              master_campaigns?: string[]
+              start_date?: string
             }
         Returns: {
-          total_campaigns: number
-          total_views: number
-          total_engagement: number
           avg_engagement_rate: number
-          total_deal_value: number
-          platform_breakdown: Json
           creator_performance: Json
           monthly_trends: Json
+          platform_breakdown: Json
+          total_campaigns: number
+          total_deal_value: number
+          total_engagement: number
+          total_views: number
         }[]
       }
       get_roster_daily_analytics: {
         Args: {
           p_creator_ids?: string[]
-          p_start_date?: string
           p_end_date?: string
+          p_start_date?: string
         }
         Returns: {
-          date_recorded: string
-          total_daily_views: number
-          total_daily_subscribers: number
-          total_daily_engagement: number
           creator_count: number
+          date_recorded: string
+          total_daily_engagement: number
+          total_daily_subscribers: number
+          total_daily_views: number
         }[]
       }
       get_top_content: {
         Args: { limit_count?: number; order_by?: string }
         Returns: {
-          campaign_id: string
           brand_name: string
-          creator_name: string
-          platform: string
+          campaign_date: string
+          campaign_id: string
           content_url: string
-          views: number
+          creator_name: string
           engagement: number
           engagement_rate: number
-          campaign_date: string
+          platform: string
+          views: number
+        }[]
+      }
+      get_user_credential_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          credential_type: string
+          expires_at: string
+          has_credentials: boolean
+          id: string
+          platform: string
         }[]
       }
       get_user_profile: {
         Args: { user_id: string }
         Returns: {
-          id: string
-          display_name: string
           bio: string
           created_at: string
+          display_name: string
+          id: string
           updated_at: string
         }[]
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -1056,11 +1067,19 @@ export type Database = {
       refresh_creator_youtube_data: {
         Args: {
           p_creator_roster_id: string
+          p_engagement_rate?: number
           p_subscribers?: number
           p_views?: number
-          p_engagement_rate?: number
         }
         Returns: undefined
+      }
+      rotate_api_credential: {
+        Args: {
+          credential_id: string
+          new_encrypted_value: string
+          new_expires_at?: string
+        }
+        Returns: boolean
       }
       set_campaign_status: {
         Args: { p_campaign_id: string; p_status: string }
@@ -1068,11 +1087,11 @@ export type Database = {
       }
       update_campaign_analytics: {
         Args: {
-          p_campaign_id: string
-          p_total_views?: number
-          p_total_engagement?: number
-          p_engagement_rate?: number
           p_analytics_data?: Json
+          p_campaign_id: string
+          p_engagement_rate?: number
+          p_total_engagement?: number
+          p_total_views?: number
         }
         Returns: undefined
       }
@@ -1082,20 +1101,20 @@ export type Database = {
       }
       update_creator_youtube_stats: {
         Args: {
-          p_creator_roster_id: string
           p_channel_url: string
+          p_creator_roster_id: string
           p_subscribers?: number
-          p_views?: number
           p_video_count?: number
+          p_views?: number
         }
         Returns: Json
       }
       update_youtube_channel_analytics: {
         Args: {
-          p_creator_roster_id: string
           p_channel_handle: string
           p_channel_id?: string
           p_channel_name?: string
+          p_creator_roster_id: string
           p_subscribers?: number
           p_total_views?: number
           p_video_count?: number
@@ -1104,25 +1123,25 @@ export type Database = {
       }
       upsert_campaign_url_analytics: {
         Args: {
+          p_analytics_metadata?: Json
           p_campaign_id: string
-          p_content_url: string
-          p_platform: string
-          p_date_recorded: string
-          p_views?: number
-          p_likes?: number
           p_comments?: number
-          p_shares?: number
+          p_content_url: string
+          p_date_recorded: string
           p_engagement?: number
           p_engagement_rate?: number
-          p_analytics_metadata?: Json
+          p_likes?: number
+          p_platform: string
+          p_shares?: number
+          p_views?: number
         }
         Returns: undefined
       }
       upsert_user_profile: {
         Args: {
-          profile_id: string
-          display_name_param?: string
           bio_param?: string
+          display_name_param?: string
+          profile_id: string
         }
         Returns: undefined
       }
