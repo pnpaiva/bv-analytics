@@ -72,7 +72,7 @@ All colors MUST be HSL.
     --accent-foreground: var(--color-white);
     --destructive: var(--color-accent-coral);
     --destructive-foreground: var(--color-white);
-    --border: var(--color-gray-medium);
+    --border: var(--color-gray-dark);
     --input: var(--color-gray-light);
     --ring: var(--color-primary);
     --chart-1: var(--color-primary);
@@ -121,7 +121,7 @@ All colors MUST be HSL.
     --accent-foreground: var(--color-black);
     --destructive: var(--color-accent-coral);
     --destructive-foreground: var(--color-white);
-    --border: var(--color-primary);
+    --border: var(--color-gray-dark);
     --input: 240 6% 9%; /* #181818 */
     --ring: var(--color-primary);
     
