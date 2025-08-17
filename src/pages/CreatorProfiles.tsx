@@ -735,6 +735,9 @@ export default function CreatorProfiles() {
             )}
           </div>
         </div>
+        
+        {/* Render EditCreatorDialog */}
+        {selectedCreatorProfile && <EditCreatorDialog creator={selectedCreatorProfile} />}
       </div>
     </div>
   );
