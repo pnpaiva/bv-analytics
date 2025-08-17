@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useCreators } from '@/hooks/useCreators';
+import { useUpdateCreator } from '@/hooks/useManageCreators';
 import { useCampaigns } from '@/hooks/useCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { Navigation } from '@/components/Navigation';
@@ -8,21 +9,32 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ImageUpload } from '@/components/ui/image-upload';
+import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
 
 interface CreatorProfile {
   id: string;
   name: string;
   avatar_url?: string;
   platform_handles?: Record<string, string>;
+  location?: string;
+  email?: string;
+  phone?: string;
+  bio?: string;
   totalViews: number;
   totalEngagement: number;
   engagementRate: number;
   followerCount: number;
   demographics: {
+    platform: 'youtube' | 'instagram' | 'tiktok';
     gender: { female: number; male: number };
     age: { '15-24': number; '25-35': number; '36-45': number };
+    location: { [country: string]: number };
   };
   platformBreakdown: {
     platform: string;
@@ -53,14 +65,18 @@ interface CreatorProfile {
     name: string;
     price: number;
   }[];
+  mediaKitUrl?: string;
 }
 
 export default function CreatorProfiles() {
   const { data: creators = [] } = useCreators();
   const { data: campaigns = [] } = useCampaigns();
   const { data: campaignCreators = [] } = useCampaignCreators();
+  const updateCreator = useUpdateCreator();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
+  const [editingCreator, setEditingCreator] = useState<string | null>(null);
+  const [selectedPlatform, setSelectedPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
 
   // Build creator profiles with analytics
   const creatorProfiles = useMemo((): CreatorProfile[] => {
@@ -150,8 +166,10 @@ export default function CreatorProfiles() {
 
       // Mock demographics data (in real app would come from analytics)
       const demographics = {
+        platform: 'youtube' as const,
         gender: { female: 75, male: 25 },
-        age: { '15-24': 45, '25-35': 35, '36-45': 20 }
+        age: { '15-24': 45, '25-35': 35, '36-45': 20 },
+        location: { 'United States': 40, 'United Kingdom': 25, 'Canada': 20, 'Australia': 15 }
       };
 
       // Mock services data
@@ -166,6 +184,10 @@ export default function CreatorProfiles() {
         name: creator.name,
         avatar_url: creator.avatar_url,
         platform_handles: creator.platform_handles,
+        location: 'United States',
+        email: 'creator@example.com',
+        phone: '+1 (555) 123-4567',
+        bio: 'Content Creator',
         totalViews,
         totalEngagement,
         engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
@@ -174,7 +196,8 @@ export default function CreatorProfiles() {
         platformBreakdown,
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         topVideos,
-        services
+        services,
+        mediaKitUrl: `${window.location.origin}/media-kit/${creator.id}`
       };
     });
   }, [creators, campaigns, campaignCreators]);
@@ -204,6 +227,118 @@ export default function CreatorProfiles() {
     return null;
   };
 
+  const handleCreatorUpdate = async (creatorId: string, updates: any) => {
+    try {
+      await updateCreator.mutateAsync({
+        id: creatorId,
+        ...updates
+      });
+      toast.success('Creator updated successfully');
+      setEditingCreator(null);
+    } catch (error) {
+      toast.error('Failed to update creator');
+    }
+  };
+
+  const generateMediaKit = (creatorId: string) => {
+    const mediaKitUrl = `${window.location.origin}/media-kit/${creatorId}`;
+    navigator.clipboard.writeText(mediaKitUrl);
+    toast.success('Media kit link copied to clipboard!');
+  };
+
+  const EditCreatorDialog = ({ creator }: { creator: CreatorProfile }) => {
+    const [formData, setFormData] = useState({
+      name: creator.name,
+      avatar_url: creator.avatar_url || '',
+      location: creator.location || '',
+      email: creator.email || '',
+      phone: creator.phone || '',
+      bio: creator.bio || '',
+      platform_handles: creator.platform_handles || {}
+    });
+
+    return (
+      <Dialog open={editingCreator === creator.id} onOpenChange={() => setEditingCreator(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Creator Profile</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                rows={3}
+              />
+            </div>
+            
+            <div>
+              <ImageUpload
+                value={formData.avatar_url}
+                onValueChange={(url) => setFormData({ ...formData, avatar_url: url })}
+                label="Profile Picture"
+                bucketName="avatars"
+              />
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingCreator(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => handleCreatorUpdate(creator.id, formData)}>
+                Save Changes
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -214,6 +349,27 @@ export default function CreatorProfiles() {
             <h1 className="text-3xl font-bold text-foreground">Creator Profiles</h1>
             <p className="text-muted-foreground mt-2">Comprehensive performance overview of your creators</p>
           </div>
+          
+          {selectedCreatorProfile && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setEditingCreator(selectedCreatorProfile.id)}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Profile
+              </Button>
+              
+              <Button
+                onClick={() => generateMediaKit(selectedCreatorProfile.id)}
+                className="flex items-center gap-2"
+              >
+                <Share className="h-4 w-4" />
+                Share Media Kit
+              </Button>
+            </div>
+          )}
           
           <div className="relative w-72">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -301,15 +457,15 @@ export default function CreatorProfiles() {
                           <div className="space-y-2 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2 justify-center lg:justify-start">
                               <MapPin className="h-4 w-4" />
-                              <span>Location</span>
+                              <span>{selectedCreatorProfile.location}</span>
                             </div>
                             <div className="flex items-center gap-2 justify-center lg:justify-start">
                               <Mail className="h-4 w-4" />
-                              <span>creator@example.com</span>
+                              <span>{selectedCreatorProfile.email}</span>
                             </div>
                             <div className="flex items-center gap-2 justify-center lg:justify-start">
                               <Phone className="h-4 w-4" />
-                              <span>+1 (555) 123-4567</span>
+                              <span>{selectedCreatorProfile.phone}</span>
                             </div>
                           </div>
                         </div>
@@ -318,6 +474,21 @@ export default function CreatorProfiles() {
                       {/* Demographics & Audience */}
                       <div>
                         <h3 className="text-lg font-semibold mb-4">Demographics Audience</h3>
+                        
+                        {/* Platform Selection */}
+                        <div className="flex gap-2 mb-4">
+                          {(['youtube', 'instagram', 'tiktok'] as const).map((platform) => (
+                            <Button
+                              key={platform}
+                              variant={selectedPlatform === platform ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setSelectedPlatform(platform)}
+                              className="capitalize"
+                            >
+                              {platform}
+                            </Button>
+                          ))}
+                        </div>
                         
                         <div className="space-y-4">
                           <div>
@@ -356,6 +527,27 @@ export default function CreatorProfiles() {
                               ))}
                             </div>
                           </div>
+
+                          <Separator />
+
+                          <div>
+                            <h4 className="font-medium mb-2">Location</h4>
+                            <div className="space-y-2">
+                              {Object.entries(selectedCreatorProfile.demographics.location).map(([country, percentage]) => (
+                                <div key={country} className="flex items-center gap-3">
+                                  <MapPin className="h-4 w-4" />
+                                  <span className="text-sm font-medium">{country}</span>
+                                  <div className="flex-1 h-2 bg-muted rounded-full">
+                                    <div 
+                                      className="h-2 bg-primary rounded-full" 
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm font-bold">{percentage}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -366,7 +558,7 @@ export default function CreatorProfiles() {
                           {selectedCreatorProfile.services.map((service, index) => (
                             <div key={index} className="flex justify-between items-center p-3 border-2 rounded-lg">
                               <span className="font-medium">{service.name}</span>
-                              <span className="font-bold text-primary">Fr {service.price}</span>
+                              <span className="font-bold text-primary">${service.price}</span>
                             </div>
                           ))}
                         </div>
@@ -378,7 +570,13 @@ export default function CreatorProfiles() {
                           {selectedCreatorProfile.brandCollaborations.slice(0, 4).map((brand, index) => (
                             <div key={index} className="flex items-center gap-3 p-2 border-2 rounded">
                               {brand.logoUrl ? (
-                                <img src={brand.logoUrl} alt={brand.brandName} className="h-8 w-8 rounded object-cover" />
+                                <div className="h-8 w-8 rounded overflow-hidden bg-white p-1">
+                                  <img 
+                                    src={brand.logoUrl} 
+                                    alt={brand.brandName} 
+                                    className="h-full w-full object-contain" 
+                                  />
+                                </div>
                               ) : (
                                 <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
                                   <Award className="h-4 w-4 text-muted-foreground" />
@@ -398,27 +596,27 @@ export default function CreatorProfiles() {
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
                       <div className="text-3xl font-bold text-primary mb-2">{formatNumber(selectedCreatorProfile.followerCount)}</div>
-                      <div className="text-sm text-muted-foreground">Average Followers</div>
+                      <div className="text-sm text-muted-foreground">Total Followers</div>
                     </CardContent>
                   </Card>
                   
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-success mb-2">{formatNumber(selectedCreatorProfile.totalViews)}</div>
-                      <div className="text-sm text-muted-foreground">Average Reach</div>
+                      <div className="text-3xl font-bold text-emerald-500 mb-2">{formatNumber(selectedCreatorProfile.totalViews)}</div>
+                      <div className="text-sm text-muted-foreground">Average Views</div>
                     </CardContent>
                   </Card>
                   
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-warning mb-2">{formatNumber(selectedCreatorProfile.totalEngagement)}</div>
-                      <div className="text-sm text-muted-foreground">Average Impressions</div>
+                      <div className="text-3xl font-bold text-amber-500 mb-2">{formatNumber(selectedCreatorProfile.totalViews)}</div>
+                      <div className="text-sm text-muted-foreground">Average Views</div>
                     </CardContent>
                   </Card>
                   
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-destructive mb-2">{selectedCreatorProfile.engagementRate.toFixed(1)}%</div>
+                      <div className="text-3xl font-bold text-rose-500 mb-2">{selectedCreatorProfile.engagementRate.toFixed(1)}%</div>
                       <div className="text-sm text-muted-foreground">Engagement Rate</div>
                     </CardContent>
                   </Card>
