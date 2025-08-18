@@ -222,10 +222,29 @@ export default function CreatorProfiles() {
   };
 
   const getEmbedUrl = (url: string, platform: string) => {
-    if (platform.toLowerCase() === 'youtube') {
+    const platformLower = platform.toLowerCase();
+    
+    if (platformLower === 'youtube') {
       const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
       return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
     }
+    
+    if (platformLower === 'instagram') {
+      // Handle Instagram reel/post URLs
+      const instagramMatch = url.match(/(?:instagram\.com\/(?:p|reel)\/([^\/\?]+))/);
+      if (instagramMatch) {
+        return `https://www.instagram.com/p/${instagramMatch[1]}/embed/`;
+      }
+    }
+    
+    if (platformLower === 'tiktok') {
+      // Handle TikTok URLs
+      const tiktokMatch = url.match(/(?:tiktok\.com\/@[^\/]+\/video\/(\d+))/);
+      if (tiktokMatch) {
+        return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
+      }
+    }
+    
     return null;
   };
 
@@ -344,60 +363,65 @@ export default function CreatorProfiles() {
           
           <div className="space-y-8">
             {/* Basic Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Basic Information</h3>
+            <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
+              <h3 className="text-lg font-semibold border-b border-border pb-2">Basic Information</h3>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Name</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium">Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="border-2"
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="location">Location</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="location" className="text-sm font-medium">Location</Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="border-2"
                   />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="border-2"
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium">Phone</Label>
                   <Input
                     id="phone"
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="border-2"
                   />
                 </div>
               </div>
               
-              <div>
-                <Label htmlFor="bio">Bio</Label>
+              <div className="space-y-2">
+                <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
                 <Textarea
                   id="bio"
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   rows={3}
+                  className="border-2"
                 />
               </div>
               
-              <div>
+              <div className="space-y-2">
                 <ImageUpload
                   value={formData.avatar_url}
                   onValueChange={(url) => setFormData({ ...formData, avatar_url: url })}
@@ -408,45 +432,48 @@ export default function CreatorProfiles() {
             </div>
 
             {/* Performance Metrics */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Performance Metrics</h3>
+            <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
+              <h3 className="text-lg font-semibold border-b border-border pb-2">Performance Metrics</h3>
               <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="totalFollowers">Total Followers</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="totalFollowers" className="text-sm font-medium">Total Followers</Label>
                   <Input
                     id="totalFollowers"
                     type="number"
                     value={formData.totalFollowers}
                     onChange={(e) => setFormData({ ...formData, totalFollowers: Number(e.target.value) })}
+                    className="border-2"
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="avgViews">Average Views</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="avgViews" className="text-sm font-medium">Average Views</Label>
                   <Input
                     id="avgViews"
                     type="number"
                     value={formData.avgViews}
                     onChange={(e) => setFormData({ ...formData, avgViews: Number(e.target.value) })}
+                    className="border-2"
                   />
                 </div>
                 
-                <div>
-                  <Label htmlFor="engagementRate">Engagement Rate (%)</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="engagementRate" className="text-sm font-medium">Engagement Rate (%)</Label>
                   <Input
                     id="engagementRate"
                     type="number"
                     step="0.1"
                     value={formData.engagementRate}
                     onChange={(e) => setFormData({ ...formData, engagementRate: Number(e.target.value) })}
+                    className="border-2"
                   />
                 </div>
               </div>
             </div>
 
             {/* Demographics */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
+              <div className="flex items-center justify-between border-b border-border pb-2">
                 <h3 className="text-lg font-semibold">Demographics</h3>
                 <div className="flex gap-2">
                   {(['youtube', 'instagram', 'tiktok'] as const).map((platform) => (
@@ -455,6 +482,7 @@ export default function CreatorProfiles() {
                       variant={selectedDemoPlatform === platform ? "default" : "outline"}
                       size="sm"
                       onClick={() => setSelectedDemoPlatform(platform)}
+                      className="border-2"
                     >
                       {platform.charAt(0).toUpperCase() + platform.slice(1)}
                     </Button>
@@ -464,11 +492,11 @@ export default function CreatorProfiles() {
               
               <div className="grid grid-cols-2 gap-6">
                 {/* Gender */}
-                <div>
-                  <Label>Gender Distribution (%)</Label>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div>
-                      <Label className="text-sm">Female</Label>
+                <div className="space-y-3 p-4 border border-border rounded-lg">
+                  <Label className="text-sm font-medium">Gender Distribution (%)</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Female</Label>
                       <Input
                         type="number"
                         value={formData.demographics.gender.female}
@@ -479,10 +507,11 @@ export default function CreatorProfiles() {
                             gender: { ...formData.demographics.gender, female: Number(e.target.value) }
                           }
                         })}
+                        className="border-2"
                       />
                     </div>
-                    <div>
-                      <Label className="text-sm">Male</Label>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Male</Label>
                       <Input
                         type="number"
                         value={formData.demographics.gender.male}
@@ -493,17 +522,18 @@ export default function CreatorProfiles() {
                             gender: { ...formData.demographics.gender, male: Number(e.target.value) }
                           }
                         })}
+                        className="border-2"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Age */}
-                <div>
-                  <Label>Age Distribution (%)</Label>
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    <div>
-                      <Label className="text-sm">15-24</Label>
+                <div className="space-y-3 p-4 border border-border rounded-lg">
+                  <Label className="text-sm font-medium">Age Distribution (%)</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">15-24</Label>
                       <Input
                         type="number"
                         value={formData.demographics.age['15-24']}
@@ -514,10 +544,11 @@ export default function CreatorProfiles() {
                             age: { ...formData.demographics.age, '15-24': Number(e.target.value) }
                           }
                         })}
+                        className="border-2"
                       />
                     </div>
-                    <div>
-                      <Label className="text-sm">25-35</Label>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">25-35</Label>
                       <Input
                         type="number"
                         value={formData.demographics.age['25-35']}
@@ -528,10 +559,11 @@ export default function CreatorProfiles() {
                             age: { ...formData.demographics.age, '25-35': Number(e.target.value) }
                           }
                         })}
+                        className="border-2"
                       />
                     </div>
-                    <div>
-                      <Label className="text-sm">36-45</Label>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">36-45</Label>
                       <Input
                         type="number"
                         value={formData.demographics.age['36-45']}
@@ -542,6 +574,7 @@ export default function CreatorProfiles() {
                             age: { ...formData.demographics.age, '36-45': Number(e.target.value) }
                           }
                         })}
+                        className="border-2"
                       />
                     </div>
                   </div>
@@ -549,15 +582,15 @@ export default function CreatorProfiles() {
               </div>
 
               {/* Location */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Location Distribution</Label>
-                  <Button variant="outline" size="sm" onClick={addLocationDemographic}>
+              <div className="space-y-3 p-4 border border-border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Location Distribution</Label>
+                  <Button variant="outline" size="sm" onClick={addLocationDemographic} className="border-2">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Country
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {Object.entries(formData.demographics.location).map(([country, percentage]) => (
                     <div key={country} className="flex gap-2">
                       <Input
@@ -575,6 +608,7 @@ export default function CreatorProfiles() {
                           });
                         }}
                         placeholder="Country"
+                        className="border-2"
                       />
                       <Input
                         type="number"
@@ -590,6 +624,7 @@ export default function CreatorProfiles() {
                           }
                         })}
                         placeholder="%"
+                        className="border-2 w-20"
                       />
                       <Button 
                         variant="outline" 
@@ -605,6 +640,7 @@ export default function CreatorProfiles() {
                             }
                           });
                         }}
+                        className="border-2"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -615,10 +651,10 @@ export default function CreatorProfiles() {
             </div>
 
             {/* Services & Rates */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
+              <div className="flex items-center justify-between border-b border-border pb-2">
                 <h3 className="text-lg font-semibold">Services & Rates (USD)</h3>
-                <Button variant="outline" size="sm" onClick={addService}>
+                <Button variant="outline" size="sm" onClick={addService} className="border-2">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Service
                 </Button>
@@ -626,21 +662,21 @@ export default function CreatorProfiles() {
               
               <div className="space-y-3">
                 {formData.services.map((service, index) => (
-                  <div key={index} className="flex gap-2">
+                  <div key={index} className="flex gap-3 p-3 border border-border rounded-lg">
                     <Input
                       value={service.name}
                       onChange={(e) => updateService(index, 'name', e.target.value)}
                       placeholder="Service name"
-                      className="flex-1"
+                      className="flex-1 border-2"
                     />
                     <Input
                       type="number"
                       value={service.price}
                       onChange={(e) => updateService(index, 'price', Number(e.target.value))}
                       placeholder="Price (USD)"
-                      className="w-32"
+                      className="w-32 border-2"
                     />
-                    <Button variant="outline" size="sm" onClick={() => removeService(index)}>
+                    <Button variant="outline" size="sm" onClick={() => removeService(index)} className="border-2">
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -649,10 +685,10 @@ export default function CreatorProfiles() {
             </div>
 
             {/* Top Performing Content */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
+              <div className="flex items-center justify-between border-b border-border pb-2">
                 <h3 className="text-lg font-semibold">Top Performing Content</h3>
-                <Button variant="outline" size="sm" onClick={addTopVideo}>
+                <Button variant="outline" size="sm" onClick={addTopVideo} className="border-2">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Content
                 </Button>
@@ -660,58 +696,87 @@ export default function CreatorProfiles() {
               
               <div className="space-y-4">
                 {formData.topVideos.map((video, index) => (
-                  <div key={index} className="p-4 border rounded-lg space-y-3">
+                  <div key={index} className="p-4 border-2 border-border rounded-lg space-y-3 bg-muted/20">
                     <div className="flex justify-between items-center">
                       <h4 className="font-medium">Content #{index + 1}</h4>
-                      <Button variant="outline" size="sm" onClick={() => removeTopVideo(index)}>
+                      <Button variant="outline" size="sm" onClick={() => removeTopVideo(index)} className="border-2">
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
-                      <Input
-                        value={video.title}
-                        onChange={(e) => updateTopVideo(index, 'title', e.target.value)}
-                        placeholder="Content title"
-                      />
-                      <Input
-                        value={video.url}
-                        onChange={(e) => updateTopVideo(index, 'url', e.target.value)}
-                        placeholder="Content URL"
-                      />
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Content Title</Label>
+                        <Input
+                          value={video.title}
+                          onChange={(e) => updateTopVideo(index, 'title', e.target.value)}
+                          placeholder="Content title"
+                          className="border-2"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Content URL</Label>
+                        <Input
+                          value={video.url}
+                          onChange={(e) => updateTopVideo(index, 'url', e.target.value)}
+                          placeholder="Content URL"
+                          className="border-2"
+                        />
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-3">
-                      <Input
-                        type="number"
-                        value={video.views}
-                        onChange={(e) => updateTopVideo(index, 'views', Number(e.target.value))}
-                        placeholder="Views"
-                      />
-                      <Input
-                        type="number"
-                        value={video.engagement}
-                        onChange={(e) => updateTopVideo(index, 'engagement', Number(e.target.value))}
-                        placeholder="Engagement"
-                      />
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={video.engagementRate}
-                        onChange={(e) => updateTopVideo(index, 'engagementRate', Number(e.target.value))}
-                        placeholder="Engagement Rate %"
-                      />
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Platform</Label>
+                        <Input
+                          value={video.platform}
+                          onChange={(e) => updateTopVideo(index, 'platform', e.target.value)}
+                          placeholder="Platform"
+                          className="border-2"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Views</Label>
+                        <Input
+                          type="number"
+                          value={video.views}
+                          onChange={(e) => updateTopVideo(index, 'views', Number(e.target.value))}
+                          placeholder="Views"
+                          className="border-2"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Engagement</Label>
+                        <Input
+                          type="number"
+                          value={video.engagement}
+                          onChange={(e) => updateTopVideo(index, 'engagement', Number(e.target.value))}
+                          placeholder="Engagement"
+                          className="border-2"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Engagement Rate %</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={video.engagementRate}
+                          onChange={(e) => updateTopVideo(index, 'engagementRate', Number(e.target.value))}
+                          placeholder="Rate %"
+                          className="border-2"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
             
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button variant="outline" onClick={() => setEditingCreator(null)}>
+            <div className="flex justify-end gap-2 pt-4 border-t-2 border-border">
+              <Button variant="outline" onClick={() => setEditingCreator(null)} className="border-2">
                 Cancel
               </Button>
-              <Button onClick={() => handleCreatorUpdate(creator.id, formData)}>
+              <Button onClick={() => handleCreatorUpdate(creator.id, formData)} className="border-2">
                 Save Changes
               </Button>
             </div>
