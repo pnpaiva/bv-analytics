@@ -77,6 +77,8 @@ export default function CreatorProfiles() {
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [editingCreator, setEditingCreator] = useState<string | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
+  const [currentCollaborationPage, setCurrentCollaborationPage] = useState(1);
+  const collaborationsPerPage = 6;
 
   // Build creator profiles with analytics
   const creatorProfiles = useMemo((): CreatorProfile[] => {
@@ -254,78 +256,458 @@ export default function CreatorProfiles() {
       email: creator.email || '',
       phone: creator.phone || '',
       bio: creator.bio || '',
-      platform_handles: creator.platform_handles || {}
+      platform_handles: creator.platform_handles || {},
+      demographics: creator.demographics || {
+        platform: 'youtube',
+        gender: { female: 50, male: 50 },
+        age: { '15-24': 30, '25-35': 40, '36-45': 30 },
+        location: {}
+      },
+      services: creator.services || [],
+      topVideos: creator.topVideos || [],
+      totalFollowers: creator.followerCount || 0,
+      avgViews: creator.totalViews || 0,
+      engagementRate: creator.engagementRate || 0
     });
+
+    const [selectedDemoPlatform, setSelectedDemoPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
+
+    const addService = () => {
+      setFormData({
+        ...formData,
+        services: [...formData.services, { name: '', price: 0 }]
+      });
+    };
+
+    const removeService = (index: number) => {
+      setFormData({
+        ...formData,
+        services: formData.services.filter((_, i) => i !== index)
+      });
+    };
+
+    const updateService = (index: number, field: 'name' | 'price', value: any) => {
+      const newServices = [...formData.services];
+      newServices[index] = { ...newServices[index], [field]: value };
+      setFormData({ ...formData, services: newServices });
+    };
+
+    const addTopVideo = () => {
+      setFormData({
+        ...formData,
+        topVideos: [...formData.topVideos, { 
+          title: '', 
+          platform: 'youtube', 
+          views: 0, 
+          engagement: 0, 
+          engagementRate: 0, 
+          url: '' 
+        }]
+      });
+    };
+
+    const removeTopVideo = (index: number) => {
+      setFormData({
+        ...formData,
+        topVideos: formData.topVideos.filter((_, i) => i !== index)
+      });
+    };
+
+    const updateTopVideo = (index: number, field: string, value: any) => {
+      const newVideos = [...formData.topVideos];
+      newVideos[index] = { ...newVideos[index], [field]: value };
+      setFormData({ ...formData, topVideos: newVideos });
+    };
+
+    const addLocationDemographic = () => {
+      const country = prompt('Enter country name:');
+      if (country) {
+        setFormData({
+          ...formData,
+          demographics: {
+            ...formData.demographics,
+            location: {
+              ...formData.demographics.location,
+              [country]: 0
+            }
+          }
+        });
+      }
+    };
 
     return (
       <Dialog open={editingCreator === creator.id} onOpenChange={() => setEditingCreator(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Creator Profile</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-8">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+              
               <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                <Label htmlFor="bio">Bio</Label>
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  rows={3}
                 />
               </div>
               
               <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                <ImageUpload
+                  value={formData.avatar_url}
+                  onValueChange={(url) => setFormData({ ...formData, avatar_url: url })}
+                  label="Profile Picture"
+                  bucketName="avatars"
                 />
               </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
+
+            {/* Performance Metrics */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Performance Metrics</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="totalFollowers">Total Followers</Label>
+                  <Input
+                    id="totalFollowers"
+                    type="number"
+                    value={formData.totalFollowers}
+                    onChange={(e) => setFormData({ ...formData, totalFollowers: Number(e.target.value) })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="avgViews">Average Views</Label>
+                  <Input
+                    id="avgViews"
+                    type="number"
+                    value={formData.avgViews}
+                    onChange={(e) => setFormData({ ...formData, avgViews: Number(e.target.value) })}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="engagementRate">Engagement Rate (%)</Label>
+                  <Input
+                    id="engagementRate"
+                    type="number"
+                    step="0.1"
+                    value={formData.engagementRate}
+                    onChange={(e) => setFormData({ ...formData, engagementRate: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Demographics */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Demographics</h3>
+                <div className="flex gap-2">
+                  {(['youtube', 'instagram', 'tiktok'] as const).map((platform) => (
+                    <Button
+                      key={platform}
+                      variant={selectedDemoPlatform === platform ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedDemoPlatform(platform)}
+                    >
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </Button>
+                  ))}
+                </div>
               </div>
               
+              <div className="grid grid-cols-2 gap-6">
+                {/* Gender */}
+                <div>
+                  <Label>Gender Distribution (%)</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <Label className="text-sm">Female</Label>
+                      <Input
+                        type="number"
+                        value={formData.demographics.gender.female}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            gender: { ...formData.demographics.gender, female: Number(e.target.value) }
+                          }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Male</Label>
+                      <Input
+                        type="number"
+                        value={formData.demographics.gender.male}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            gender: { ...formData.demographics.gender, male: Number(e.target.value) }
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Age */}
+                <div>
+                  <Label>Age Distribution (%)</Label>
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    <div>
+                      <Label className="text-sm">15-24</Label>
+                      <Input
+                        type="number"
+                        value={formData.demographics.age['15-24']}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            age: { ...formData.demographics.age, '15-24': Number(e.target.value) }
+                          }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">25-35</Label>
+                      <Input
+                        type="number"
+                        value={formData.demographics.age['25-35']}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            age: { ...formData.demographics.age, '25-35': Number(e.target.value) }
+                          }
+                        })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">36-45</Label>
+                      <Input
+                        type="number"
+                        value={formData.demographics.age['36-45']}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            age: { ...formData.demographics.age, '36-45': Number(e.target.value) }
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Location */}
               <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Location Distribution</Label>
+                  <Button variant="outline" size="sm" onClick={addLocationDemographic}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Country
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(formData.demographics.location).map(([country, percentage]) => (
+                    <div key={country} className="flex gap-2">
+                      <Input
+                        value={country}
+                        onChange={(e) => {
+                          const newLocation = { ...formData.demographics.location };
+                          delete newLocation[country];
+                          newLocation[e.target.value] = percentage;
+                          setFormData({
+                            ...formData,
+                            demographics: {
+                              ...formData.demographics,
+                              location: newLocation
+                            }
+                          });
+                        }}
+                        placeholder="Country"
+                      />
+                      <Input
+                        type="number"
+                        value={percentage}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            location: {
+                              ...formData.demographics.location,
+                              [country]: Number(e.target.value)
+                            }
+                          }
+                        })}
+                        placeholder="%"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const newLocation = { ...formData.demographics.location };
+                          delete newLocation[country];
+                          setFormData({
+                            ...formData,
+                            demographics: {
+                              ...formData.demographics,
+                              location: newLocation
+                            }
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Services & Rates */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Services & Rates (USD)</h3>
+                <Button variant="outline" size="sm" onClick={addService}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Service
+                </Button>
+              </div>
+              
+              <div className="space-y-3">
+                {formData.services.map((service, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={service.name}
+                      onChange={(e) => updateService(index, 'name', e.target.value)}
+                      placeholder="Service name"
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={service.price}
+                      onChange={(e) => updateService(index, 'price', Number(e.target.value))}
+                      placeholder="Price (USD)"
+                      className="w-32"
+                    />
+                    <Button variant="outline" size="sm" onClick={() => removeService(index)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Top Performing Content */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Top Performing Content</h3>
+                <Button variant="outline" size="sm" onClick={addTopVideo}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Content
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                {formData.topVideos.map((video, index) => (
+                  <div key={index} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Content #{index + 1}</h4>
+                      <Button variant="outline" size="sm" onClick={() => removeTopVideo(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <Input
+                        value={video.title}
+                        onChange={(e) => updateTopVideo(index, 'title', e.target.value)}
+                        placeholder="Content title"
+                      />
+                      <Input
+                        value={video.url}
+                        onChange={(e) => updateTopVideo(index, 'url', e.target.value)}
+                        placeholder="Content URL"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-3">
+                      <Input
+                        type="number"
+                        value={video.views}
+                        onChange={(e) => updateTopVideo(index, 'views', Number(e.target.value))}
+                        placeholder="Views"
+                      />
+                      <Input
+                        type="number"
+                        value={video.engagement}
+                        onChange={(e) => updateTopVideo(index, 'engagement', Number(e.target.value))}
+                        placeholder="Engagement"
+                      />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={video.engagementRate}
+                        onChange={(e) => updateTopVideo(index, 'engagementRate', Number(e.target.value))}
+                        placeholder="Engagement Rate %"
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="bio">Bio</Label>
-              <Textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                rows={3}
-              />
-            </div>
-            
-            <div>
-              <ImageUpload
-                value={formData.avatar_url}
-                onValueChange={(url) => setFormData({ ...formData, avatar_url: url })}
-                label="Profile Picture"
-                bucketName="avatars"
-              />
-            </div>
-            
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={() => setEditingCreator(null)}>
                 Cancel
               </Button>
@@ -625,19 +1007,54 @@ export default function CreatorProfiles() {
                 {/* Brand Collaborations */}
                 <Card className="border-2">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Award className="h-5 w-5" />
-                      Brand Collaborations
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Award className="h-5 w-5" />
+                        Brand Collaborations
+                      </div>
+                      {selectedCreatorProfile.brandCollaborations.length > collaborationsPerPage && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentCollaborationPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentCollaborationPage === 1}
+                          >
+                            Previous
+                          </Button>
+                          <span className="text-sm text-muted-foreground">
+                            Page {currentCollaborationPage} of {Math.ceil(selectedCreatorProfile.brandCollaborations.length / collaborationsPerPage)}
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentCollaborationPage(prev => 
+                              Math.min(Math.ceil(selectedCreatorProfile.brandCollaborations.length / collaborationsPerPage), prev + 1)
+                            )}
+                            disabled={currentCollaborationPage >= Math.ceil(selectedCreatorProfile.brandCollaborations.length / collaborationsPerPage)}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {selectedCreatorProfile.brandCollaborations.map((brand, index) => (
+                      {selectedCreatorProfile.brandCollaborations
+                        .slice((currentCollaborationPage - 1) * collaborationsPerPage, currentCollaborationPage * collaborationsPerPage)
+                        .map((brand, index) => (
                         <Card key={index} className="border-2">
                           <CardContent className="p-4">
                             <div className="flex items-center gap-3 mb-3">
                               {brand.logoUrl ? (
-                                <img src={brand.logoUrl} alt={brand.brandName} className="h-12 w-12 rounded object-cover border-2" />
+                                <div className="h-12 w-12 rounded bg-white border-2 p-1 flex items-center justify-center overflow-hidden">
+                                  <img 
+                                    src={brand.logoUrl} 
+                                    alt={brand.brandName} 
+                                    className="max-h-full max-w-full object-contain" 
+                                  />
+                                </div>
                               ) : (
                                 <div className="h-12 w-12 rounded bg-muted flex items-center justify-center border-2">
                                   <Award className="h-6 w-6 text-muted-foreground" />
