@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useCreators } from '@/hooks/useCreators';
 import { useUpdateCreator } from '@/hooks/useManageCreators';
 import { useCampaigns } from '@/hooks/useCampaigns';
@@ -79,6 +79,15 @@ export default function CreatorProfiles() {
   const [selectedPlatform, setSelectedPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
   const [currentCollaborationPage, setCurrentCollaborationPage] = useState(1);
   const collaborationsPerPage = 6;
+
+  // Handle URL query parameter for shared links
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedParam = urlParams.get('selected');
+    if (selectedParam && creators?.some(c => c.id === selectedParam)) {
+      setSelectedCreator(selectedParam);
+    }
+  }, [creators]);
 
   // Build creator profiles with analytics
   const creatorProfiles = useMemo((): CreatorProfile[] => {
@@ -233,7 +242,7 @@ export default function CreatorProfiles() {
       // Handle Instagram reel/post URLs
       const instagramMatch = url.match(/(?:instagram\.com\/(?:p|reel)\/([^\/\?]+))/);
       if (instagramMatch) {
-        return `https://www.instagram.com/p/${instagramMatch[1]}/embed/`;
+        return `https://www.instagram.com/p/${instagramMatch[1]}/embed/captioned/`;
       }
     }
     
@@ -262,9 +271,10 @@ export default function CreatorProfiles() {
   };
 
   const generateMediaKit = (creatorId: string) => {
-    const mediaKitUrl = `${window.location.origin}/media-kit/${creatorId}`;
-    navigator.clipboard.writeText(mediaKitUrl);
-    toast.success('Media kit link copied to clipboard!');
+    // Create a shareable profile URL that stays within the app
+    const profileUrl = `${window.location.origin}/creator-profiles?selected=${creatorId}`;
+    navigator.clipboard.writeText(profileUrl);
+    toast.success('Creator profile link copied to clipboard!');
   };
 
   const EditCreatorDialog = ({ creator }: { creator: CreatorProfile }) => {
@@ -1162,20 +1172,24 @@ export default function CreatorProfiles() {
                       {selectedCreatorProfile.topVideos.map((video, index) => (
                         <Card key={index} className="border-2">
                           <CardContent className="p-4">
-                            <div className="aspect-video bg-muted rounded mb-3 overflow-hidden border-2">
+                            <div className="aspect-video bg-muted rounded mb-3 overflow-hidden border-2 relative">
                               {getEmbedUrl(video.url, video.platform) ? (
                                 <iframe
                                   src={getEmbedUrl(video.url, video.platform)!}
                                   title={video.title}
-                                  className="w-full h-full"
-                                  frameBorder="0"
+                                  className="absolute inset-0 w-full h-full"
+                                  style={{ 
+                                    border: 'none',
+                                    minHeight: '250px'
+                                  }}
                                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                   allowFullScreen
+                                  loading="lazy"
                                 />
                               ) : video.thumbnail ? (
-                                <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover" />
+                                <img src={video.thumbnail} alt={video.title} className="absolute inset-0 w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center">
+                                <div className="absolute inset-0 w-full h-full flex items-center justify-center">
                                   <TrendingUp className="h-8 w-8 text-muted-foreground" />
                                 </div>
                               )}
