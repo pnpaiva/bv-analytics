@@ -208,7 +208,7 @@ export default function CreatorProfiles() {
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         topVideos,
         services,
-        mediaKitUrl: `${window.location.origin}/media-kit/${creator.id}`
+        mediaKitUrl: `${window.location.origin}/m/${slugify(creator.name)}-${creator.id}`
       };
     });
   }, [creators, campaigns, campaignCreators]);
@@ -289,6 +289,11 @@ export default function CreatorProfiles() {
     // include id to make lookup deterministic and avoid collisions
     const fullSlug = `${nameSlug}-${creator.id}`;
     const mediaKitUrl = `${window.location.origin}/m/${fullSlug}`;
+    
+    console.log('Generated media kit URL:', mediaKitUrl);
+    console.log('Creator:', creator.name, 'ID:', creator.id);
+    console.log('Slug:', nameSlug, 'Full slug:', fullSlug);
+    
     navigator.clipboard.writeText(mediaKitUrl);
     toast.success('Media kit link copied to clipboard!');
   };
