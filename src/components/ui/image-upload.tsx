@@ -41,10 +41,10 @@ export function ImageUpload({
         return;
       }
 
-      // Generate unique filename
+      // Generate unique filename with user folder structure
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
-      const filePath = fileName;
+      const filePath = `uploads/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -67,7 +67,16 @@ export function ImageUpload({
       toast.success('Image uploaded successfully');
     } catch (error: any) {
       console.error('Error uploading image:', error);
-      toast.error(`Failed to upload image: ${error.message}`);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to upload image';
+      if (error.message?.includes('row-level security')) {
+        errorMessage = 'Upload failed due to security policy. Please try again or contact support.';
+      } else if (error.message) {
+        errorMessage = `Failed to upload image: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
