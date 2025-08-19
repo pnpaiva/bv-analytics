@@ -32,56 +32,108 @@ interface CreatorStats {
 }
 
 const PublicMediaKit = () => {
-  const { creatorName } = useParams<{ creatorName: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [creator, setCreator] = useState<Creator | null>(null);
   const [stats, setStats] = useState<CreatorStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchCreatorData = async () => {
-      if (!creatorName) return;
+      if (!slug) return;
 
       try {
-        // Fetch creator by name
-        const { data: creatorData, error: creatorError } = await supabase
-          .from('creators')
-          .select('*')
-          .ilike('name', creatorName.replace(/[_-]/g, ' '))
-          .single();
+        // Prefer resolving by ID if present at end of slug: <name>-<uuid>
+        const idMatch = slug.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+        let creatorData: any = null;
+        let creatorError: any = null;
+
+        if (idMatch) {
+          const { data, error } = await supabase
+            .from('creators')
+            .select('*')
+            .eq('id', idMatch[0])
+            .single();
+          creatorData = data;
+          creatorError = error;
+        } else {
+          // Fallbacks for legacy links without id or with different slug shapes
+          const slugify = (text: string) =>
+            text
+              .toString()
+              .normalize('NFD')
+              .replace(/\p{Diacritic}/gu, '')
+              .toLowerCase()
+              .trim()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/(^-|-$)+/g, '');
+          const normalizeForCompare = (text: string) => slugify(text).replace(/-/g, '');
+
+          // 1) Try relaxed ILIKE with spaces
+          const relaxed = slug.replace(/-/g, ' ');
+          let resp = await supabase
+            .from('creators')
+            .select('*')
+            .ilike('name', `%${relaxed}%`)
+            .limit(5);
+          if (resp.error) {
+            creatorError = resp.error;
+          }
+          const candidate = resp.data?.find((c: any) => normalizeForCompare(c.name) === normalizeForCompare(slug));
+
+          if (candidate) {
+            creatorData = candidate;
+          } else {
+            // 2) Last resort: fetch a larger set and compare locally
+            const list = await supabase
+              .from('creators')
+              .select('*')
+              .limit(1000);
+            if (!list.error && list.data) {
+              creatorData = list.data.find((c: any) => normalizeForCompare(c.name) === normalizeForCompare(slug));
+            }
+            creatorError = creatorData ? null : (resp.error || list.error || new Error('creator not found'));
+          }
+        }
 
         if (creatorError) throw creatorError;
 
         setCreator(creatorData);
 
-        // Fetch creator stats
-        const { data: campaignData, error: campaignError } = await supabase
-          .from('campaigns')
-          .select(`
-            id,
-            total_views,
-            total_engagement,
-            engagement_rate,
-            campaign_creators!inner(creator_id),
-            analytics_data(*)
-          `)
-          .eq('campaign_creators.creator_id', creatorData.id);
-
-        if (campaignError) throw campaignError;
+        // Fetch creator stats (non-fatal if it fails; page should still render)
+        let campaignData: any[] | null = null;
+        try {
+          const resp = await supabase
+            .from('campaigns')
+            .select(`
+              id,
+              total_views,
+              total_engagement,
+              engagement_rate,
+              campaign_creators!inner(creator_id),
+              analytics_data(*)
+            `)
+            .eq('campaign_creators.creator_id', creatorData.id);
+          if (resp.error) throw resp.error;
+          campaignData = resp.data as any[];
+        } catch (e) {
+          console.warn('Campaign fetch failed for public page, continuing with empty stats:', e);
+          campaignData = [];
+        }
 
         // Calculate stats
-        const totalViews = campaignData?.reduce((sum, c) => sum + (c.total_views || 0), 0) || 0;
-        const totalEngagement = campaignData?.reduce((sum, c) => sum + (c.total_engagement || 0), 0) || 0;
-        const avgEngagementRate = campaignData?.length > 0 
-          ? campaignData.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / campaignData.length 
+        const totalViews = (campaignData || []).reduce((sum, c: any) => sum + (c.total_views || 0), 0) || 0;
+        const totalEngagement = (campaignData || []).reduce((sum, c: any) => sum + (c.total_engagement || 0), 0) || 0;
+        const avgEngagementRate = (campaignData || []).length > 0 
+          ? (campaignData as any[]).reduce((sum, c: any) => sum + (c.engagement_rate || 0), 0) / (campaignData as any[]).length 
           : 0;
 
         // Get top performing videos
-        const allAnalytics = campaignData?.flatMap(c => c.analytics_data || []) || [];
+        const allAnalytics = (campaignData || []).flatMap((c: any) => c.analytics_data || []) || [];
         const topVideos = allAnalytics
-          .filter(a => a.content_url)
-          .sort((a, b) => (b.views || 0) - (a.views || 0))
+          .filter((a: any) => a.content_url)
+          .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
           .slice(0, 6)
-          .map(a => ({
+          .map((a: any) => ({
             title: `${a.platform || 'Video'} Content`,
             url: a.content_url || '',
             platform: a.platform || 'unknown',
@@ -94,7 +146,7 @@ const PublicMediaKit = () => {
           totalViews,
           totalEngagement,
           avgEngagementRate,
-          campaignCount: campaignData?.length || 0,
+          campaignCount: (campaignData || []).length,
           topVideos
         });
 
@@ -107,7 +159,7 @@ const PublicMediaKit = () => {
     };
 
     fetchCreatorData();
-  }, [creatorName]);
+  }, [slug]);
 
   const getEmbedUrl = (url: string, platform: string) => {
     if (!url) return null;

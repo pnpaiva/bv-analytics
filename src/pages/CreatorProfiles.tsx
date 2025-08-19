@@ -270,13 +270,25 @@ export default function CreatorProfiles() {
     }
   };
 
+  const slugify = (text: string) => {
+    return text
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  };
+
   const generateMediaKit = (creatorId: string) => {
     const creator = creators?.find(c => c.id === creatorId);
     if (!creator) return;
-    
-    // Convert creator name to URL-friendly format
-    const creatorSlug = creator.name.toLowerCase().replace(/\s+/g, '');
-    const mediaKitUrl = `${window.location.origin}/${creatorSlug}`;
+
+    const nameSlug = slugify(creator.name || 'creator');
+    // include id to make lookup deterministic and avoid collisions
+    const fullSlug = `${nameSlug}-${creator.id}`;
+    const mediaKitUrl = `${window.location.origin}/m/${fullSlug}`;
     navigator.clipboard.writeText(mediaKitUrl);
     toast.success('Media kit link copied to clipboard!');
   };
