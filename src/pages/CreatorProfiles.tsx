@@ -80,6 +80,18 @@ export default function CreatorProfiles() {
   const [currentCollaborationPage, setCurrentCollaborationPage] = useState(1);
   const collaborationsPerPage = 6;
 
+  // Helper function for creating URL-friendly slugs
+  const slugify = (text: string) => {
+    return text
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  };
+
   // Handle URL query parameter for shared links
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -268,17 +280,6 @@ export default function CreatorProfiles() {
     } catch (error) {
       toast.error('Failed to update creator');
     }
-  };
-
-  const slugify = (text: string) => {
-    return text
-      .toString()
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '');
   };
 
   const generateMediaKit = (creatorId: string) => {
