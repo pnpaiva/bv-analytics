@@ -14,6 +14,7 @@ import MasterCampaigns from "./pages/MasterCampaigns";
 import CreatorProfiles from "./pages/CreatorProfiles";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
+import PublicMediaKit from "./pages/PublicMediaKit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +59,8 @@ const App = () => (
                 <Profile />
               </ProtectedRoute>
             } />
+            {/* Public media kit routes */}
+            <Route path="/:creatorName" element={<PublicMediaKit />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

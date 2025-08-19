@@ -271,10 +271,14 @@ export default function CreatorProfiles() {
   };
 
   const generateMediaKit = (creatorId: string) => {
-    // Create a shareable profile URL that stays within the app
-    const profileUrl = `${window.location.origin}/creator-profiles?selected=${creatorId}`;
-    navigator.clipboard.writeText(profileUrl);
-    toast.success('Creator profile link copied to clipboard!');
+    const creator = creators?.find(c => c.id === creatorId);
+    if (!creator) return;
+    
+    // Convert creator name to URL-friendly format
+    const creatorSlug = creator.name.toLowerCase().replace(/\s+/g, '');
+    const mediaKitUrl = `${window.location.origin}/${creatorSlug}`;
+    navigator.clipboard.writeText(mediaKitUrl);
+    toast.success('Media kit link copied to clipboard!');
   };
 
   const EditCreatorDialog = ({ creator }: { creator: CreatorProfile }) => {
