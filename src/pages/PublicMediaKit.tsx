@@ -42,113 +42,44 @@ const PublicMediaKit = () => {
       if (!slug) return;
 
       try {
-        // Prefer resolving by ID if present at end of slug: <name>-<uuid>
-        const idMatch = slug.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-        let creatorData: any = null;
-        let creatorError: any = null;
+        // Resolve creator via secure RPC that is safe for anon access
+        const { data: found, error: findError } = await supabase
+          .rpc('find_creator_by_slug', { p_slug: slug });
+        if (findError) throw findError;
+        const creatorRow = Array.isArray(found) ? found[0] : found;
+        if (!creatorRow) throw new Error('Creator not found');
 
-        if (idMatch) {
-          const { data, error } = await supabase
-            .from('creators')
-            .select('*')
-            .eq('id', idMatch[0])
-            .single();
-          creatorData = data;
-          creatorError = error;
+        setCreator(creatorRow as any);
+
+        // Fetch public media kit stats via secure RPC
+        const { data: statsJson, error: statsError } = await supabase
+          .rpc('get_public_media_kit', { p_creator_id: creatorRow.id });
+        if (statsError) {
+          console.warn('Public stats RPC failed, rendering with zeros:', statsError);
+          setStats({
+            totalViews: 0,
+            totalEngagement: 0,
+            avgEngagementRate: 0,
+            campaignCount: 0,
+            topVideos: []
+          });
         } else {
-          // Fallbacks for legacy links without id or with different slug shapes
-          const slugify = (text: string) =>
-            text
-              .toString()
-              .normalize('NFD')
-              .replace(/\p{Diacritic}/gu, '')
-              .toLowerCase()
-              .trim()
-              .replace(/[^a-z0-9]+/g, '-')
-              .replace(/(^-|-$)+/g, '');
-          const normalizeForCompare = (text: string) => slugify(text).replace(/-/g, '');
-
-          // 1) Try relaxed ILIKE with spaces
-          const relaxed = slug.replace(/-/g, ' ');
-          let resp = await supabase
-            .from('creators')
-            .select('*')
-            .ilike('name', `%${relaxed}%`)
-            .limit(5);
-          if (resp.error) {
-            creatorError = resp.error;
-          }
-          const candidate = resp.data?.find((c: any) => normalizeForCompare(c.name) === normalizeForCompare(slug));
-
-          if (candidate) {
-            creatorData = candidate;
-          } else {
-            // 2) Last resort: fetch a larger set and compare locally
-            const list = await supabase
-              .from('creators')
-              .select('*')
-              .limit(1000);
-            if (!list.error && list.data) {
-              creatorData = list.data.find((c: any) => normalizeForCompare(c.name) === normalizeForCompare(slug));
-            }
-            creatorError = creatorData ? null : (resp.error || list.error || new Error('creator not found'));
-          }
-        }
-
-        if (creatorError) throw creatorError;
-
-        setCreator(creatorData);
-
-        // Fetch creator stats (non-fatal if it fails; page should still render)
-        let campaignData: any[] | null = null;
-        try {
-          const resp = await supabase
-            .from('campaigns')
-            .select(`
-              id,
-              total_views,
-              total_engagement,
-              engagement_rate,
-              campaign_creators!inner(creator_id),
-              analytics_data(*)
-            `)
-            .eq('campaign_creators.creator_id', creatorData.id);
-          if (resp.error) throw resp.error;
-          campaignData = resp.data as any[];
-        } catch (e) {
-          console.warn('Campaign fetch failed for public page, continuing with empty stats:', e);
-          campaignData = [];
-        }
-
-        // Calculate stats
-        const totalViews = (campaignData || []).reduce((sum, c: any) => sum + (c.total_views || 0), 0) || 0;
-        const totalEngagement = (campaignData || []).reduce((sum, c: any) => sum + (c.total_engagement || 0), 0) || 0;
-        const avgEngagementRate = (campaignData || []).length > 0 
-          ? (campaignData as any[]).reduce((sum, c: any) => sum + (c.engagement_rate || 0), 0) / (campaignData as any[]).length 
-          : 0;
-
-        // Get top performing videos
-        const allAnalytics = (campaignData || []).flatMap((c: any) => c.analytics_data || []) || [];
-        const topVideos = allAnalytics
-          .filter((a: any) => a.content_url)
-          .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
-          .slice(0, 6)
-          .map((a: any) => ({
+          const s = statsJson as any;
+          const top = (s?.topVideos || []).map((a: any) => ({
             title: `${a.platform || 'Video'} Content`,
-            url: a.content_url || '',
+            url: a.url || '',
             platform: a.platform || 'unknown',
             views: a.views || 0,
             engagement: a.engagement || 0,
-            thumbnail: undefined
           }));
-
-        setStats({
-          totalViews,
-          totalEngagement,
-          avgEngagementRate,
-          campaignCount: (campaignData || []).length,
-          topVideos
-        });
+          setStats({
+            totalViews: Number(s?.totalViews || 0),
+            totalEngagement: Number(s?.totalEngagement || 0),
+            avgEngagementRate: Number(s?.avgEngagementRate || 0),
+            campaignCount: Number(s?.campaignCount || 0),
+            topVideos: top
+          });
+        }
 
       } catch (error) {
         console.error('Error fetching creator data:', error);
