@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { TrendingUp, Users, Eye, ThumbsUp, MessageSquare, ExternalLink, Share2 } from 'lucide-react';
+import { TrendingUp, Users, Eye, ThumbsUp, MessageSquare, ExternalLink, Share2, MapPin, Mail, Phone, User, Award, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -133,30 +133,13 @@ const PublicMediaKit = () => {
     fetchMediaKitData();
   }, [slug]);
 
-  const getEmbedUrl = (url: string, platform: string) => {
-    if (!url) return null;
-    
-    if (platform === 'youtube') {
-      const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
-      if (youtubeMatch) {
-        return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+  const getVideoThumbnail = (url: string, platform: string) => {
+    if (platform.toLowerCase() === 'youtube') {
+      const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
       }
     }
-    
-    if (platform === 'instagram') {
-      const instagramMatch = url.match(/(?:instagram\.com\/(?:p|reel)\/([^\/\?]+))/);
-      if (instagramMatch) {
-        return `https://www.instagram.com/p/${instagramMatch[1]}/embed/captioned/`;
-      }
-    }
-    
-    if (platform === 'tiktok') {
-      const tiktokMatch = url.match(/(?:tiktok\.com\/.*\/video\/(\d+))/);
-      if (tiktokMatch) {
-        return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
-      }
-    }
-    
     return null;
   };
 
@@ -286,6 +269,332 @@ const PublicMediaKit = () => {
           </Card>
         )}
 
+        {/* Creator Details Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Left Column - Creator Info & Demographics */}
+          <div className="space-y-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-start gap-4">
+                  <Avatar className="h-20 w-20">
+                    <AvatarImage src={mediaKit.avatar_url} />
+                    <AvatarFallback className="text-2xl font-bold">
+                      {mediaKit.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-bold mb-2">{mediaKit.name}</h2>
+                    <p className="text-muted-foreground mb-2">Content Creator</p>
+                    <div className="space-y-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        United States
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4" />
+                        creator@example.com
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4" />
+                        +1 (555) 123-4567
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Demographics Audience */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Demographics Audience</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Platform Tabs */}
+                <div className="flex gap-2">
+                  <Button variant="default" size="sm">Youtube</Button>
+                  <Button variant="outline" size="sm">Instagram</Button>
+                  <Button variant="outline" size="sm">Tiktok</Button>
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <h4 className="font-semibold mb-3">Gender</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="text-sm">75% Women</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="text-sm">25% Men</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Age */}
+                <div>
+                  <h4 className="font-semibold mb-3">Age</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">15-24</span>
+                      <span className="text-sm font-medium">45%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '45%' }}></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">25-35</span>
+                      <span className="text-sm font-medium">35%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '35%' }}></div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">36-45</span>
+                      <span className="text-sm font-medium">20%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: '20%' }}></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div>
+                  <h4 className="font-semibold mb-3">Location</h4>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">United States</span>
+                      <span className="text-sm font-medium">40%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">United Kingdom</span>
+                      <span className="text-sm font-medium">25%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Canada</span>
+                      <span className="text-sm font-medium">20%</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Australia</span>
+                      <span className="text-sm font-medium">15%</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Services & Previous Collabs */}
+          <div className="space-y-6">
+            {/* Services & Rates */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Services & Rates</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 border-2 border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Reel/Video Post</span>
+                    <span className="text-2xl font-bold text-primary">$450</span>
+                  </div>
+                </div>
+                <div className="p-4 border-2 border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Stories</span>
+                    <span className="text-2xl font-bold text-primary">$200</span>
+                  </div>
+                </div>
+                <div className="p-4 border-2 border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Product Reviews</span>
+                    <span className="text-2xl font-bold text-primary">$600</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Previous Collaborations */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Previous Collaborations</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 border-2 border-muted rounded-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">O</span>
+                    </div>
+                    <span className="font-medium">Opera (Eda-Julho)</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">7/28/2025</div>
+                  <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Views: </span>
+                      <span className="font-medium">37.9K</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Engagement: </span>
+                      <span className="font-medium">10.9%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 border-2 border-muted rounded-lg">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">O</span>
+                    </div>
+                    <span className="font-medium">Opera (Eda-Junho)</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">6/26/2025</div>
+                  <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Views: </span>
+                      <span className="font-medium">89.5K</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Engagement: </span>
+                      <span className="font-medium">9.9%</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Platform Handles */}
+        {mediaKit.platform_handles && Object.keys(mediaKit.platform_handles).length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ExternalLink className="h-5 w-5" />
+                Social Media Handles
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(mediaKit.platform_handles).map(([platform, handle]) => (
+                  <Badge key={platform} variant="secondary" className="text-sm">
+                    {platform}: {String(handle)}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Performance Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-primary mb-2">108.3K</div>
+              <div className="text-sm text-muted-foreground">Total Followers</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-green-500 mb-2">2.2M</div>
+              <div className="text-sm text-muted-foreground">Average Views</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-orange-500 mb-2">2.2M</div>
+              <div className="text-sm text-muted-foreground">Average Views</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="text-3xl font-bold text-red-500 mb-2">6.4%</div>
+              <div className="text-sm text-muted-foreground">Engagement Rate</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Brand Collaborations */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5" />
+              Brand Collaborations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Sample brand collaborations */}
+              <div className="p-4 border-2 border-muted rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold">O</span>
+                  </div>
+                  <div>
+                    <div className="font-medium">Opera (Eda-Julho)</div>
+                    <div className="text-sm text-muted-foreground">7/28/2025</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Views:</span>
+                    <div className="font-medium">37.9K</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Engagement:</span>
+                    <div className="font-medium">10.9%</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 border-2 border-muted rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold">O</span>
+                  </div>
+                  <div>
+                    <div className="font-medium">Opera (Eda-Junho)</div>
+                    <div className="text-sm text-muted-foreground">6/26/2025</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Views:</span>
+                    <div className="font-medium">89.5K</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Engagement:</span>
+                    <div className="font-medium">9.9%</div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 border-2 border-muted rounded-lg">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white font-bold">S</span>
+                  </div>
+                  <div>
+                    <div className="font-medium">Saily (Eda Atilla)</div>
+                    <div className="text-sm text-muted-foreground">1/11/2025</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Views:</span>
+                    <div className="font-medium">139.9K</div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Engagement:</span>
+                    <div className="font-medium">8.5%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Top Content */}
         {stats.topVideos.length > 0 && (
           <Card>
@@ -300,26 +609,34 @@ const PublicMediaKit = () => {
                 {stats.topVideos.map((video, index) => (
                   <Card key={index} className="border-2">
                     <CardContent className="p-4">
-                      <div className="aspect-video bg-muted rounded mb-3 overflow-hidden border-2 relative">
-                        {getEmbedUrl(video.url, video.platform) ? (
-                          <iframe
-                            src={getEmbedUrl(video.url, video.platform)!}
-                            title={video.title}
-                            className="absolute inset-0 w-full h-full"
-                            style={{ 
-                              border: 'none',
-                              minHeight: '250px'
-                            }}
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                            <TrendingUp className="h-8 w-8 text-muted-foreground" />
-                          </div>
-                        )}
-                      </div>
+                       <div className="aspect-video bg-muted rounded mb-3 overflow-hidden border-2 relative group cursor-pointer">
+                         {getVideoThumbnail(video.url, video.platform) ? (
+                           <>
+                             <img
+                               src={getVideoThumbnail(video.url, video.platform)!}
+                               alt={video.title}
+                               className="absolute inset-0 w-full h-full object-cover"
+                               onError={(e) => {
+                                 e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDMyMCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNTUgNjVMMTc1IDgwTDE1NSA5NVY2NVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                               }}
+                             />
+                             <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                               <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                 <Play className="h-6 w-6 text-white fill-white ml-1" />
+                               </div>
+                             </div>
+                           </>
+                         ) : (
+                           <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-muted">
+                             <div className="text-center">
+                               <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-2 mx-auto">
+                                 <Play className="h-6 w-6 text-primary" />
+                               </div>
+                               <p className="text-sm text-muted-foreground">{video.platform} Video</p>
+                             </div>
+                           </div>
+                         )}
+                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Badge variant="outline" className="text-xs">
