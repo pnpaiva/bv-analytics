@@ -1,18 +1,9 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp, Users, Shield, Target, Database } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      navigate('/analytics');
-    }
-  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -98,30 +89,38 @@ const Index = () => {
             <BarChart3 className="h-12 w-12 text-primary mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">Analytics & Reporting</h3>
             <p className="text-muted-foreground">
-              Generate detailed reports with cross-platform analytics, engagement metrics, and ROI calculations for client presentations.
+              Generate comprehensive reports with real-time data visualization and performance insights across all platforms.
             </p>
           </div>
         </div>
 
-        {/* Quick Start Guide */}
-        <div className="text-center bg-primary/5 rounded-lg p-8 border">
-          <h2 className="text-2xl font-bold mb-4">Getting Started</h2>
-          <p className="text-muted-foreground mb-6">
-            Log in with your company credentials to access campaign data, creator rosters, and analytics tools. 
-            New to the platform? Contact your administrator for account setup.
+        {/* Public Media Kit Section */}
+        <div className="text-center p-8 rounded-lg border bg-card">
+          <h3 className="text-2xl font-semibold mb-4">Public Media Kits</h3>
+          <p className="text-lg text-muted-foreground mb-6 max-w-3xl mx-auto">
+            Access public media kits for our creators. These pages are available to anyone with the link and don't require authentication.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              onClick={() => navigate('/auth')}
-            >
-              Access Platform
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => window.open('mailto:admin@beyond-views.com', '_blank')}
-            >
-              Contact Admin
-            </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-4xl mx-auto">
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg">Available Creators:</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>• André Pilli - @andrepilli</li>
+                <li>• Eda Atilla - @edaatilla</li>
+                <li>• João Curry - @joaocurry</li>
+                <li>• Eliezer Tymniak - @eliezertymniak</li>
+                <li>• Arthur Miller - @arthurmiller</li>
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <h4 className="font-semibold text-lg">What You'll Find:</h4>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>• Creator statistics and demographics</li>
+                <li>• Platform-specific analytics</li>
+                <li>• Top performing content</li>
+                <li>• Collaboration history</li>
+                <li>• Contact information</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>

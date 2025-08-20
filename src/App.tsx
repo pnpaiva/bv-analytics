@@ -25,46 +25,61 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/campaigns" element={
+        <Routes>
+          {/* Public routes - accessible without authentication */}
+          <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          
+          {/* Public media kit routes - accessible to anyone with the link */}
+          <Route path="/:slug" element={<PublicMediaKit />} />
+          
+          {/* Protected routes - require authentication */}
+          <Route path="/campaigns" element={
+            <AuthProvider>
               <ProtectedRoute>
                 <Campaigns />
               </ProtectedRoute>
-            } />
-            <Route path="/analytics" element={
+            </AuthProvider>
+          } />
+          <Route path="/analytics" element={
+            <AuthProvider>
               <ProtectedRoute>
                 <Analytics />
               </ProtectedRoute>
-            } />
-            <Route path="/master-campaigns" element={
+            </AuthProvider>
+          } />
+          <Route path="/master-campaigns" element={
+            <AuthProvider>
               <ProtectedRoute>
                 <MasterCampaigns />
               </ProtectedRoute>
-            } />
-            <Route path="/creator-profiles" element={
+            </AuthProvider>
+          } />
+          <Route path="/creator-profiles" element={
+            <AuthProvider>
               <ProtectedRoute>
                 <CreatorProfiles />
               </ProtectedRoute>
-            } />
-            <Route path="/admin" element={
+            </AuthProvider>
+          } />
+          <Route path="/admin" element={
+            <AuthProvider>
               <ProtectedRoute>
                 <AdminDashboard />
               </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
+            </AuthProvider>
+          } />
+          <Route path="/profile" element={
+            <AuthProvider>
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
-            } />
-            {/* Public media kit routes - must be before NotFound */}
-            <Route path="/:slug" element={<PublicMediaKit />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
+            </AuthProvider>
+          } />
+          
+          {/* Catch-all route */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
