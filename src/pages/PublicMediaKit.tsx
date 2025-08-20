@@ -9,11 +9,12 @@ import { TrendingUp, Users, Eye, ThumbsUp, MessageSquare, ExternalLink, Share2 }
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-interface Creator {
+interface PublicMediaKit {
   id: string;
-  name: string;
-  platform_handles?: any;
+  slug: string;
+  name: string;  
   avatar_url?: string;
+  platform_handles?: any;
 }
 
 interface CreatorStats {
@@ -33,29 +34,85 @@ interface CreatorStats {
 
 const PublicMediaKit = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [creator, setCreator] = useState<Creator | null>(null);
+  const [mediaKit, setMediaKit] = useState<PublicMediaKit | null>(null);
   const [stats, setStats] = useState<CreatorStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCreatorData = async () => {
+    const fetchMediaKitData = async () => {
       if (!slug) return;
 
       try {
-        // Resolve creator via secure RPC that is safe for anon access
-        const { data: found, error: findError } = await supabase
-          .rpc('find_creator_by_slug', { p_slug: slug });
-        if (findError) throw findError;
-        const creatorRow = Array.isArray(found) ? found[0] : found;
-        if (!creatorRow) throw new Error('Creator not found');
+        // Get public media kit by slug
+        const { data: mediaKitData, error: mediaKitError } = await supabase
+          .from('public_media_kits')
+          .select('*')
+          .eq('slug', slug)
+          .eq('published', true)
+          .single();
 
-        setCreator(creatorRow as any);
+        if (mediaKitError) throw mediaKitError;
+        if (!mediaKitData) throw new Error('Media kit not found');
 
-        // Fetch public media kit stats via secure RPC
-        const { data: statsJson, error: statsError } = await supabase
-          .rpc('get_public_media_kit', { p_creator_id: creatorRow.id });
-        if (statsError) {
-          console.warn('Public stats RPC failed, rendering with zeros:', statsError);
+        setMediaKit(mediaKitData);
+
+        // Get stats if creator_id exists
+        if (mediaKitData.creator_id) {
+          // Get campaign data for this creator
+          const { data: campaigns, error: campaignsError } = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq('creator_id', mediaKitData.creator_id);
+
+          if (campaignsError) {
+            console.warn('Failed to load campaign stats:', campaignsError);
+          }
+
+          // Calculate stats from campaigns
+          let totalViews = 0;
+          let totalEngagement = 0;
+          let campaignCount = campaigns?.length || 0;
+          const topVideos: CreatorStats['topVideos'] = [];
+
+          campaigns?.forEach(campaign => {
+            totalViews += campaign.total_views || 0;
+            totalEngagement += campaign.total_engagement || 0;
+
+            // Extract videos from analytics_data
+            if (campaign.analytics_data) {
+              Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
+                if (Array.isArray(platformData)) {
+                  platformData.forEach((video: any) => {
+                    if (video.url) {
+                      topVideos.push({
+                        title: video.title || `${platform} Content`,
+                        url: video.url,
+                        platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+                        views: video.views || 0,
+                        engagement: video.engagement || 0,
+                        thumbnail: video.thumbnail
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+
+          // Sort and limit top videos
+          const sortedVideos = topVideos
+            .sort((a, b) => b.views - a.views)
+            .slice(0, 6);
+
+          setStats({
+            totalViews,
+            totalEngagement,
+            avgEngagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
+            campaignCount,
+            topVideos: sortedVideos
+          });
+        } else {
+          // No creator_id, show empty stats
           setStats({
             totalViews: 0,
             totalEngagement: 0,
@@ -63,33 +120,17 @@ const PublicMediaKit = () => {
             campaignCount: 0,
             topVideos: []
           });
-        } else {
-          const s = statsJson as any;
-          const top = (s?.topVideos || []).map((a: any) => ({
-            title: `${a.platform || 'Video'} Content`,
-            url: a.url || '',
-            platform: a.platform || 'unknown',
-            views: a.views || 0,
-            engagement: a.engagement || 0,
-          }));
-          setStats({
-            totalViews: Number(s?.totalViews || 0),
-            totalEngagement: Number(s?.totalEngagement || 0),
-            avgEngagementRate: Number(s?.avgEngagementRate || 0),
-            campaignCount: Number(s?.campaignCount || 0),
-            topVideos: top
-          });
         }
 
       } catch (error) {
-        console.error('Error fetching creator data:', error);
-        toast.error('Creator not found');
+        console.error('Error fetching media kit data:', error);
+        toast.error('Media kit not found');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCreatorData();
+    fetchMediaKitData();
   }, [slug]);
 
   const getEmbedUrl = (url: string, platform: string) => {
@@ -135,7 +176,7 @@ const PublicMediaKit = () => {
     );
   }
 
-  if (!creator || !stats) {
+  if (!mediaKit || !stats) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -154,13 +195,13 @@ const PublicMediaKit = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-16 w-16 border-2 border-primary/20">
-                <AvatarImage src={creator.avatar_url} />
+                <AvatarImage src={mediaKit.avatar_url} />
                 <AvatarFallback className="text-xl font-bold">
-                  {creator.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {mediaKit.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h1 className="text-3xl font-bold">{creator.name}</h1>
+                <h1 className="text-3xl font-bold">{mediaKit.name}</h1>
                 <p className="text-muted-foreground">Content Creator Media Kit</p>
               </div>
             </div>
@@ -225,7 +266,7 @@ const PublicMediaKit = () => {
         </div>
 
         {/* Platform Handles */}
-        {creator.platform_handles && Object.keys(creator.platform_handles).length > 0 && (
+        {mediaKit.platform_handles && Object.keys(mediaKit.platform_handles).length > 0 && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -235,7 +276,7 @@ const PublicMediaKit = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-3">
-                {Object.entries(creator.platform_handles).map(([platform, handle]) => (
+                {Object.entries(mediaKit.platform_handles).map(([platform, handle]) => (
                   <Badge key={platform} variant="secondary" className="text-sm">
                     {platform}: {String(handle)}
                   </Badge>

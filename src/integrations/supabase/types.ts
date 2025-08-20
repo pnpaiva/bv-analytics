@@ -614,6 +614,51 @@ export type Database = {
         }
         Relationships: []
       }
+      public_media_kits: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          creator_id: string | null
+          id: string
+          name: string
+          platform_handles: Json | null
+          published: boolean
+          published_at: string | null
+          slug: string
+          stats: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          name: string
+          platform_handles?: Json | null
+          published?: boolean
+          published_at?: string | null
+          slug: string
+          stats?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          name?: string
+          platform_handles?: Json | null
+          published?: boolean
+          published_at?: string | null
+          slug?: string
+          stats?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       roster_analytics: {
         Row: {
           created_at: string
@@ -1064,6 +1109,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      publish_public_media_kit: {
+        Args: { p_creator_id: string; p_slug?: string }
+        Returns: string
+      }
       refresh_creator_youtube_data: {
         Args: {
           p_creator_roster_id: string
@@ -1084,6 +1133,10 @@ export type Database = {
       set_campaign_status: {
         Args: { p_campaign_id: string; p_status: string }
         Returns: undefined
+      }
+      slugify_name: {
+        Args: { input: string }
+        Returns: string
       }
       update_campaign_analytics: {
         Args: {

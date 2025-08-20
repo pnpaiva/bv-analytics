@@ -16,6 +16,7 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreatorProfile {
   id: string;
@@ -282,21 +283,30 @@ export default function CreatorProfiles() {
     }
   };
 
-  const generateMediaKit = (creatorId: string) => {
+  const generateMediaKit = async (creatorId: string) => {
     const creator = creators?.find(c => c.id === creatorId);
     if (!creator) return;
 
-    const nameSlug = slugify(creator.name || 'creator');
-    // include id to make lookup deterministic and avoid collisions
-    const fullSlug = `${nameSlug}-${creator.id}`;
-    const mediaKitUrl = `${window.location.origin}/m/${fullSlug}`;
-    
-    console.log('Generated media kit URL:', mediaKitUrl);
-    console.log('Creator:', creator.name, 'ID:', creator.id);
-    console.log('Slug:', nameSlug, 'Full slug:', fullSlug);
-    
-    navigator.clipboard.writeText(mediaKitUrl);
-    toast.success('Media kit link copied to clipboard!');
+    try {
+      // Publish the media kit to get the proper slug
+      const { data: slug, error } = await supabase.rpc('publish_public_media_kit', {
+        p_creator_id: creatorId
+      });
+
+      if (error) throw error;
+
+      const mediaKitUrl = `${window.location.origin}/${slug}`;
+      
+      console.log('Generated media kit URL:', mediaKitUrl);
+      console.log('Creator:', creator.name, 'ID:', creator.id);
+      console.log('Slug:', slug);
+      
+      navigator.clipboard.writeText(mediaKitUrl);
+      toast.success('Media kit link copied to clipboard!');
+    } catch (error) {
+      console.error('Error generating media kit:', error);
+      toast.error('Failed to generate media kit link');
+    }
   };
 
   const EditCreatorDialog = ({ creator }: { creator: CreatorProfile }) => {

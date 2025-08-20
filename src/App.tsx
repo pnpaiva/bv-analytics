@@ -59,8 +59,8 @@ const App = () => (
                 <Profile />
               </ProtectedRoute>
             } />
-            {/* Public media kit routes */}
-            <Route path="/m/:slug" element={<PublicMediaKit />} />
+            {/* Public media kit routes - must be before NotFound */}
+            <Route path="/:slug" element={<PublicMediaKit />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
