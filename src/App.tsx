@@ -28,10 +28,16 @@ const App = () => (
         <Routes>
           {/* Public routes - accessible without authentication */}
           <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
           
           {/* Public media kit routes - accessible to anyone with the link */}
           <Route path="/:slug" element={<PublicMediaKit />} />
+          
+          {/* Routes that need authentication context */}
+          <Route path="/auth" element={
+            <AuthProvider>
+              <Auth />
+            </AuthProvider>
+          } />
           
           {/* Protected routes - require authentication */}
           <Route path="/campaigns" element={

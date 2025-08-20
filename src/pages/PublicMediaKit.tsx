@@ -142,363 +142,130 @@ export default function PublicMediaKit() {
           throw new Error('No creator handle found in URL');
         }
 
-        // STEP 1: Fetch ALL creators (same as useCreators hook)
-        console.log('🔍 DEBUG: Fetching all creators (same as creator-profiles)');
-        const { data: allCreators, error: creatorsError } = await supabase
-          .from('creators')
+        // STEP 1: Fetch the public media kit directly using the slug
+        console.log('🔍 DEBUG: Fetching public media kit for slug:', urlCreatorHandle);
+        const { data: publicMediaKit, error: mediaKitError } = await supabase
+          .from('public_media_kits')
           .select('*')
-          .order('name');
+          .eq('slug', urlCreatorHandle)
+          .eq('published', true)
+          .single();
 
-        if (creatorsError) {
-          console.log('🔍 DEBUG: Creators fetch error:', creatorsError);
-          throw creatorsError;
+        if (mediaKitError) {
+          console.log('🔍 DEBUG: Public media kit fetch error:', mediaKitError);
+          throw new Error(`Failed to load creator profile: ${mediaKitError.message}`);
         }
 
-        console.log('🔍 DEBUG: All creators fetched:', allCreators);
-        console.log('🔍 DEBUG: Total creators in database:', allCreators?.length || 0);
-        
-        // Show all creator names for debugging
-        if (allCreators && allCreators.length > 0) {
-          console.log('🔍 DEBUG: Available creator names:');
-          allCreators.forEach((creator, index) => {
-            console.log(`  ${index + 1}. ID: ${creator.id}, Name: "${creator.name}", Handle: "${(creator as any).handle || 'N/A'}"`);
-          });
+        if (!publicMediaKit) {
+          throw new Error(`Creator not found: ${urlCreatorHandle}`);
         }
 
-        // STEP 2: Fetch ALL campaigns (same as useCampaigns hook)
-        console.log('🔍 DEBUG: Fetching all campaigns (same as creator-profiles)');
+        console.log('🔍 DEBUG: Public media kit found:', publicMediaKit);
+
+        // STEP 2: Fetch creator details from the creator_roster table
+        console.log('🔍 DEBUG: Fetching creator details from creator_roster');
+        const { data: creatorRoster, error: rosterError } = await supabase
+          .from('creator_roster')
+          .select('*')
+          .eq('id', publicMediaKit.creator_id)
+          .single();
+
+        if (rosterError) {
+          console.log('🔍 DEBUG: Creator roster fetch error:', rosterError);
+          // Continue without roster data
+        }
+
+        console.log('🔍 DEBUG: Creator roster found:', creatorRoster);
+
+        // STEP 3: Fetch campaigns for this creator
+        console.log('🔍 DEBUG: Fetching campaigns for creator');
         const { data: allCampaigns, error: campaignsError } = await supabase
           .from('campaigns')
-          .select('*');
+          .select('*')
+          .eq('creator_id', publicMediaKit.creator_id);
 
         if (campaignsError) {
           console.log('🔍 DEBUG: Campaigns fetch error:', campaignsError);
-          throw campaignsError;
+          // Continue without campaign data
         }
 
-        console.log('🔍 DEBUG: All campaigns fetched:', allCampaigns);
+        console.log('🔍 DEBUG: Campaigns found:', allCampaigns);
 
-        // STEP 3: Fetch ALL campaign creators (same as useCampaignCreators hook)
-        console.log('🔍 DEBUG: Fetching all campaign creators (same as creator-profiles)');
-        const { data: allCampaignCreators, error: campaignCreatorsError } = await supabase
-          .from('campaign_creators')
-          .select(`
-            *,
-            creators (name)
-          `);
-
-        if (campaignCreatorsError) {
-          console.log('🔍 DEBUG: Campaign creators fetch error:', campaignCreatorsError);
-          throw campaignCreatorsError;
-        }
-
-        console.log('🔍 DEBUG: All campaign creators fetched:', allCampaignCreators);
-
-        // STEP 4: Find the creator using the EXACT SAME LOGIC as creator-profiles
-        let matchedCreator = null;
-        let matchStrategy = '';
-
-        // Strategy 1: Exact name match (case-insensitive)
-        matchedCreator = allCreators.find(creator => 
-          creator.name?.toLowerCase() === urlCreatorHandle.toLowerCase()
-        );
-        if (matchedCreator) {
-          matchStrategy = 'exact name match';
-        }
-
-        // Strategy 2: Name without spaces equals handle
-        if (!matchedCreator) {
-          matchedCreator = allCreators.find(creator => 
-            creator.name?.toLowerCase().replace(/\s+/g, '') === urlCreatorHandle.toLowerCase()
-          );
-          if (matchedCreator) {
-            matchStrategy = 'name without spaces match';
-          }
-        }
-
-        // Strategy 3: Name without spaces AND accents equals handle
-        if (!matchedCreator) {
-          matchedCreator = allCreators.find(creator => {
-            const normalizedName = creator.name
-              ?.toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove accents
-              .replace(/\s+/g, '') // Remove spaces
-              .replace(/[^a-z0-9]/g, ''); // Keep only letters and numbers
-            
-            return normalizedName === urlCreatorHandle.toLowerCase();
-          });
-          if (matchedCreator) {
-            matchStrategy = 'name without spaces and accents match';
-          }
-        }
-
-        // Strategy 4: Name contains handle
-        if (!matchedCreator) {
-          matchedCreator = allCreators.find(creator => 
-            creator.name?.toLowerCase().includes(urlCreatorHandle.toLowerCase())
-          );
-          if (matchedCreator) {
-            matchStrategy = 'name contains handle';
-          }
-        }
-
-        // Strategy 5: Handle field match
-        if (!matchedCreator) {
-          matchedCreator = allCreators.find(creator => 
-            (creator as any).handle?.toLowerCase() === urlCreatorHandle.toLowerCase()
-          );
-          if (matchedCreator) {
-            matchStrategy = 'handle field match';
-          }
-        }
-
-        // Strategy 6: Partial name match (first word)
-        if (!matchedCreator) {
-          const firstWord = urlCreatorHandle.split(/[_-]/)[0]; // Handle edaatilla -> eda
-          matchedCreator = allCreators.find(creator => 
-            creator.name?.toLowerCase().startsWith(firstWord.toLowerCase())
-          );
-          if (matchedCreator) {
-            matchStrategy = 'first word partial match';
-          }
-        }
-
-        // Strategy 7: Normalized name contains normalized handle
-        if (!matchedCreator) {
-          matchedCreator = allCreators.find(creator => {
-            const normalizedName = creator.name
-              ?.toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove accents
-              .replace(/\s+/g, '') // Remove spaces
-              .replace(/[^a-z0-9]/g, ''); // Keep only letters and numbers
-            
-            const normalizedHandle = urlCreatorHandle
-              .toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove accents
-              .replace(/\s+/g, '') // Remove spaces
-              .replace(/[^a-z0-9]/g, ''); // Keep only letters and numbers
-            
-            return normalizedName.includes(normalizedHandle) || normalizedHandle.includes(normalizedName);
-          });
-          if (matchedCreator) {
-            matchStrategy = 'normalized name contains handle';
-          }
-        }
-
-        // Strategy 8: Fuzzy match - check if handle is a substring of normalized name
-        if (!matchedCreator) {
-          matchedCreator = allCreators.find(creator => {
-            const normalizedName = creator.name
-              ?.toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove accents
-              .replace(/\s+/g, '') // Remove spaces
-              .replace(/[^a-z0-9]/g, ''); // Keep only letters and numbers
-            
-            return normalizedName.includes(urlCreatorHandle.toLowerCase()) || 
-                   urlCreatorHandle.toLowerCase().includes(normalizedName);
-          });
-          if (matchedCreator) {
-            matchStrategy = 'fuzzy normalized match';
-          }
-        }
-
-        console.log('🔍 DEBUG: Matching results:');
-        console.log('  - URL Handle:', urlCreatorHandle);
-        console.log('  - Match Strategy:', matchStrategy);
-        console.log('  - Matched Creator:', matchedCreator);
-
-        if (!matchedCreator) {
-          // Show detailed debugging info
-          console.log('🔍 DEBUG: NO MATCH FOUND - Detailed analysis:');
-          console.log('  - URL Handle:', urlCreatorHandle);
-          console.log('  - Available creators:', allCreators?.map(c => ({ name: c.name, handle: (c as any).handle })));
-          
-          // Show normalized names for debugging
-          console.log('🔍 DEBUG: Normalized names for comparison:');
-          allCreators?.forEach(creator => {
-            const normalizedName = creator.name
-              ?.toLowerCase()
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '') // Remove accents
-              .replace(/\s+/g, '') // Remove spaces
-              .replace(/[^a-z0-9]/g, ''); // Keep only letters and numbers
-            
-            console.log(`  - "${creator.name}" -> "${normalizedName}"`);
-          });
-          
-          // Try to find similar names
-          const similarNames = allCreators?.filter(creator => {
-            const name = creator.name?.toLowerCase() || '';
-            const handle = (creator as any).handle?.toLowerCase() || '';
-            return name.includes(urlCreatorHandle.toLowerCase()) || 
-                   handle.includes(urlCreatorHandle.toLowerCase()) ||
-                   urlCreatorHandle.toLowerCase().includes(name) ||
-                   urlCreatorHandle.toLowerCase().includes(handle);
-          });
-          
-          console.log('🔍 DEBUG: Similar names found:', similarNames);
-          
-          throw new Error(`Creator not found: ${urlCreatorHandle}. Available creators: ${allCreators?.map(c => c.name).join(', ')}`);
-        }
-
-        console.log('🔍 DEBUG: SUCCESS - Creator matched using strategy:', matchStrategy);
-        console.log('🔍 DEBUG: Matched creator details:', matchedCreator);
-
-        // STEP 5: Process data using EXACT SAME LOGIC as creator-profiles
-        console.log('🔍 DEBUG: Processing data using creator-profiles logic');
-        
-        // Get creator campaigns (same logic as creator-profiles)
-        const creatorCampaigns = allCampaignCreators
-          .filter(cc => cc.creator_id === matchedCreator.id)
-          .map(cc => allCampaigns.find(c => c.id === cc.campaign_id))
-          .filter(Boolean);
-
-        console.log('🔍 DEBUG: Creator campaigns found:', creatorCampaigns);
-
-        // Process analytics data (same logic as creator-profiles)
-        let totalViews = 0;
-        let totalEngagement = 0;
-        const allVideos: Array<{
-          title: string;
-          platform: string;
-          views: number;
-          engagement: number;
-          url: string;
-          thumbnail?: string;
-        }> = [];
-
-        const brandCollaborations: Array<{
-          id: string;
-          name: string;
-          brand: string;
-          date: string;
-          platform: string;
-          views: number;
-          engagement: number;
-          logo?: string;
-        }> = [];
-
-        creatorCampaigns.forEach(campaign => {
-          if (!campaign) return;
-
-          const campaignViews = campaign.total_views || 0;
-          const campaignEngagement = campaign.total_engagement || 0;
-
-          // Add brand collaboration (same logic as creator-profiles)
-          brandCollaborations.push({
+        // STEP 4: Create the creator profile object
+        const creatorProfile: CreatorProfile = {
+          id: publicMediaKit.creator_id,
+          name: publicMediaKit.name,
+          handle: urlCreatorHandle,
+          avatar: publicMediaKit.avatar_url,
+          bio: creatorRoster?.bio || '',
+          email: creatorRoster?.email || '',
+          phone: creatorRoster?.phone || '',
+          website: creatorRoster?.website || '',
+          location: creatorRoster?.location || '',
+          platform_handles: publicMediaKit.platform_handles || {},
+          demographics: {
+            youtube: {
+              gender: { 'Male': 50, 'Female': 50 },
+              age: { '18-24': 30, '25-34': 40, '35-44': 20, '45+': 10 },
+              location: { 'United States': 40, 'Brazil': 30, 'Other': 30 }
+            },
+            instagram: {
+              gender: { 'Male': 45, 'Female': 55 },
+              age: { '18-24': 35, '25-34': 45, '35-44': 15, '45+': 5 },
+              location: { 'United States': 35, 'Brazil': 35, 'Other': 30 }
+            },
+            tiktok: {
+              gender: { 'Male': 40, 'Female': 60 },
+              age: { '18-24': 40, '25-34': 35, '35-44': 20, '45+': 5 },
+              location: { 'United States': 30, 'Brazil': 40, 'Other': 30 }
+            }
+          },
+          stats: {
+            youtube: {
+              followers: 0,
+              engagement: 0,
+              reach: 0,
+              views: 0
+            },
+            instagram: {
+              followers: 0,
+              engagement: 0,
+              reach: 0,
+              views: 0
+            },
+            tiktok: {
+              followers: 0,
+              engagement: 0,
+              reach: 0,
+              views: 0
+            }
+          },
+          topContent: [],
+          collaborations: allCampaigns?.map(campaign => ({
             id: campaign.id,
             name: campaign.brand_name || 'Unknown Campaign',
             brand: campaign.brand_name || 'Unknown Brand',
             date: campaign.campaign_date || '',
             platform: 'youtube',
-            views: campaignViews,
-            engagement: campaignEngagement,
+            views: campaign.total_views || 0,
+            engagement: campaign.total_engagement || 0,
             logo: campaign.logo_url
-          });
-
-          // Process analytics data (same logic as creator-profiles)
-          if (campaign.analytics_data) {
-            Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
-              if (Array.isArray(platformData)) {
-                platformData.forEach((video: any) => {
-                  const views = video.views || 0;
-                  const engagement = video.engagement || 0;
-                  
-                  totalViews += views;
-                  totalEngagement += engagement;
-
-                  // Add to videos list (same logic as creator-profiles)
-                  if (video.url && video.platform) {
-                    allVideos.push({
-                      title: video.title || `${platform} Video`,
-                      platform: video.platform.toLowerCase(),
-                      views,
-                      engagement,
-                      url: video.url,
-                      thumbnail: video.thumbnail || video.thumbnail_url
-                    });
-                  }
-                });
-              }
-            });
-          } else {
-            // Fallback to campaign totals (same logic as creator-profiles)
-            totalViews += campaignViews;
-            totalEngagement += campaignEngagement;
-          }
-        });
-
-        console.log('🔍 DEBUG: Data processing results:');
-        console.log('  - Total Views:', totalViews);
-        console.log('  - Total Engagement:', totalEngagement);
-        console.log('  - All Videos:', allVideos);
-        console.log('  - Brand Collaborations:', brandCollaborations);
-
-        // Get top 3 videos (same logic as creator-profiles)
-        const topVideos = allVideos
-          .sort((a, b) => b.views - a.views)
-          .slice(0, 3);
-
-        // Build the creator profile using the EXACT SAME structure
-        const creatorProfileData: CreatorProfile = {
-          id: matchedCreator.id,
-          name: matchedCreator.name || 'Unknown Creator',
-          handle: matchedCreator.name?.toLowerCase().replace(/\s+/g, '') || 'unknown',
-          avatar: matchedCreator.avatar_url,
-          bio: (matchedCreator as any).bio || 'Content creator and influencer',
-          email: (matchedCreator as any).email || 'creator@example.com',
-          phone: (matchedCreator as any).phone || '+1 (555) 123-4567',
-          website: (matchedCreator as any).website || 'https://example.com',
-          location: (matchedCreator as any).location || 'United States',
-          platform_handles: matchedCreator.platform_handles as Record<string, string> || {
-            youtube: matchedCreator.name?.toLowerCase().replace(/\s+/g, ''),
-            instagram: matchedCreator.name?.toLowerCase().replace(/\s+/g, ''),
-            tiktok: matchedCreator.name?.toLowerCase().replace(/\s+/g, '')
-          },
-          demographics: {
-            youtube: {
-              gender: { male: 20, female: 80 },
-              age: { '18-24': 40, '25-34': 35, '35-44': 15, '45-54': 8, '55+': 2 },
-              location: { 'United States': 60, 'Canada': 20, 'United Kingdom': 15, 'Other': 5 }
-            },
-            instagram: {
-              gender: { male: 25, female: 75 },
-              age: { '18-24': 45, '25-34': 30, '35-44': 15, '45-54': 8, '55+': 2 },
-              location: { 'United States': 55, 'Canada': 25, 'United Kingdom': 15, 'Other': 5 }
-            },
-            tiktok: {
-              gender: { male: 30, female: 70 },
-              age: { '18-24': 50, '25-34': 25, '35-44': 15, '45-54': 8, '55+': 2 },
-              location: { 'United States': 50, 'Canada': 30, 'United Kingdom': 15, 'Other': 5 }
-            }
-          },
-          stats: {
-            youtube: { followers: Math.round(totalViews * 0.05), engagement: totalEngagement > 0 ? (totalEngagement / totalViews) * 100 : 0, reach: totalViews, views: totalViews },
-            instagram: { followers: Math.round(totalViews * 0.05), engagement: totalEngagement > 0 ? (totalEngagement / totalViews) * 100 : 0, reach: totalViews, views: totalViews },
-            tiktok: { followers: Math.round(totalViews * 0.05), engagement: totalEngagement > 0 ? (totalEngagement / totalViews) * 100 : 0, reach: totalViews, views: totalViews }
-          },
-          topContent: topVideos,
-          collaborations: brandCollaborations
+          })) || []
         };
 
-        console.log('🔍 DEBUG: Final creator profile built:', creatorProfileData);
-        setCreatorProfile(creatorProfileData);
+        console.log('🔍 DEBUG: Creator profile created:', creatorProfile);
+        setCreatorProfile(creatorProfile);
         setIsLoading(false);
 
-      } catch (err) {
-        console.error('🔍 DEBUG: Error in direct fetch:', err);
-        setError(`Failed to load creator profile: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } catch (error) {
+        console.error('🔍 DEBUG: Error in fetchCreatorDataDirectly:', error);
+        setError(error instanceof Error ? error.message : 'An unknown error occurred');
         setIsLoading(false);
       }
     };
 
-    console.log('🔍 DEBUG: useEffect triggered, calling direct fetch');
     fetchCreatorDataDirectly();
-  }, []); // Empty dependency array - run once on mount
+  }, []);
 
   const getPlatformIcon = (platform: string) => {
     switch (platform.toLowerCase()) {
