@@ -17,7 +17,7 @@ export function useDeleteUser() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch(`https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/admin-delete-user`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://hepscjgcjnlofdpoewqx.supabase.co'}/functions/v1/admin-delete-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ export function useUpdateUser() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch(`https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/admin-update-user`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://hepscjgcjnlofdpoewqx.supabase.co'}/functions/v1/admin-update-user`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

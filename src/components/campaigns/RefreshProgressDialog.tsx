@@ -58,7 +58,7 @@ export function RefreshProgressDialog({
     // Start the refresh process
     const startRefresh = async () => {
       try {
-        const FUNCTION_URL = 'https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/refresh-campaigns-with-progress';
+        const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://hepscjgcjnlofdpoewqx.supabase.co'}/functions/v1/refresh-campaigns-with-progress`;
         const response = await fetch(FUNCTION_URL, {
           method: 'POST',
           headers: {

@@ -107,7 +107,7 @@ export function useClientAccounts() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return { ...role, user: null };
 
-            const response = await fetch(`https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/admin-get-users`, {
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://hepscjgcjnlofdpoewqx.supabase.co'}/functions/v1/admin-get-users`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
