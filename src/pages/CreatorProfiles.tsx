@@ -221,19 +221,19 @@ export default function CreatorProfiles() {
         name: creator.name,
         avatar_url: creator.avatar_url,
         platform_handles: creator.platform_handles,
-        location: 'United States',
-        email: 'creator@example.com',
-        phone: '+1 (555) 123-4567',
-        bio: 'Content Creator',
+        location: (creator as any).location || 'United States',
+        email: (creator as any).email || 'creator@example.com',
+        phone: (creator as any).phone || '+1 (555) 123-4567',
+        bio: (creator as any).bio || 'Content Creator',
         totalViews,
         totalEngagement,
         engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
         followerCount: totalFollowers,
-        demographics,
+        demographics: (creator as any).demographics || demographics,
         platformBreakdown,
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-        topVideos,
-        services,
+        topVideos: (creator as any).top_videos || topVideos,
+        services: (creator as any).services || services,
         mediaKitUrl: `${window.location.origin}/m/${slugify(creator.name)}-${creator.id}`,
         platform_metrics: (creator as any).platform_metrics || {}
       };
@@ -291,7 +291,14 @@ export default function CreatorProfiles() {
         name: updates.name,
         platform_handles: updates.platform_handles,
         avatar_url: updates.avatar_url,
-        platform_metrics: updates.platformMetrics, // map UI field to DB column
+        platform_metrics: updates.platformMetrics,
+        bio: updates.bio,
+        email: updates.email,
+        phone: updates.phone,
+        location: updates.location,
+        demographics: updates.demographics,
+        services: updates.services,
+        top_videos: updates.topVideos, // map UI field to DB column
       };
 
       await updateCreator.mutateAsync(payload as any);

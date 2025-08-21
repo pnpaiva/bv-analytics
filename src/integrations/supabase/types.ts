@@ -542,31 +542,52 @@ export type Database = {
       creators: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
+          demographics: Json
+          email: string | null
           id: string
+          location: string | null
           name: string
+          phone: string | null
           platform_handles: Json | null
           platform_metrics: Json | null
+          services: Json
+          top_videos: Json
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          demographics?: Json
+          email?: string | null
           id?: string
+          location?: string | null
           name: string
+          phone?: string | null
           platform_handles?: Json | null
           platform_metrics?: Json | null
+          services?: Json
+          top_videos?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
+          demographics?: Json
+          email?: string | null
           id?: string
+          location?: string | null
           name?: string
+          phone?: string | null
           platform_handles?: Json | null
           platform_metrics?: Json | null
+          services?: Json
+          top_videos?: Json
           updated_at?: string
           user_id?: string
         }

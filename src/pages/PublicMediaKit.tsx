@@ -284,15 +284,15 @@ export default function PublicMediaKit() {
           name: creator.name,
           avatar_url: creator.avatar_url,
           platform_handles: (creator.platform_handles as Record<string, string>) || {},
-          location: 'United States',
-          email: 'creator@example.com',
-          phone: '+1 (555) 123-4567',
-          bio: 'Content Creator',
+          location: (creator as any).location || 'United States',
+          email: (creator as any).email || 'creator@example.com',
+          phone: (creator as any).phone || '+1 (555) 123-4567',
+          bio: (creator as any).bio || 'Content Creator',
           totalViews,
           totalEngagement,
           engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
           followerCount: totalFollowers,
-          demographics,
+          demographics: (creator as any).demographics || demographics,
           platformBreakdown: platformBreakdown.map((p, index) => ({
             ...p,
             // Use mock platform metrics or actual data if available
@@ -302,8 +302,8 @@ export default function PublicMediaKit() {
             views: [500000, 300000, 250000][index] || p.views
           })),
           brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-          topVideos,
-          services,
+          topVideos: (creator as any).top_videos || topVideos,
+          services: (creator as any).services || services,
           mediaKitUrl: `${window.location.origin}/${urlCreatorHandle}`,
           platform_metrics: (creator as any).platform_metrics || {}
         };

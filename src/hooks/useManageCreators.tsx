@@ -14,6 +14,13 @@ export interface UpdateCreatorData {
   platform_handles?: Record<string, string>;
   avatar_url?: string;
   platform_metrics?: Record<string, any>;
+  bio?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  demographics?: Record<string, any>;
+  services?: Array<{ name: string; price: number }>;
+  top_videos?: Array<any>;
 }
 
 export function useCreateCreator() {
@@ -62,6 +69,13 @@ export function useUpdateCreator() {
           platform_handles: data.platform_handles,
           avatar_url: data.avatar_url,
           platform_metrics: data.platform_metrics,
+          bio: data.bio,
+          email: data.email,
+          phone: data.phone,
+          location: data.location,
+          demographics: data.demographics,
+          services: data.services,
+          top_videos: data.top_videos,
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.id)
