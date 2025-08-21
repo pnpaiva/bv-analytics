@@ -260,6 +260,9 @@ export default function PublicMediaKit() {
         meta.setAttribute('content', content);
       };
 
+      // Basic meta tags
+      setMetaName('description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
+      
       // Open Graph tags
       setMetaTag('og:title', `${creatorProfile.name} | Media Kit`);
       setMetaTag('og:description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
