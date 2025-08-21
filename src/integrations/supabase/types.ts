@@ -1133,6 +1133,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_campaign_public: {
+        Args: { p_campaign_id: string }
+        Returns: boolean
+      }
+      is_creator_published: {
+        Args: { p_creator_id: string }
+        Returns: boolean
+      }
       publish_public_media_kit: {
         Args: { p_creator_id: string; p_slug?: string }
         Returns: string
