@@ -22,56 +22,60 @@ import {
   Globe
 } from 'lucide-react';
 
-// Define the exact same interface that CreatorProfiles uses
+// Use the EXACT same interface as CreatorProfiles.tsx
 interface CreatorProfile {
   id: string;
   name: string;
-  handle: string;
-  avatar?: string;
-  bio?: string;
+  avatar_url?: string;
+  platform_handles?: Record<string, string>;
+  location?: string;
   email?: string;
   phone?: string;
-  website?: string;
-  location?: string;
-  platform_handles: Record<string, string>;
+  bio?: string;
+  totalViews: number;
+  totalEngagement: number;
+  engagementRate: number;
+  followerCount: number;
   demographics: {
     [platform: string]: {
-      gender: Record<string, number>;
-      age: Record<string, number>;
-      location: Record<string, number>;
+      gender: { female: number; male: number };
+      age: { '18-24': number; '25-34': number; '35-44': number; '45-54': number; '55+': number };
+      location: { [country: string]: number };
     };
   };
-  stats: {
-    [platform: string]: {
-      followers: number;
-      engagement: number;
-      reach: number;
-      views: number;
-    };
-  };
-  topContent: Array<{
+  platformBreakdown: {
+    platform: string;
+    views: number;
+    engagement: number;
+    engagementRate: number;
+    followerCount: number;
+  }[];
+  brandCollaborations: {
+    brandName: string;
+    logoUrl?: string;
+    views: number;
+    engagement: number;
+    engagementRate: number;
+    date: string;
+  }[];
+  topVideos: {
     title: string;
     platform: string;
     views: number;
     engagement: number;
+    engagementRate: number;
     url: string;
     thumbnail?: string;
-  }>;
-  collaborations: Array<{
-    id: string;
+    description?: string;
+  }[];
+  services: {
     name: string;
-    brand: string;
-    date: string;
-    platform: string;
-    views: number;
-    engagement: number;
-    logo?: string;
-  }>;
+    price: number;
+  }[];
+  mediaKitUrl?: string;
 }
 
 export default function PublicMediaKit() {
-  console.log('🔍 DEBUG: PublicMediaKit component rendered');
-  
   const { creatorHandle } = useParams<{ creatorHandle: string }>();
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
@@ -80,29 +84,25 @@ export default function PublicMediaKit() {
   const [error, setError] = useState<string | null>(null);
   const collaborationsPerPage = 6;
 
-  console.log('🔍 DEBUG: Component state - creatorHandle:', creatorHandle, 'isLoading:', isLoading, 'creatorProfile:', creatorProfile);
-
   // Helper function to get embed URLs (exactly the same as CreatorProfiles)
   const getEmbedUrl = (url: string, platform: string) => {
     const platformLower = platform.toLowerCase();
     
     if (platformLower === 'youtube') {
       const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/)?.[1];
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
     }
     
     if (platformLower === 'instagram') {
       const instagramMatch = url.match(/(?:instagram\.com\/(?:p|reel)\/([^\/\?]+))/);
       if (instagramMatch) {
-        return `https://www.instagram.com/p/${instagramMatch[1]}/embed/captioned/`;
+        return `https://www.instagram.com/p/${instagramMatch[1]}/media/?size=l`;
       }
     }
     
     if (platformLower === 'tiktok') {
-      const tiktokMatch = url.match(/(?:tiktok\.com\/@[^\/]+\/video\/(\d+))/);
-      if (tiktokMatch) {
-        return `https://www.tiktok.com/embed/v2/${tiktokMatch[1]}`;
-      }
+      // Return a placeholder for TikTok since thumbnails are harder to get
+      return null;
     }
     
     return null;
@@ -123,148 +123,191 @@ export default function PublicMediaKit() {
     }
   };
 
-  // EXACT SAME DATA FETCHING LOGIC AS CREATOR-PROFILES PAGE
+  // EXACT SAME DATA BUILDING LOGIC AS CREATOR-PROFILES PAGE
   useEffect(() => {
-    const fetchCreatorDataDirectly = async () => {
-      console.log('🔍 DEBUG: fetchCreatorDataDirectly called');
-      
+    const fetchCreatorData = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Get the creator handle from the URL path directly
+        // Get the creator handle from the URL path
         const pathSegments = window.location.pathname.split('/');
         const urlCreatorHandle = pathSegments[pathSegments.length - 1];
-        console.log('🔍 DEBUG: URL path segments:', pathSegments);
-        console.log('🔍 DEBUG: Extracted creator handle from URL:', urlCreatorHandle);
 
-        if (!urlCreatorHandle || urlCreatorHandle === '') {
+        if (!urlCreatorHandle) {
           throw new Error('No creator handle found in URL');
         }
 
-        // STEP 1: Fetch the public media kit directly using the slug
-        console.log('🔍 DEBUG: Fetching public media kit for slug:', urlCreatorHandle);
-        const { data: publicMediaKit, error: mediaKitError } = await supabase
+        // Step 1: Get the public media kit to find the creator_id
+        const { data: mediaKit, error: mediaKitError } = await supabase
           .from('public_media_kits')
           .select('*')
           .eq('slug', urlCreatorHandle)
           .eq('published', true)
           .single();
 
-        if (mediaKitError) {
-          console.log('🔍 DEBUG: Public media kit fetch error:', mediaKitError);
-          throw new Error(`Failed to load creator profile: ${mediaKitError.message}`);
-        }
-
-        if (!publicMediaKit) {
+        if (mediaKitError || !mediaKit) {
           throw new Error(`Creator not found: ${urlCreatorHandle}`);
         }
 
-        console.log('🔍 DEBUG: Public media kit found:', publicMediaKit);
+        // Step 2: Fetch creators, campaigns, and campaign_creators (same as CreatorProfiles page)
+        const [creatorsResponse, campaignsResponse, campaignCreatorsResponse] = await Promise.all([
+          supabase.from('creators').select('*').eq('id', mediaKit.creator_id),
+          supabase.from('campaigns').select('*'),
+          supabase.from('campaign_creators').select('*')
+        ]);
 
-        // STEP 2: Fetch creator details from the creator_roster table
-        console.log('🔍 DEBUG: Fetching creator details from creator_roster');
-        const { data: creatorRoster, error: rosterError } = await supabase
-          .from('creator_roster')
-          .select('*')
-          .eq('id', publicMediaKit.creator_id)
-          .single();
+        const creators = creatorsResponse.data || [];
+        const campaigns = campaignsResponse.data || [];
+        const campaignCreators = campaignCreatorsResponse.data || [];
 
-        if (rosterError) {
-          console.log('🔍 DEBUG: Creator roster fetch error:', rosterError);
-          // Continue without roster data
+        // Step 3: Build creator profile using EXACT same logic as CreatorProfiles.tsx
+        const creator = creators[0];
+        if (!creator) {
+          throw new Error('Creator data not found');
         }
 
-        console.log('🔍 DEBUG: Creator roster found:', creatorRoster);
+        const creatorCampaigns = campaignCreators
+          .filter(cc => cc.creator_id === creator.id)
+          .map(cc => campaigns.find(c => c.id === cc.campaign_id))
+          .filter(Boolean);
 
-        // STEP 3: Fetch campaigns for this creator
-        console.log('🔍 DEBUG: Fetching campaigns for creator');
-        const { data: allCampaigns, error: campaignsError } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('creator_id', publicMediaKit.creator_id);
+        let totalViews = 0;
+        let totalEngagement = 0;
+        let totalFollowers = 0;
+        const platformMetrics: Record<string, { views: number; engagement: number; followers: number }> = {};
+        const brandCollaborations: CreatorProfile['brandCollaborations'] = [];
+        const allVideos: CreatorProfile['topVideos'] = [];
 
-        if (campaignsError) {
-          console.log('🔍 DEBUG: Campaigns fetch error:', campaignsError);
-          // Continue without campaign data
-        }
+        creatorCampaigns.forEach(campaign => {
+          if (!campaign) return;
 
-        console.log('🔍 DEBUG: Campaigns found:', allCampaigns);
+          const campaignViews = campaign.total_views || 0;
+          const campaignEngagement = campaign.total_engagement || 0;
+          const campaignEngagementRate = campaignViews > 0 ? (campaignEngagement / campaignViews) * 100 : 0;
 
-        // STEP 4: Create the creator profile object
-        const creatorProfile: CreatorProfile = {
-          id: publicMediaKit.creator_id,
-          name: publicMediaKit.name,
-          handle: urlCreatorHandle,
-          avatar: publicMediaKit.avatar_url,
-          bio: creatorRoster?.bio || '',
-          email: creatorRoster?.email || '',
-          phone: creatorRoster?.phone || '',
-          website: creatorRoster?.website || '',
-          location: creatorRoster?.location || '',
-          platform_handles: publicMediaKit.platform_handles || {},
-          demographics: {
-            youtube: {
-              gender: { 'Male': 50, 'Female': 50 },
-              age: { '18-24': 30, '25-34': 40, '35-44': 20, '45+': 10 },
-              location: { 'United States': 40, 'Brazil': 30, 'Other': 30 }
-            },
-            instagram: {
-              gender: { 'Male': 45, 'Female': 55 },
-              age: { '18-24': 35, '25-34': 45, '35-44': 15, '45+': 5 },
-              location: { 'United States': 35, 'Brazil': 35, 'Other': 30 }
-            },
-            tiktok: {
-              gender: { 'Male': 40, 'Female': 60 },
-              age: { '18-24': 40, '25-34': 35, '35-44': 20, '45+': 5 },
-              location: { 'United States': 30, 'Brazil': 40, 'Other': 30 }
-            }
+          // Add brand collaboration
+          brandCollaborations.push({
+            brandName: campaign.brand_name,
+            logoUrl: campaign.logo_url,
+            views: campaignViews,
+            engagement: campaignEngagement,
+            engagementRate: campaignEngagementRate,
+            date: campaign.campaign_date
+          });
+
+          // Process analytics data
+          if (campaign.analytics_data) {
+            Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
+              if (!platformMetrics[platform]) {
+                platformMetrics[platform] = { views: 0, engagement: 0, followers: 0 };
+              }
+
+              if (Array.isArray(platformData)) {
+                platformData.forEach((video: any) => {
+                  const views = video.views || 0;
+                  const engagement = video.engagement || 0;
+                  const engagementRate = views > 0 ? (engagement / views) * 100 : 0;
+                  
+                  totalViews += views;
+                  totalEngagement += engagement;
+                  platformMetrics[platform].views += views;
+                  platformMetrics[platform].engagement += engagement;
+
+                  // Add to videos list with thumbnail
+                  allVideos.push({
+                    title: video.title || `${platform} Video`,
+                    platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+                    views,
+                    engagement,
+                    engagementRate,
+                    url: video.url || '',
+                    thumbnail: getEmbedUrl(video.url || '', platform),
+                    description: video.description || ''
+                  });
+                });
+              }
+            });
+          } else {
+            // Fallback to campaign totals
+            totalViews += campaignViews;
+            totalEngagement += campaignEngagement;
+          }
+        });
+
+        // Estimate follower count (same as CreatorProfiles)
+        totalFollowers = Math.round(totalViews * 0.05);
+
+        const platformBreakdown = Object.entries(platformMetrics).map(([platform, metrics]) => ({
+          platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+          views: metrics.views,
+          engagement: metrics.engagement,
+          engagementRate: metrics.views > 0 ? (metrics.engagement / metrics.views) * 100 : 0,
+          followerCount: Math.round(metrics.views * 0.05)
+        }));
+
+        const topVideos = allVideos
+          .sort((a, b) => b.views - a.views)
+          .slice(0, 3);
+
+        // Mock demographics data (same as CreatorProfiles)
+        const demographics = {
+          youtube: {
+            gender: { female: 75, male: 25 },
+            age: { '18-24': 40, '25-34': 35, '35-44': 15, '45-54': 8, '55+': 2 },
+            location: { 'United States': 40, 'United Kingdom': 25, 'Canada': 20, 'Australia': 15 }
           },
-          stats: {
-            youtube: {
-              followers: 0,
-              engagement: 0,
-              reach: 0,
-              views: 0
-            },
-            instagram: {
-              followers: 0,
-              engagement: 0,
-              reach: 0,
-              views: 0
-            },
-            tiktok: {
-              followers: 0,
-              engagement: 0,
-              reach: 0,
-              views: 0
-            }
+          instagram: {
+            gender: { female: 60, male: 40 },
+            age: { '18-24': 30, '25-34': 40, '35-44': 20, '45-54': 8, '55+': 2 },
+            location: { 'United States': 30, 'United Kingdom': 20, 'Canada': 25, 'Australia': 25 }
           },
-          topContent: [],
-          collaborations: allCampaigns?.map(campaign => ({
-            id: campaign.id,
-            name: campaign.brand_name || 'Unknown Campaign',
-            brand: campaign.brand_name || 'Unknown Brand',
-            date: campaign.campaign_date || '',
-            platform: 'youtube',
-            views: campaign.total_views || 0,
-            engagement: campaign.total_engagement || 0,
-            logo: campaign.logo_url
-          })) || []
+          tiktok: {
+            gender: { female: 80, male: 20 },
+            age: { '18-24': 50, '25-34': 30, '35-44': 15, '45-54': 5, '55+': 0 },
+            location: { 'United States': 50, 'United Kingdom': 20, 'Canada': 15, 'Australia': 15 }
+          }
         };
 
-        console.log('🔍 DEBUG: Creator profile created:', creatorProfile);
-        setCreatorProfile(creatorProfile);
+        // Mock services data (same as CreatorProfiles)
+        const services = [
+          { name: 'Reel/Video Post', price: 450 },
+          { name: 'Stories', price: 200 },
+          { name: 'Product Reviews', price: 600 }
+        ];
+
+        const profile: CreatorProfile = {
+          id: creator.id,
+          name: creator.name,
+          avatar_url: creator.avatar_url,
+          platform_handles: (creator.platform_handles as Record<string, string>) || {},
+          location: 'United States',
+          email: 'creator@example.com',
+          phone: '+1 (555) 123-4567',
+          bio: 'Content Creator',
+          totalViews,
+          totalEngagement,
+          engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
+          followerCount: totalFollowers,
+          demographics,
+          platformBreakdown,
+          brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+          topVideos,
+          services,
+          mediaKitUrl: `${window.location.origin}/${urlCreatorHandle}`
+        };
+
+        setCreatorProfile(profile);
         setIsLoading(false);
 
       } catch (error) {
-        console.error('🔍 DEBUG: Error in fetchCreatorDataDirectly:', error);
+        console.error('Error fetching creator data:', error);
         setError(error instanceof Error ? error.message : 'An unknown error occurred');
         setIsLoading(false);
       }
     };
 
-    fetchCreatorDataDirectly();
+    fetchCreatorData();
   }, []);
 
   const getPlatformIcon = (platform: string) => {
@@ -280,22 +323,25 @@ export default function PublicMediaKit() {
     }
   };
 
-  const getPlatformColor = (platform: string) => {
-    switch (platform.toLowerCase()) {
-      case 'youtube':
-        return 'bg-red-500 hover:bg-red-600';
-      case 'instagram':
-        return 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600';
-      case 'tiktok':
-        return 'bg-black hover:bg-gray-800';
-      default:
-        return 'bg-gray-500 hover:bg-gray-600';
-    }
-  };
+  // Calculate stats for selected platform
+  const selectedPlatformStats = useMemo(() => {
+    if (!creatorProfile) return { followers: 0, engagement: 0, reach: 0, views: 0 };
+    
+    const platformData = creatorProfile.platformBreakdown.find(p => 
+      p.platform.toLowerCase() === selectedPlatform.toLowerCase()
+    );
+    
+    return {
+      followers: platformData?.followerCount || 0,
+      engagement: platformData?.engagementRate || 0,
+      reach: platformData?.views || 0,
+      views: platformData?.views || 0
+    };
+  }, [creatorProfile, selectedPlatform]);
 
   // Pagination for collaborations
-  const totalCollaborationPages = Math.ceil((creatorProfile?.collaborations?.length || 0) / collaborationsPerPage);
-  const currentCollaborations = creatorProfile?.collaborations?.slice(
+  const totalCollaborationPages = Math.ceil((creatorProfile?.brandCollaborations?.length || 0) / collaborationsPerPage);
+  const currentCollaborations = creatorProfile?.brandCollaborations?.slice(
     (currentCollaborationPage - 1) * collaborationsPerPage,
     currentCollaborationPage * collaborationsPerPage
   ) || [];
@@ -376,25 +422,25 @@ export default function PublicMediaKit() {
                   <div className="relative p-6">
                     <div className="w-full aspect-square rounded-2xl overflow-hidden shadow-2xl">
                       <Avatar className="w-full h-full rounded-2xl">
-                        <AvatarImage 
-                          src={creatorProfile?.avatar} 
-                          alt={creatorProfile?.name}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="text-4xl font-bold bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white">
-                          {creatorProfile?.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                  </div>
-                </div>
-                
-                <CardContent className="p-6 pt-0">
-                  {/* Creator Name & Handle */}
-                  <div className="text-center mb-6">
-                    <h1 className="text-3xl font-bold text-[#3333cc] mb-2">{creatorProfile?.name}</h1>
-                    <p className="text-lg text-gray-600">@{creatorProfile?.handle}</p>
-                  </div>
+                         <AvatarImage 
+                           src={creatorProfile?.avatar_url} 
+                           alt={creatorProfile?.name}
+                           className="object-cover"
+                         />
+                         <AvatarFallback className="text-4xl font-bold bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white">
+                           {creatorProfile?.name.split(' ').map(n => n[0]).join('')}
+                         </AvatarFallback>
+                       </Avatar>
+                     </div>
+                   </div>
+                 </div>
+                 
+                 <CardContent className="p-6 pt-0">
+                   {/* Creator Name & Handle */}
+                   <div className="text-center mb-6">
+                     <h1 className="text-3xl font-bold text-[#3333cc] mb-2">{creatorProfile?.name}</h1>
+                     <p className="text-lg text-gray-600">@{creatorProfile?.name?.toLowerCase().replace(/\s+/g, '')}</p>
+                   </div>
 
                   {/* Bio */}
                   <div className="mb-6">
@@ -480,30 +526,30 @@ export default function PublicMediaKit() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
-                    <div className="text-2xl font-bold text-black mb-1">
-                      {creatorProfile?.stats[selectedPlatform]?.followers?.toLocaleString() || '0'}
-                    </div>
-                    <div className="text-sm text-gray-600">Followers</div>
-                  </div>
-                  <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
-                    <div className="text-2xl font-bold text-black mb-1">
-                      {creatorProfile?.stats[selectedPlatform]?.engagement?.toFixed(1) || '0'}%
-                    </div>
-                    <div className="text-sm text-gray-600">Engagement</div>
-                  </div>
-                  <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
-                    <div className="text-2xl font-bold text-black mb-1">
-                      {creatorProfile?.stats[selectedPlatform]?.reach?.toLocaleString() || '0'}
-                    </div>
-                    <div className="text-sm text-gray-600">Reach</div>
-                  </div>
-                  <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
-                    <div className="text-2xl font-bold text-black mb-1">
-                      {creatorProfile?.stats[selectedPlatform]?.views?.toLocaleString() || '0'}
-                    </div>
-                    <div className="text-sm text-gray-600">Views</div>
-                  </div>
+                   <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
+                     <div className="text-2xl font-bold text-black mb-1">
+                       {selectedPlatformStats.followers?.toLocaleString() || '0'}
+                     </div>
+                     <div className="text-sm text-gray-600">Followers</div>
+                   </div>
+                   <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
+                     <div className="text-2xl font-bold text-black mb-1">
+                       {selectedPlatformStats.engagement?.toFixed(1) || '0'}%
+                     </div>
+                     <div className="text-sm text-gray-600">Engagement</div>
+                   </div>
+                   <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
+                     <div className="text-2xl font-bold text-black mb-1">
+                       {selectedPlatformStats.reach?.toLocaleString() || '0'}
+                     </div>
+                     <div className="text-sm text-gray-600">Reach</div>
+                   </div>
+                   <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
+                     <div className="text-2xl font-bold text-black mb-1">
+                       {selectedPlatformStats.views?.toLocaleString() || '0'}
+                     </div>
+                     <div className="text-sm text-gray-600">Views</div>
+                   </div>
                 </div>
               </CardContent>
             </Card>
@@ -576,62 +622,61 @@ export default function PublicMediaKit() {
               </CardContent>
             </Card>
 
-            {/* Brand Collaborations */}
-            {creatorProfile?.collaborations && creatorProfile.collaborations.length > 0 && (
-              <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <Heart className="h-5 w-5 text-[#F95738]" />
-                    Brand Collaborations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    {currentCollaborations.map((collab) => (
-                      <div key={collab.id} className="p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
-                        <div className="flex items-center gap-3 mb-3">
-                          {/* Company Logo */}
-                          {collab.logo ? (
-                            <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
-                              <img 
-                                src={collab.logo} 
-                                alt={collab.brand}
-                                className="w-full h-full object-contain"
-                                onError={(e) => {
-                                  // Fallback to initials if logo fails to load
-                                  const target = e.currentTarget as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const fallback = target.nextElementSibling as HTMLDivElement;
-                                  if (fallback) fallback.style.display = 'flex';
-                                }}
-                              />
-                              <div className="w-12 h-12 bg-gradient-to-br from-[#3333cc] to-[#F4D35E] rounded-lg flex items-center justify-center text-white font-bold text-lg hidden">
-                                {collab.brand.split(' ').map(word => word[0]).join('').toUpperCase()}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 bg-gradient-to-br from-[#3333cc] to-[#F4D35E] rounded-lg flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                              {collab.brand.split(' ').map(word => word[0]).join('').toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-800">{collab.brand}</h4>
-                            <p className="text-sm text-gray-600">{collab.name}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="text-center p-2 bg-[#e6e6f7] rounded-lg">
-                            <div className="font-semibold text-[#3333cc]">{collab.views?.toLocaleString() || '0'}</div>
-                            <div className="text-xs text-gray-600">Views</div>
-                          </div>
-                          <div className="text-center p-2 bg-[#e6e6f7] rounded-lg">
-                            <div className="font-semibold text-[#F95738]">{collab.engagement?.toLocaleString() || '0'}</div>
-                            <div className="text-xs text-gray-600">Engagement</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+             {/* Brand Collaborations */}
+             {creatorProfile?.brandCollaborations && creatorProfile.brandCollaborations.length > 0 && (
+               <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+                 <CardHeader>
+                   <CardTitle className="flex items-center gap-2 text-xl">
+                     <Heart className="h-5 w-5 text-[#F95738]" />
+                     Brand Collaborations
+                   </CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                     {currentCollaborations.map((collab, index) => (
+                       <div key={index} className="p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
+                         <div className="flex items-center gap-3 mb-3">
+                           {/* Company Logo */}
+                           {collab.logoUrl ? (
+                             <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                               <img 
+                                 src={collab.logoUrl} 
+                                 alt={collab.brandName}
+                                 className="w-full h-full object-contain"
+                                 onError={(e) => {
+                                   // Fallback to initials if logo fails to load
+                                   const target = e.currentTarget as HTMLImageElement;
+                                   target.style.display = 'none';
+                                   const fallback = target.nextElementSibling as HTMLDivElement;
+                                   if (fallback) fallback.style.display = 'flex';
+                                 }}
+                               />
+                               <div className="w-12 h-12 bg-gradient-to-br from-[#3333cc] to-[#F4D35E] rounded-lg flex items-center justify-center text-white font-bold text-lg hidden">
+                                 {collab.brandName.split(' ').map(word => word[0]).join('').toUpperCase()}
+                               </div>
+                             </div>
+                           ) : (
+                             <div className="w-12 h-12 bg-gradient-to-br from-[#3333cc] to-[#F4D35E] rounded-lg flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                               {collab.brandName.split(' ').map(word => word[0]).join('').toUpperCase()}
+                             </div>
+                           )}
+                           <div className="flex-1">
+                             <h4 className="font-semibold text-gray-800">{collab.brandName}</h4>
+                           </div>
+                         </div>
+                         <div className="grid grid-cols-2 gap-4 text-sm">
+                           <div className="text-center p-2 bg-[#e6e6f7] rounded-lg">
+                             <div className="font-semibold text-[#3333cc]">{collab.views?.toLocaleString() || '0'}</div>
+                             <div className="text-xs text-gray-600">Views</div>
+                           </div>
+                           <div className="text-center p-2 bg-[#e6e6f7] rounded-lg">
+                             <div className="font-semibold text-[#F95738]">{collab.engagement?.toLocaleString() || '0'}</div>
+                             <div className="text-xs text-gray-600">Engagement</div>
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
                   
                   {/* Pagination */}
                   {totalCollaborationPages > 1 && (
@@ -673,84 +718,69 @@ export default function PublicMediaKit() {
                   Top Performing Content
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                {creatorProfile?.topContent && creatorProfile.topContent.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {creatorProfile.topContent
-                      .slice(0, 3)
-                      .map((video, index) => (
-                        <div key={index} className="space-y-3">
-                          <h4 className="font-medium text-gray-800 line-clamp-2">{video.title}</h4>
-                          
-                          <div className="bg-muted rounded-xl overflow-hidden border-2 relative" style={{ height: '500px' }}>
-                            {getEmbedUrl(video.url, video.platform) ? (
-                              <iframe
-                                src={getEmbedUrl(video.url, video.platform)!}
-                                title={video.title}
-                                className="w-full h-full rounded-xl"
-                                style={{ 
-                                  border: 'none',
-                                  height: '500px',
-                                  width: '100%'
-                                }}
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                loading="lazy"
-                                frameBorder="0"
-                              />
-                            ) : video.thumbnail ? (
-                              <div className="relative w-full h-full" style={{ height: '500px' }}>
-                                <img 
-                                  src={video.thumbnail} 
-                                  alt={video.title} 
-                                  className="w-full h-full object-cover rounded-xl"
-                                  style={{ height: '500px' }}
-                                />
-                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                  <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
-                                    video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                                    video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
-                                    'bg-red-600'
-                                  }`}>
-                                    <Play className="h-6 w-6 text-white fill-white ml-1" />
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-muted rounded-xl" style={{ height: '500px' }}>
-                                <div className="text-center">
-                                  <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 mx-auto ${
-                                    video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                                    video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
-                                    'bg-red-600'
-                                  }`}>
-                                    <Play className="h-6 w-6 text-white" />
-                                  </div>
-                                  <p className="text-sm text-muted-foreground capitalize">{video.platform} Video</p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+               <CardContent>
+                 {creatorProfile?.topVideos && creatorProfile.topVideos.length > 0 ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {creatorProfile.topVideos
+                       .slice(0, 3)
+                       .map((video, index) => (
+                         <div key={index} className="space-y-3">
+                           <h4 className="font-medium text-gray-800 line-clamp-2">{video.title}</h4>
+                           
+                           <div className="bg-muted rounded-xl overflow-hidden border-2 relative" style={{ height: '300px' }}>
+                             {video.thumbnail ? (
+                               <div className="relative w-full h-full">
+                                 <img 
+                                   src={video.thumbnail} 
+                                   alt={video.title} 
+                                   className="w-full h-full object-cover rounded-xl"
+                                   style={{ height: '300px' }}
+                                 />
+                                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                   <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+                                     video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                                     video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
+                                     'bg-red-600'
+                                   }`}>
+                                     <Play className="h-6 w-6 text-white fill-white ml-1" />
+                                   </div>
+                                 </div>
+                               </div>
+                             ) : (
+                               <div className="w-full h-full flex items-center justify-center bg-muted rounded-xl" style={{ height: '300px' }}>
+                                 <div className="text-center">
+                                   <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 mx-auto ${
+                                     video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                                     video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
+                                     'bg-red-600'
+                                   }`}>
+                                     <Play className="h-6 w-6 text-white" />
+                                   </div>
+                                   <p className="text-sm text-muted-foreground capitalize">{video.platform} Video</p>
+                                 </div>
+                               </div>
+                             )}
+                           </div>
 
-                          <div className="flex items-center justify-between text-sm text-gray-600">
-                            <span className="capitalize">{video.platform}</span>
-                            {video.views && (
-                              <span>{video.views.toLocaleString()} views</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4 mx-auto">
-                      <Eye className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 mb-4">No top performing content available</p>
-                    <p className="text-sm text-gray-400">Content will appear here once analytics data is available</p>
-                  </div>
-                )}
-              </CardContent>
+                           <div className="flex items-center justify-between text-sm text-gray-600">
+                             <span className="capitalize">{video.platform}</span>
+                             {video.views && (
+                               <span>{video.views.toLocaleString()} views</span>
+                             )}
+                           </div>
+                         </div>
+                       ))}
+                   </div>
+                 ) : (
+                   <div className="text-center py-12">
+                     <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4 mx-auto">
+                       <Eye className="h-8 w-8 text-gray-400" />
+                     </div>
+                     <p className="text-gray-500 mb-4">No top performing content available</p>
+                     <p className="text-sm text-gray-400">Content will appear here once analytics data is available</p>
+                   </div>
+                 )}
+               </CardContent>
             </Card>
           </div>
         </div>
