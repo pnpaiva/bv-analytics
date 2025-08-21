@@ -381,11 +381,11 @@ export default function PublicMediaKit() {
                      <p className="text-lg text-gray-600">@{creatorProfile?.name?.toLowerCase().replace(/\s+/g, '')}</p>
                    </div>
 
-                  {/* Bio */}
-                  <div className="mb-6">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">About</h3>
-                    <p className="text-gray-700 leading-relaxed">{creatorProfile?.bio}</p>
-                  </div>
+                   {/* Bio */}
+                   <div className="mb-6">
+                     <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Sobre</h3>
+                     <p className="text-gray-700 leading-relaxed">{creatorProfile?.bio}</p>
+                   </div>
 
                   {/* Location */}
                   {creatorProfile?.location && (
@@ -435,7 +435,7 @@ export default function PublicMediaKit() {
             {/* Platform Selector */}
             <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
               <CardContent className="p-6">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   {['youtube', 'instagram', 'tiktok'].map((platform) => (
                     <Button
                       key={platform}
@@ -451,6 +451,7 @@ export default function PublicMediaKit() {
                       <span className="ml-2">{platform}</span>
                     </Button>
                   ))}
+                  <span className="text-sm text-gray-500 ml-4">Selecione a plataforma para ver os dados</span>
                 </div>
               </CardContent>
             </Card>
@@ -460,7 +461,7 @@ export default function PublicMediaKit() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <TrendingUp className="h-5 w-5 text-[#3333cc]" />
-                  Key Metrics
+                  Métricas Chave
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -498,17 +499,17 @@ export default function PublicMediaKit() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Users className="h-5 w-5 text-[#3333cc]" />
-                  Audience Demographics
+                  Audiência
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Gender Distribution */}
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-3">Gender Distribution</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3">Gênero</h4>
                   <div className="space-y-3">
                     {Object.entries(creatorProfile?.demographics[selectedPlatform]?.gender || {}).map(([gender, percentage]) => (
                       <div key={gender} className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 capitalize w-16">{gender}</span>
+                        <span className="text-sm text-gray-600 capitalize w-16">{gender === 'male' ? 'Masculino' : gender === 'female' ? 'Feminino' : gender}</span>
                         <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-500"
@@ -523,7 +524,7 @@ export default function PublicMediaKit() {
 
                 {/* Age Distribution */}
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-3">Age Distribution</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3">Idades</h4>
                   <div className="space-y-3">
                     {Object.entries(creatorProfile?.demographics[selectedPlatform]?.age || {}).map(([age, percentage]) => (
                       <div key={age} className="flex items-center gap-3">
@@ -542,7 +543,7 @@ export default function PublicMediaKit() {
 
                 {/* Location Distribution */}
                 <div>
-                  <h4 className="font-semibold text-gray-700 mb-3">Top Locations</h4>
+                  <h4 className="font-semibold text-gray-700 mb-3">Localização</h4>
                   <div className="space-y-3">
                     {Object.entries(creatorProfile?.demographics[selectedPlatform]?.location || {})
                       .sort(([, a], [, b]) => (b as number) - (a as number)) // Sort by percentage descending
@@ -566,12 +567,12 @@ export default function PublicMediaKit() {
              {/* Brand Collaborations */}
              {creatorProfile?.brandCollaborations && creatorProfile.brandCollaborations.length > 0 && (
                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                 <CardHeader>
-                   <CardTitle className="flex items-center gap-2 text-xl">
-                     <Heart className="h-5 w-5 text-[#F95738]" />
-                     Brand Collaborations
-                   </CardTitle>
-                 </CardHeader>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-xl">
+                      <Heart className="h-5 w-5 text-[#F95738]" />
+                      Colaborações Passadas
+                    </CardTitle>
+                  </CardHeader>
                  <CardContent>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                      {currentCollaborations.map((collab, index) => (
@@ -656,7 +657,7 @@ export default function PublicMediaKit() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Eye className="h-5 w-5 text-[#3333cc]" />
-                  Top Performing Content
+                  Conheça Nosso Conteúdo
                 </CardTitle>
               </CardHeader>
                <CardContent>
