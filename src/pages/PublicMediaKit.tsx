@@ -156,31 +156,27 @@ export default function PublicMediaKit() {
           throw new Error(`Creator not found: ${urlCreatorHandle}`);
         }
 
-        // Step 2: Fetch secure collaboration data (no sensitive campaign data)
-        const [collaborationsResponse, campaignCreatorsResponse] = await Promise.all([
-          supabase.rpc('get_creator_collaborations', { p_creator_id: mediaKit.creator_id }),
-          supabase.from('campaign_creators').select('*').eq('creator_id', mediaKit.creator_id)
+        // Step 2: Fetch creators, campaigns, and campaign_creators (same as CreatorProfiles page)
+        const [creatorsResponse, campaignsResponse, campaignCreatorsResponse] = await Promise.all([
+          supabase.from('creators').select('*').eq('id', mediaKit.creator_id),
+          supabase.from('campaigns').select('*'),
+          supabase.from('campaign_creators').select('*')
         ]);
 
-        const collaborations = collaborationsResponse.data || [];
+        const creators = creatorsResponse.data || [];
+        const campaigns = campaignsResponse.data || [];
         const campaignCreators = campaignCreatorsResponse.data || [];
 
-        // Step 3: Build creator profile using media kit data (no access to creators table needed)
-        const creator = {
-          id: mediaKit.creator_id,
-          name: mediaKit.name,
-          platform_handles: mediaKit.platform_handles,
-          avatar_url: mediaKit.avatar_url,
-          bio: mediaKit.bio,
-          location: mediaKit.location,
-          services: mediaKit.services,
-          demographics: mediaKit.demographics,
-          platform_metrics: mediaKit.platform_metrics,
-          top_videos: mediaKit.top_videos
-        };
+        // Step 3: Build creator profile using EXACT same logic as CreatorProfiles.tsx
+        const creator = creators[0];
+        if (!creator) {
+          throw new Error('Creator data not found');
+        }
 
-        // Use secure collaboration data instead of full campaign data
-        const creatorCollaborations = collaborations;
+        const creatorCampaigns = campaignCreators
+          .filter(cc => cc.creator_id === creator.id)
+          .map(cc => campaigns.find(c => c.id === cc.campaign_id))
+          .filter(Boolean);
 
         let totalViews = 0;
         let totalEngagement = 0;
@@ -189,24 +185,60 @@ export default function PublicMediaKit() {
         const brandCollaborations: CreatorProfile['brandCollaborations'] = [];
         const allVideos: CreatorProfile['topVideos'] = [];
 
-        creatorCollaborations.forEach(collab => {
-          const campaignViews = collab.total_views || 0;
-          const campaignEngagement = collab.total_engagement || 0;
-          const campaignEngagementRate = collab.engagement_rate || 0;
+        creatorCampaigns.forEach(campaign => {
+          if (!campaign) return;
 
-          // Add brand collaboration from secure data
+          const campaignViews = campaign.total_views || 0;
+          const campaignEngagement = campaign.total_engagement || 0;
+          const campaignEngagementRate = campaignViews > 0 ? (campaignEngagement / campaignViews) * 100 : 0;
+
+          // Add brand collaboration
           brandCollaborations.push({
-            brandName: collab.brand_name,
-            logoUrl: collab.logo_url,
+            brandName: campaign.brand_name,
+            logoUrl: campaign.logo_url,
             views: campaignViews,
             engagement: campaignEngagement,
             engagementRate: campaignEngagementRate,
-            date: collab.campaign_date
+            date: campaign.campaign_date
           });
 
-          // Accumulate totals from secure collaboration data
-          totalViews += campaignViews;
-          totalEngagement += campaignEngagement;
+          // Process analytics data
+          if (campaign.analytics_data) {
+            Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
+              if (!platformMetrics[platform]) {
+                platformMetrics[platform] = { views: 0, engagement: 0, followers: 0 };
+              }
+
+              if (Array.isArray(platformData)) {
+                platformData.forEach((video: any) => {
+                  const views = video.views || 0;
+                  const engagement = video.engagement || 0;
+                  const engagementRate = views > 0 ? (engagement / views) * 100 : 0;
+                  
+                  totalViews += views;
+                  totalEngagement += engagement;
+                  platformMetrics[platform].views += views;
+                  platformMetrics[platform].engagement += engagement;
+
+                  // Add to videos list with thumbnail
+                  allVideos.push({
+                    title: video.title || `${platform} Video`,
+                    platform: platform.charAt(0).toUpperCase() + platform.slice(1),
+                    views,
+                    engagement,
+                    engagementRate,
+                    url: video.url || '',
+                    thumbnail: getEmbedUrl(video.url || '', platform),
+                    description: video.description || ''
+                  });
+                });
+              }
+            });
+          } else {
+            // Fallback to campaign totals
+            totalViews += campaignViews;
+            totalEngagement += campaignEngagement;
+          }
         });
 
         // Estimate follower count (same as CreatorProfiles)

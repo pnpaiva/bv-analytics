@@ -676,61 +676,43 @@ export type Database = {
       public_media_kits: {
         Row: {
           avatar_url: string | null
-          bio: string | null
           created_at: string
           creator_id: string | null
-          demographics: Json | null
           id: string
-          location: string | null
           name: string
           platform_handles: Json | null
-          platform_metrics: Json | null
           published: boolean
           published_at: string | null
-          services: Json | null
           slug: string
           stats: Json | null
-          top_videos: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
-          bio?: string | null
           created_at?: string
           creator_id?: string | null
-          demographics?: Json | null
           id?: string
-          location?: string | null
           name: string
           platform_handles?: Json | null
-          platform_metrics?: Json | null
           published?: boolean
           published_at?: string | null
-          services?: Json | null
           slug: string
           stats?: Json | null
-          top_videos?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
-          bio?: string | null
           created_at?: string
           creator_id?: string | null
-          demographics?: Json | null
           id?: string
-          location?: string | null
           name?: string
           platform_handles?: Json | null
-          platform_metrics?: Json | null
           published?: boolean
           published_at?: string | null
-          services?: Json | null
           slug?: string
           stats?: Json | null
-          top_videos?: Json | null
           updated_at?: string
           user_id?: string
         }
