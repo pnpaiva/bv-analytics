@@ -77,7 +77,7 @@ interface CreatorProfile {
 }
 
 export default function PublicMediaKit() {
-  const { creatorHandle } = useParams<{ creatorHandle: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const [creatorProfile, setCreatorProfile] = useState<CreatorProfile | null>(null);
   const [selectedPlatform, setSelectedPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
   const [currentCollaborationPage, setCurrentCollaborationPage] = useState(1);
@@ -136,163 +136,103 @@ export default function PublicMediaKit() {
         setIsLoading(true);
         setError(null);
 
-        // Get the creator handle from the URL path
-        const pathSegments = window.location.pathname.split('/');
-        const urlCreatorHandle = pathSegments[pathSegments.length - 1];
+        const urlSlug = slug || window.location.pathname.split('/').filter(Boolean).pop();
 
-        if (!urlCreatorHandle) {
-          throw new Error('No creator handle found in URL');
+        if (!urlSlug) {
+          throw new Error('No media kit slug found in URL');
         }
 
-        // Step 1: Get the public media kit to find the creator_id
         const { data: mediaKit, error: mediaKitError } = await supabase
           .from('public_media_kits')
           .select('*')
-          .eq('slug', urlCreatorHandle)
+          .eq('slug', urlSlug)
           .eq('published', true)
-          .single();
+          .maybeSingle();
 
-        if (mediaKitError || !mediaKit) {
-          throw new Error(`Creator not found: ${urlCreatorHandle}`);
-        }
+        if (mediaKitError) throw mediaKitError;
+        if (!mediaKit) throw new Error(`Creator not found: ${urlSlug}`);
 
-        // Step 2: Fetch creator and secure collaboration data (no sensitive campaign data)
-        const [creatorsResponse, collaborationsResponse, campaignCreatorsResponse] = await Promise.all([
-          supabase.from('creators').select('*').eq('id', mediaKit.creator_id),
-          supabase.rpc('get_creator_collaborations', { p_creator_id: mediaKit.creator_id }),
-          supabase.from('campaign_creators').select('*').eq('creator_id', mediaKit.creator_id)
-        ]);
+        const { data: collaborations, error: collabError } = await supabase
+          .rpc('get_creator_collaborations', { p_creator_id: mediaKit.creator_id });
 
-        const creators = creatorsResponse.data || [];
-        const collaborations = collaborationsResponse.data || [];
-        const campaignCreators = campaignCreatorsResponse.data || [];
-
-        // Step 3: Build creator profile using EXACT same logic as CreatorProfiles.tsx
-        const creator = creators[0];
-        if (!creator) {
-          throw new Error('Creator data not found');
-        }
-
-        // Use secure collaboration data instead of full campaign data
-        const creatorCollaborations = collaborations;
+        if (collabError) throw collabError;
 
         let totalViews = 0;
         let totalEngagement = 0;
-        let totalFollowers = 0;
-        const platformMetrics: Record<string, { views: number; engagement: number; followers: number }> = {};
         const brandCollaborations: CreatorProfile['brandCollaborations'] = [];
-        const allVideos: CreatorProfile['topVideos'] = [];
 
-        creatorCollaborations.forEach(collab => {
+        (collaborations || []).forEach((collab: any) => {
           const campaignViews = collab.total_views || 0;
           const campaignEngagement = collab.total_engagement || 0;
-          const campaignEngagementRate = collab.engagement_rate || 0;
 
-          // Add brand collaboration from secure data
           brandCollaborations.push({
             brandName: collab.brand_name,
             logoUrl: collab.logo_url,
             views: campaignViews,
             engagement: campaignEngagement,
-            engagementRate: campaignEngagementRate,
-            date: collab.campaign_date
+            engagementRate: collab.engagement_rate || 0,
+            date: collab.campaign_date,
           });
 
-          // Accumulate totals from secure collaboration data
           totalViews += campaignViews;
           totalEngagement += campaignEngagement;
         });
 
-        // Estimate follower count (same as CreatorProfiles)
-        totalFollowers = Math.round(totalViews * 0.05);
+        const totalFollowers = Math.round(totalViews * 0.05);
 
-        const platformBreakdown = Object.entries(platformMetrics).map(([platform, metrics]) => ({
-          platform: platform.charAt(0).toUpperCase() + platform.slice(1),
-          views: metrics.views,
-          engagement: metrics.engagement,
-          engagementRate: metrics.views > 0 ? (metrics.engagement / metrics.views) * 100 : 0,
-          followerCount: Math.round(metrics.views * 0.05)
-        }));
-
-        const topVideos = allVideos
-          .sort((a, b) => b.views - a.views)
-          .slice(0, 3);
-
-        // Get platform-specific top videos
-        const getTopVideosByPlatform = (platform: string) => {
-          return allVideos
-            .filter(video => video.platform.toLowerCase() === platform.toLowerCase())
-            .sort((a, b) => b.views - a.views)
-            .slice(0, 3);
-        };
-
-        // Mock demographics data (same as CreatorProfiles)
-        const demographics = {
+        const defaultDemographics = {
           youtube: {
             gender: { female: 75, male: 25 },
             age: { '18-24': 40, '25-34': 35, '35-44': 15, '45-54': 8, '55+': 2 },
-            location: { 'United States': 40, 'United Kingdom': 25, 'Canada': 20, 'Australia': 15 }
+            location: { 'United States': 40, 'United Kingdom': 25, 'Canada': 20, 'Australia': 15 },
           },
           instagram: {
             gender: { female: 60, male: 40 },
             age: { '18-24': 30, '25-34': 40, '35-44': 20, '45-54': 8, '55+': 2 },
-            location: { 'United States': 30, 'United Kingdom': 20, 'Canada': 25, 'Australia': 25 }
+            location: { 'United States': 30, 'United Kingdom': 20, 'Canada': 25, 'Australia': 25 },
           },
           tiktok: {
             gender: { female: 80, male: 20 },
             age: { '18-24': 50, '25-34': 30, '35-44': 15, '45-54': 5, '55+': 0 },
-            location: { 'United States': 50, 'United Kingdom': 20, 'Canada': 15, 'Australia': 15 }
-          }
-        };
-
-        // Mock services data (same as CreatorProfiles)
-        const services = [
-          { name: 'Reel/Video Post', price: 450 },
-          { name: 'Stories', price: 200 },
-          { name: 'Product Reviews', price: 600 }
-        ];
+            location: { 'United States': 50, 'United Kingdom': 20, 'Canada': 15, 'Australia': 15 },
+          },
+        } as CreatorProfile['demographics'];
 
         const profile: CreatorProfile = {
-          id: creator.id,
-          name: creator.name,
-          avatar_url: creator.avatar_url,
-          platform_handles: (creator.platform_handles as Record<string, string>) || {},
-          location: (creator as any).location || 'United States',
-          email: (creator as any).email || 'creator@example.com',
-          phone: (creator as any).phone || '+1 (555) 123-4567',
-          bio: (creator as any).bio || 'Content Creator',
+          id: (mediaKit as any).creator_id || (mediaKit as any).id,
+          name: (mediaKit as any).name,
+          avatar_url: (mediaKit as any).avatar_url,
+          platform_handles: (mediaKit as any).platform_handles || {},
+          location: (mediaKit as any).location || 'United States',
+          bio: (mediaKit as any).bio || 'Content Creator',
           totalViews,
           totalEngagement,
           engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
           followerCount: totalFollowers,
-          demographics: (creator as any).demographics || demographics,
-          platformBreakdown: platformBreakdown.map((p, index) => ({
-            ...p,
-            // Use mock platform metrics or actual data if available
-            followerCount: [50000, 30000, 25000][index] || p.followerCount,
-            engagement: [4.2, 3.8, 5.1][index] || p.engagement,
-            engagementRate: [4.2, 3.8, 5.1][index] || p.engagementRate,
-            views: [500000, 300000, 250000][index] || p.views
-          })),
+          demographics: (mediaKit as any).demographics || (defaultDemographics as any),
+          platformBreakdown: [],
           brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-          topVideos: (creator as any).top_videos || topVideos,
-          services: (creator as any).services || services,
-          mediaKitUrl: `${window.location.origin}/${urlCreatorHandle}`,
-          platform_metrics: (creator as any).platform_metrics || {}
+          topVideos: (mediaKit as any).top_videos || [],
+          services: (mediaKit as any).services || [
+            { name: 'Reel/Video Post', price: 450 },
+            { name: 'Stories', price: 200 },
+            { name: 'Product Reviews', price: 600 },
+          ],
+          mediaKitUrl: `${window.location.origin}/${urlSlug}`,
+          platform_metrics: (mediaKit as any).platform_metrics || {},
         };
 
         setCreatorProfile(profile);
-        setIsLoading(false);
-
       } catch (error) {
         console.error('Error fetching creator data:', error);
         setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      } finally {
         setIsLoading(false);
       }
     };
 
     fetchCreatorData();
-  }, []);
+  }, [slug]);
 
   // Set document title when creator profile is loaded
   useEffect(() => {
