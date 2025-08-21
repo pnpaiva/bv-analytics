@@ -351,7 +351,12 @@ export default function CreatorProfiles() {
       topVideos: creator.topVideos || [],
       totalFollowers: creator.followerCount || 0,
       avgViews: creator.totalViews || 0,
-      engagementRate: creator.engagementRate || 0
+      engagementRate: creator.engagementRate || 0,
+      platformMetrics: {
+        youtube: { followers: 0, engagementRate: 0, reach: 0, avgViews: 0 },
+        instagram: { followers: 0, engagementRate: 0, reach: 0, avgViews: 0 },
+        tiktok: { followers: 0, engagementRate: 0, reach: 0, avgViews: 0 }
+      }
     });
 
     const [selectedDemoPlatform, setSelectedDemoPlatform] = useState<'youtube' | 'instagram' | 'tiktok'>('youtube');
@@ -534,6 +539,109 @@ export default function CreatorProfiles() {
                     value={formData.engagementRate}
                     onChange={(e) => setFormData({ ...formData, engagementRate: Number(e.target.value) })}
                     className="border-2"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Platform-Specific Metrics */}
+            <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h3 className="text-lg font-semibold">Platform-Specific Metrics</h3>
+                <div className="flex gap-2">
+                  {(['youtube', 'instagram', 'tiktok'] as const).map((platform) => (
+                    <Button
+                      key={platform}
+                      variant={selectedDemoPlatform === platform ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedDemoPlatform(platform)}
+                      className="border-2"
+                    >
+                      {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Followers</Label>
+                  <Input
+                    type="number"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.followers || 0}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      platformMetrics: {
+                        ...formData.platformMetrics,
+                        [selectedDemoPlatform]: {
+                          ...formData.platformMetrics?.[selectedDemoPlatform],
+                          followers: Number(e.target.value)
+                        }
+                      }
+                    })}
+                    className="border-2"
+                    placeholder="Number of followers"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Engagement Rate (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.engagementRate || 0}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      platformMetrics: {
+                        ...formData.platformMetrics,
+                        [selectedDemoPlatform]: {
+                          ...formData.platformMetrics?.[selectedDemoPlatform],
+                          engagementRate: Number(e.target.value)
+                        }
+                      }
+                    })}
+                    className="border-2"
+                    placeholder="Engagement rate percentage"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Reach</Label>
+                  <Input
+                    type="number"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.reach || 0}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      platformMetrics: {
+                        ...formData.platformMetrics,
+                        [selectedDemoPlatform]: {
+                          ...formData.platformMetrics?.[selectedDemoPlatform],
+                          reach: Number(e.target.value)
+                        }
+                      }
+                    })}
+                    className="border-2"
+                    placeholder="Average reach per post"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Average Views</Label>
+                  <Input
+                    type="number"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.avgViews || 0}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      platformMetrics: {
+                        ...formData.platformMetrics,
+                        [selectedDemoPlatform]: {
+                          ...formData.platformMetrics?.[selectedDemoPlatform],
+                          avgViews: Number(e.target.value)
+                        }
+                      }
+                    })}
+                    className="border-2"
+                    placeholder="Average views per post"
                   />
                 </div>
               </div>
