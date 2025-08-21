@@ -234,10 +234,53 @@ export default function PublicMediaKit() {
     fetchCreatorData();
   }, [slug]);
 
-  // Set document title when creator profile is loaded
+  // Set document title and meta tags when creator profile is loaded
   useEffect(() => {
     if (creatorProfile) {
       document.title = `${creatorProfile.name} | Media Kit`;
+      
+      // Set meta tags for social media sharing
+      const setMetaTag = (property: string, content: string) => {
+        let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('property', property);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      const setMetaName = (name: string, content: string) => {
+        let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', name);
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', content);
+      };
+
+      // Open Graph tags
+      setMetaTag('og:title', `${creatorProfile.name} | Media Kit`);
+      setMetaTag('og:description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
+      setMetaTag('og:url', window.location.href);
+      setMetaTag('og:type', 'profile');
+      
+      // Set the creator's profile picture as the preview image
+      if (creatorProfile.avatar_url) {
+        setMetaTag('og:image', creatorProfile.avatar_url);
+        setMetaTag('og:image:alt', `${creatorProfile.name} profile picture`);
+      }
+
+      // Twitter Card tags
+      setMetaName('twitter:card', 'summary_large_image');
+      setMetaName('twitter:title', `${creatorProfile.name} | Media Kit`);
+      setMetaName('twitter:description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
+      
+      if (creatorProfile.avatar_url) {
+        setMetaName('twitter:image', creatorProfile.avatar_url);
+        setMetaName('twitter:image:alt', `${creatorProfile.name} profile picture`);
+      }
     }
   }, [creatorProfile]);
 
