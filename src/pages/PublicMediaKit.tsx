@@ -569,18 +569,21 @@ export default function PublicMediaKit() {
                 <div>
                   <h4 className="font-semibold text-gray-700 mb-3">Idades</h4>
                   <div className="space-y-3">
-                    {Object.entries(creatorProfile?.demographics[selectedPlatform]?.age || {}).map(([age, percentage]) => (
-                      <div key={age} className="flex items-center gap-3">
-                        <span className="text-sm text-gray-600 w-16">{age}</span>
-                        <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
-                          />
+                    {['18-24', '25-34', '35-44', '45-54', '55+'].map((age) => {
+                      const percentage = creatorProfile?.demographics[selectedPlatform]?.age?.[age] || 0;
+                      return (
+                        <div key={age} className="flex items-center gap-3">
+                          <span className="text-sm text-gray-600 w-16">{age}</span>
+                          <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-500"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700 w-12 text-right">{percentage}%</span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-700 w-12 text-right">{percentage}%</span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
