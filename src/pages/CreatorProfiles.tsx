@@ -284,10 +284,15 @@ export default function CreatorProfiles() {
 
   const handleCreatorUpdate = async (creatorId: string, updates: any) => {
     try {
-      await updateCreator.mutateAsync({
+      const payload = {
         id: creatorId,
-        ...updates
-      });
+        name: updates.name,
+        platform_handles: updates.platform_handles,
+        avatar_url: updates.avatar_url,
+        platform_metrics: updates.platformMetrics, // map UI field to DB column
+      };
+
+      await updateCreator.mutateAsync(payload as any);
       toast.success('Creator updated successfully');
       setEditingCreator(null);
     } catch (error) {

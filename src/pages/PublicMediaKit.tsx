@@ -73,6 +73,7 @@ interface CreatorProfile {
     price: number;
   }[];
   mediaKitUrl?: string;
+  platform_metrics?: Record<string, any>;
 }
 
 export default function PublicMediaKit() {
