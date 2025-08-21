@@ -156,22 +156,28 @@ export default function PublicMediaKit() {
           throw new Error(`Creator not found: ${urlCreatorHandle}`);
         }
 
-        // Step 2: Fetch creator and secure collaboration data (no sensitive campaign data)
-        const [creatorsResponse, collaborationsResponse, campaignCreatorsResponse] = await Promise.all([
-          supabase.from('creators').select('*').eq('id', mediaKit.creator_id),
+        // Step 2: Fetch secure collaboration data (no sensitive campaign data)
+        const [collaborationsResponse, campaignCreatorsResponse] = await Promise.all([
           supabase.rpc('get_creator_collaborations', { p_creator_id: mediaKit.creator_id }),
           supabase.from('campaign_creators').select('*').eq('creator_id', mediaKit.creator_id)
         ]);
 
-        const creators = creatorsResponse.data || [];
         const collaborations = collaborationsResponse.data || [];
         const campaignCreators = campaignCreatorsResponse.data || [];
 
-        // Step 3: Build creator profile using EXACT same logic as CreatorProfiles.tsx
-        const creator = creators[0];
-        if (!creator) {
-          throw new Error('Creator data not found');
-        }
+        // Step 3: Build creator profile using media kit data (no access to creators table needed)
+        const creator = {
+          id: mediaKit.creator_id,
+          name: mediaKit.name,
+          platform_handles: mediaKit.platform_handles,
+          avatar_url: mediaKit.avatar_url,
+          bio: mediaKit.bio,
+          location: mediaKit.location,
+          services: mediaKit.services,
+          demographics: mediaKit.demographics,
+          platform_metrics: mediaKit.platform_metrics,
+          top_videos: mediaKit.top_videos
+        };
 
         // Use secure collaboration data instead of full campaign data
         const creatorCollaborations = collaborations;
