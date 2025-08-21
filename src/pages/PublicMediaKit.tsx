@@ -757,55 +757,56 @@ export default function PublicMediaKit() {
                          <div key={index} className="space-y-4">
                            <h4 className="font-medium text-gray-800 text-lg">{video.title}</h4>
                            
-                           <div className="bg-muted rounded-xl overflow-hidden border-2 relative" style={{ height: '400px' }}>
-                             {getEmbedUrl(video.url, video.platform) ? (
-                               <iframe
-                                 src={getEmbedUrl(video.url, video.platform)!}
-                                 title={video.title}
-                                 className="w-full h-full rounded-xl"
-                                 style={{ 
-                                   border: 'none',
-                                   height: '400px',
-                                   width: '100%'
-                                 }}
-                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                 allowFullScreen
-                                 loading="lazy"
-                                 frameBorder="0"
-                               />
-                             ) : video.thumbnail ? (
-                               <div className="relative w-full h-full">
-                                 <img 
-                                   src={video.thumbnail} 
-                                   alt={video.title} 
-                                   className="w-full h-full object-cover rounded-xl"
-                                   style={{ height: '400px' }}
-                                 />
-                                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                                   <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
-                                     video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                                     video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
-                                     'bg-red-600'
-                                   }`}>
-                                     <Play className="h-6 w-6 text-white fill-white ml-1" />
-                                   </div>
-                                 </div>
-                               </div>
-                             ) : (
-                               <div className="w-full h-full flex items-center justify-center bg-muted rounded-xl">
-                                 <div className="text-center">
-                                   <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 mx-auto ${
-                                     video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                                     video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
-                                     'bg-red-600'
-                                   }`}>
-                                     <Play className="h-6 w-6 text-white" />
-                                   </div>
-                                   <p className="text-sm text-muted-foreground capitalize">{video.platform} Video</p>
-                                 </div>
-                               </div>
-                             )}
-                           </div>
+                            <div className={`bg-muted rounded-xl overflow-hidden border-2 relative mx-auto ${
+                              video.platform.toLowerCase() === 'instagram' ? 'w-80 h-80' : // Square for Instagram
+                              video.platform.toLowerCase() === 'tiktok' ? 'w-64 h-96' : // Portrait for TikTok  
+                              'w-full h-64' // Landscape for YouTube
+                            }`}>
+                              {getEmbedUrl(video.url, video.platform) ? (
+                                <iframe
+                                  src={getEmbedUrl(video.url, video.platform)!}
+                                  title={video.title}
+                                  className="w-full h-full rounded-xl"
+                                  style={{ 
+                                    border: 'none'
+                                  }}
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                  loading="lazy"
+                                  frameBorder="0"
+                                />
+                              ) : video.thumbnail ? (
+                                <div className="relative w-full h-full">
+                                  <img 
+                                    src={video.thumbnail} 
+                                    alt={video.title} 
+                                    className="w-full h-full object-cover rounded-xl"
+                                  />
+                                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+                                      video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                                      video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
+                                      'bg-red-600'
+                                    }`}>
+                                      <Play className="h-6 w-6 text-white fill-white ml-1" />
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-muted rounded-xl">
+                                  <div className="text-center">
+                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-2 mx-auto ${
+                                      video.platform.toLowerCase() === 'instagram' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                                      video.platform.toLowerCase() === 'tiktok' ? 'bg-black' :
+                                      'bg-red-600'
+                                    }`}>
+                                      <Play className="h-6 w-6 text-white" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground capitalize">{video.platform} Video</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
 
                            <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
                              <span className="capitalize font-medium flex items-center gap-2">
