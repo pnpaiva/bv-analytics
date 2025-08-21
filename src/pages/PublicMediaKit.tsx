@@ -465,24 +465,24 @@ export default function PublicMediaKit() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
                        {selectedPlatformStats.followers || '0'}
                      </div>
-                     <div className="text-sm text-gray-600">Followers</div>
+                     <div className="text-sm text-gray-600">Seguidores</div>
                    </div>
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
                        {selectedPlatformStats.engagement || '0'}
                      </div>
-                     <div className="text-sm text-gray-600">Engagement</div>
+                     <div className="text-sm text-gray-600">Engajamento Médio</div>
                    </div>
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
                        {selectedPlatformStats.reach || '0'}
                      </div>
-                     <div className="text-sm text-gray-600">Reach</div>
+                     <div className="text-sm text-gray-600">Alcance</div>
                    </div>
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
