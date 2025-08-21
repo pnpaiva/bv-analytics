@@ -262,16 +262,38 @@ export default function PublicMediaKit() {
 
       // Basic meta tags
       setMetaName('description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
-      
+
+      // Helpers to ensure proper tags
+      const toAbsoluteUrl = (u?: string) => {
+        try {
+          if (!u) return '';
+          return u.startsWith('http') ? u : new URL(u, window.location.origin).href;
+        } catch {
+          return u || '';
+        }
+      };
+      const setOrCreateLink = (rel: string, href: string) => {
+        let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.setAttribute('rel', rel);
+          document.head.appendChild(link);
+        }
+        link.setAttribute('href', href);
+      };
+
+      const canonicalUrl = window.location.href;
+      const imageUrl = creatorProfile.avatar_url
+        ? toAbsoluteUrl(creatorProfile.avatar_url)
+        : `${window.location.origin}/lovable-uploads/4add0e07-79ba-4808-834f-029555e0d6f7.png`;
+
       // Open Graph tags
       setMetaTag('og:title', `${creatorProfile.name} | Media Kit`);
       setMetaTag('og:description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
-      setMetaTag('og:url', window.location.href);
+      setMetaTag('og:url', canonicalUrl);
       setMetaTag('og:type', 'profile');
-      
-      // Set the creator's profile picture as the preview image
-      if (creatorProfile.avatar_url) {
-        setMetaTag('og:image', creatorProfile.avatar_url);
+      if (imageUrl) {
+        setMetaTag('og:image', imageUrl);
         setMetaTag('og:image:alt', `${creatorProfile.name} profile picture`);
       }
 
@@ -279,11 +301,13 @@ export default function PublicMediaKit() {
       setMetaName('twitter:card', 'summary_large_image');
       setMetaName('twitter:title', `${creatorProfile.name} | Media Kit`);
       setMetaName('twitter:description', creatorProfile.bio || `Check out ${creatorProfile.name}'s media kit and collaboration opportunities`);
-      
-      if (creatorProfile.avatar_url) {
-        setMetaName('twitter:image', creatorProfile.avatar_url);
+      if (imageUrl) {
+        setMetaName('twitter:image', imageUrl);
         setMetaName('twitter:image:alt', `${creatorProfile.name} profile picture`);
       }
+
+      // Canonical
+      setOrCreateLink('canonical', canonicalUrl);
     }
   }, [creatorProfile]);
 
