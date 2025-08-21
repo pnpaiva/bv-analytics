@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MediaKitPDFExporter } from '@/utils/mediaKitPdfExporter';
 import { 
   Mail, 
   MapPin, 
@@ -20,8 +19,7 @@ import {
   Users,
   Youtube,
   Instagram,
-  Globe,
-  Download
+  Globe
 } from 'lucide-react';
 
 // Use the EXACT same interface as CreatorProfiles.tsx
@@ -338,19 +336,6 @@ export default function PublicMediaKit() {
     }
   }, [creatorProfile]);
 
-  // Export functionality
-  const handleExportMediaKit = async () => {
-    if (!creatorProfile) return;
-    
-    try {
-      const exporter = new MediaKitPDFExporter();
-      await exporter.exportMediaKit(creatorProfile);
-    } catch (error) {
-      console.error("Failed to export media kit:", error);
-      // You could add a toast notification here
-    }
-  };
-
   const getPlatformIcon = (platform: string) => {
     const platformLower = platform.toLowerCase();
     switch (platformLower) {
@@ -533,17 +518,6 @@ export default function PublicMediaKit() {
                         );
                       })}
                     </div>
-                  </div>
-
-                  {/* Export Button */}
-                  <div className="border-t pt-6">
-                    <Button
-                      onClick={handleExportMediaKit}
-                      className="w-full bg-[#3333cc] hover:bg-[#2a2aa3] text-white font-semibold py-3 px-4 rounded-xl transition-colors duration-200 flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Export Media Kit
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
