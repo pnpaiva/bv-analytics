@@ -329,6 +329,13 @@ export default function PublicMediaKit() {
     fetchCreatorData();
   }, []);
 
+  // Set document title when creator profile is loaded
+  useEffect(() => {
+    if (creatorProfile) {
+      document.title = `${creatorProfile.name} | Media Kit`;
+    }
+  }, [creatorProfile]);
+
   const getPlatformIcon = (platform: string) => {
     const platformLower = platform.toLowerCase();
     switch (platformLower) {
@@ -632,7 +639,9 @@ export default function PublicMediaKit() {
                 <div>
                   <h4 className="font-semibold text-gray-700 mb-3">Top Locations</h4>
                   <div className="space-y-3">
-                    {Object.entries(creatorProfile?.demographics[selectedPlatform]?.location || {}).map(([location, percentage]) => (
+                    {Object.entries(creatorProfile?.demographics[selectedPlatform]?.location || {})
+                      .sort(([, a], [, b]) => (b as number) - (a as number)) // Sort by percentage descending
+                      .map(([location, percentage]) => (
                       <div key={location} className="flex items-center gap-3">
                         <span className="text-sm text-gray-600 w-20">{location}</span>
                         <div className="flex-1 h-4 bg-gray-200 rounded-full overflow-hidden">
@@ -758,9 +767,9 @@ export default function PublicMediaKit() {
                            <h4 className="font-medium text-gray-800 text-lg">{video.title}</h4>
                            
                             <div className={`bg-muted rounded-xl overflow-hidden border-2 relative mx-auto ${
-                              video.platform.toLowerCase() === 'instagram' ? 'w-80 h-80' : // Square for Instagram
-                              video.platform.toLowerCase() === 'tiktok' ? 'w-64 h-96' : // Portrait for TikTok  
-                              'w-full h-64' // Landscape for YouTube
+                              video.platform.toLowerCase() === 'instagram' ? 'w-96 h-96' : // Larger square for Instagram (384x384px)
+                              video.platform.toLowerCase() === 'tiktok' ? 'w-80 h-[480px]' : // Larger portrait for TikTok (320x480px)
+                              'w-full h-80' // Larger landscape for YouTube
                             }`}>
                               {getEmbedUrl(video.url, video.platform) ? (
                                 <iframe
