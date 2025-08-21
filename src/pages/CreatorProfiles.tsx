@@ -1416,7 +1416,10 @@ export default function CreatorProfiles() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {selectedCreatorProfile.topVideos.map((video, index) => (
+                      {selectedCreatorProfile.topVideos
+                        .filter(video => video.platform.toLowerCase() === selectedPlatform.toLowerCase())
+                        .slice(0, 3)
+                        .map((video, index) => (
                         <Card key={index} className="border-2">
                           <CardContent className="p-4">
                             <div className="aspect-video bg-muted rounded mb-3 overflow-hidden border-2 relative">

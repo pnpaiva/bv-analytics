@@ -253,6 +253,14 @@ export default function PublicMediaKit() {
           .sort((a, b) => b.views - a.views)
           .slice(0, 3);
 
+        // Get platform-specific top videos
+        const getTopVideosByPlatform = (platform: string) => {
+          return allVideos
+            .filter(video => video.platform.toLowerCase() === platform.toLowerCase())
+            .sort((a, b) => b.views - a.views)
+            .slice(0, 3);
+        };
+
         // Mock demographics data (same as CreatorProfiles)
         const demographics = {
           youtube: {
@@ -738,11 +746,14 @@ export default function PublicMediaKit() {
                 </CardTitle>
               </CardHeader>
                <CardContent>
-                 {creatorProfile?.topVideos && creatorProfile.topVideos.length > 0 ? (
-                   <div className="space-y-8">
-                     {creatorProfile.topVideos
-                       .slice(0, 3)
-                       .map((video, index) => (
+                 {(() => {
+                   const platformVideos = (creatorProfile?.topVideos || [])
+                     .filter(video => video.platform.toLowerCase() === selectedPlatform.toLowerCase())
+                     .slice(0, 3);
+                   
+                   return platformVideos && platformVideos.length > 0 ? (
+                     <div className="space-y-8">
+                       {platformVideos.map((video, index) => (
                          <div key={index} className="space-y-4">
                            <h4 className="font-medium text-gray-800 text-lg">{video.title}</h4>
                            
@@ -806,18 +817,19 @@ export default function PublicMediaKit() {
                              )}
                            </div>
                          </div>
-                       ))}
-                   </div>
-                 ) : (
+                        ))}
+                      </div>
+                    ) : (
                    <div className="text-center py-12">
                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4 mx-auto">
                        <Eye className="h-8 w-8 text-gray-400" />
                      </div>
-                     <p className="text-gray-500 mb-4">No top performing content available</p>
-                     <p className="text-sm text-gray-400">Content will appear here once analytics data is available</p>
-                   </div>
-                 )}
-               </CardContent>
+                      <p className="text-gray-500 mb-4">No top performing content available for {selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1)}</p>
+                      <p className="text-sm text-gray-400">Content will appear here once analytics data is available for this platform</p>
+                    </div>
+                  );
+                 })()}
+                </CardContent>
             </Card>
           </div>
         </div>
