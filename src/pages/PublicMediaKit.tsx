@@ -304,7 +304,8 @@ export default function PublicMediaKit() {
           brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
           topVideos,
           services,
-          mediaKitUrl: `${window.location.origin}/${urlCreatorHandle}`
+          mediaKitUrl: `${window.location.origin}/${urlCreatorHandle}`,
+          platform_metrics: (creator as any).platform_metrics || {}
         };
 
         setCreatorProfile(profile);

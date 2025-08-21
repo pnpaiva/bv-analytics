@@ -68,6 +68,7 @@ interface CreatorProfile {
     price: number;
   }[];
   mediaKitUrl?: string;
+  platform_metrics?: Record<string, any>;
 }
 
 export default function CreatorProfiles() {
@@ -233,7 +234,8 @@ export default function CreatorProfiles() {
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         topVideos,
         services,
-        mediaKitUrl: `${window.location.origin}/m/${slugify(creator.name)}-${creator.id}`
+        mediaKitUrl: `${window.location.origin}/m/${slugify(creator.name)}-${creator.id}`,
+        platform_metrics: (creator as any).platform_metrics || {}
       };
     });
   }, [creators, campaigns, campaignCreators]);
@@ -1282,28 +1284,36 @@ export default function CreatorProfiles() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-primary mb-2">{formatNumber(selectedCreatorProfile.followerCount)}</div>
-                      <div className="text-sm text-muted-foreground">Total Followers</div>
+                      <div className="text-3xl font-bold text-primary mb-2">
+                        {(selectedCreatorProfile.platform_metrics?.[selectedPlatform]?.followers) || formatNumber(selectedCreatorProfile.followerCount)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Followers</div>
                     </CardContent>
                   </Card>
                   
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-emerald-500 mb-2">{formatNumber(selectedCreatorProfile.totalViews)}</div>
+                      <div className="text-3xl font-bold text-emerald-500 mb-2">
+                        {(selectedCreatorProfile.platform_metrics?.[selectedPlatform]?.reach) || formatNumber(selectedCreatorProfile.totalViews)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Reach</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="border-2">
+                    <CardContent className="p-6 text-center">
+                      <div className="text-3xl font-bold text-amber-500 mb-2">
+                        {(selectedCreatorProfile.platform_metrics?.[selectedPlatform]?.avgViews) || formatNumber(selectedCreatorProfile.totalViews)}
+                      </div>
                       <div className="text-sm text-muted-foreground">Average Views</div>
                     </CardContent>
                   </Card>
                   
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-amber-500 mb-2">{formatNumber(selectedCreatorProfile.totalViews)}</div>
-                      <div className="text-sm text-muted-foreground">Average Views</div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="border-2">
-                    <CardContent className="p-6 text-center">
-                      <div className="text-3xl font-bold text-rose-500 mb-2">{selectedCreatorProfile.engagementRate.toFixed(1)}%</div>
+                      <div className="text-3xl font-bold text-rose-500 mb-2">
+                        {(selectedCreatorProfile.platform_metrics?.[selectedPlatform]?.engagementRate) || `${selectedCreatorProfile.engagementRate.toFixed(1)}%`}
+                      </div>
                       <div className="text-sm text-muted-foreground">Engagement Rate</div>
                     </CardContent>
                   </Card>
