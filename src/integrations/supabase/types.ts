@@ -546,6 +546,7 @@ export type Database = {
           id: string
           name: string
           platform_handles: Json | null
+          platform_metrics: Json | null
           updated_at: string
           user_id: string
         }
@@ -555,6 +556,7 @@ export type Database = {
           id?: string
           name: string
           platform_handles?: Json | null
+          platform_metrics?: Json | null
           updated_at?: string
           user_id: string
         }
@@ -564,6 +566,7 @@ export type Database = {
           id?: string
           name?: string
           platform_handles?: Json | null
+          platform_metrics?: Json | null
           updated_at?: string
           user_id?: string
         }

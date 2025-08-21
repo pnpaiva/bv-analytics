@@ -345,11 +345,14 @@ export default function PublicMediaKit() {
       p.platform.toLowerCase() === selectedPlatform.toLowerCase()
     );
     
+    // Try to get from stored platform metrics first, then fallback to calculated data
+    const storedMetrics = (creatorProfile as any).platform_metrics?.[selectedPlatform];
+    
     return {
-      followers: platformData?.followerCount || 0,
-      engagement: platformData?.engagementRate || 0,
-      reach: platformData?.views || 0,
-      views: platformData?.views || 0
+      followers: storedMetrics?.followers || platformData?.followerCount || 0,
+      engagement: storedMetrics?.engagementRate || platformData?.engagementRate || 0,
+      reach: storedMetrics?.reach || platformData?.views || 0,
+      views: storedMetrics?.avgViews || platformData?.views || 0
     };
   }, [creatorProfile, selectedPlatform]);
 
@@ -542,25 +545,25 @@ export default function PublicMediaKit() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
-                       {selectedPlatformStats.followers?.toLocaleString() || '0'}
+                       {selectedPlatformStats.followers || '0'}
                      </div>
                      <div className="text-sm text-gray-600">Followers</div>
                    </div>
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
-                       {selectedPlatformStats.engagement?.toFixed(1) || '0'}%
+                       {selectedPlatformStats.engagement || '0'}
                      </div>
                      <div className="text-sm text-gray-600">Engagement</div>
                    </div>
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
-                       {selectedPlatformStats.reach?.toLocaleString() || '0'}
+                       {selectedPlatformStats.reach || '0'}
                      </div>
                      <div className="text-sm text-gray-600">Reach</div>
                    </div>
                    <div className="text-center p-4 bg-white rounded-xl border border-[#e6e6f7] shadow-sm">
                      <div className="text-2xl font-bold text-black mb-1">
-                       {selectedPlatformStats.views?.toLocaleString() || '0'}
+                       {selectedPlatformStats.views || '0'}
                      </div>
                      <div className="text-sm text-gray-600">Views</div>
                    </div>

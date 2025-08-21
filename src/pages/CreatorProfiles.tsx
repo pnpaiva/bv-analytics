@@ -352,10 +352,10 @@ export default function CreatorProfiles() {
       totalFollowers: creator.followerCount || 0,
       avgViews: creator.totalViews || 0,
       engagementRate: creator.engagementRate || 0,
-      platformMetrics: {
-        youtube: { followers: 0, engagementRate: 0, reach: 0, avgViews: 0 },
-        instagram: { followers: 0, engagementRate: 0, reach: 0, avgViews: 0 },
-        tiktok: { followers: 0, engagementRate: 0, reach: 0, avgViews: 0 }
+      platformMetrics: (creator as any).platform_metrics || {
+        youtube: { followers: '', engagementRate: '', reach: '', avgViews: '' },
+        instagram: { followers: '', engagementRate: '', reach: '', avgViews: '' },
+        tiktok: { followers: '', engagementRate: '', reach: '', avgViews: '' }
       }
     });
 
@@ -567,81 +567,80 @@ export default function CreatorProfiles() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Followers</Label>
                   <Input
-                    type="number"
-                    value={formData.platformMetrics?.[selectedDemoPlatform]?.followers || 0}
+                    type="text"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.followers || ''}
                     onChange={(e) => setFormData({
                       ...formData,
                       platformMetrics: {
                         ...formData.platformMetrics,
                         [selectedDemoPlatform]: {
                           ...formData.platformMetrics?.[selectedDemoPlatform],
-                          followers: Number(e.target.value)
+                          followers: e.target.value
                         }
                       }
                     })}
                     className="border-2"
-                    placeholder="Number of followers"
+                    placeholder="e.g. 1.2M, 500K, 10,000"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Engagement Rate (%)</Label>
+                  <Label className="text-sm font-medium">Engagement Rate</Label>
                   <Input
-                    type="number"
-                    step="0.1"
-                    value={formData.platformMetrics?.[selectedDemoPlatform]?.engagementRate || 0}
+                    type="text"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.engagementRate || ''}
                     onChange={(e) => setFormData({
                       ...formData,
                       platformMetrics: {
                         ...formData.platformMetrics,
                         [selectedDemoPlatform]: {
                           ...formData.platformMetrics?.[selectedDemoPlatform],
-                          engagementRate: Number(e.target.value)
+                          engagementRate: e.target.value
                         }
                       }
                     })}
                     className="border-2"
-                    placeholder="Engagement rate percentage"
+                    placeholder="e.g. 4.2%, 3.8%, High"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Reach</Label>
                   <Input
-                    type="number"
-                    value={formData.platformMetrics?.[selectedDemoPlatform]?.reach || 0}
+                    type="text"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.reach || ''}
                     onChange={(e) => setFormData({
                       ...formData,
                       platformMetrics: {
                         ...formData.platformMetrics,
                         [selectedDemoPlatform]: {
                           ...formData.platformMetrics?.[selectedDemoPlatform],
-                          reach: Number(e.target.value)
+                          reach: e.target.value
                         }
                       }
                     })}
                     className="border-2"
-                    placeholder="Average reach per post"
+                    placeholder="e.g. 100K, 50K per post, Wide"
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Average Views</Label>
                   <Input
-                    type="number"
-                    value={formData.platformMetrics?.[selectedDemoPlatform]?.avgViews || 0}
+                    type="text"
+                    value={formData.platformMetrics?.[selectedDemoPlatform]?.avgViews || ''}
                     onChange={(e) => setFormData({
                       ...formData,
                       platformMetrics: {
                         ...formData.platformMetrics,
                         [selectedDemoPlatform]: {
                           ...formData.platformMetrics?.[selectedDemoPlatform],
-                          avgViews: Number(e.target.value)
+                          avgViews: e.target.value
                         }
                       }
                     })}
                     className="border-2"
-                    placeholder="Average views per post"
+                    placeholder="e.g. 250K, 1M per video, High"
                   />
                 </div>
               </div>

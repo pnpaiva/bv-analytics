@@ -13,6 +13,7 @@ export interface UpdateCreatorData {
   name: string;
   platform_handles?: Record<string, string>;
   avatar_url?: string;
+  platform_metrics?: Record<string, any>;
 }
 
 export function useCreateCreator() {
@@ -60,6 +61,7 @@ export function useUpdateCreator() {
           name: data.name,
           platform_handles: data.platform_handles,
           avatar_url: data.avatar_url,
+          platform_metrics: data.platform_metrics,
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.id)
