@@ -229,7 +229,7 @@ export default function CreatorProfiles() {
         totalEngagement,
         engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
         followerCount: totalFollowers,
-        demographics: (creator as any).demographics || demographics,
+        demographics: { ...demographics, ...(((creator as any).demographics) || {}) },
         platformBreakdown,
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         topVideos: (creator as any).top_videos || topVideos,
@@ -430,9 +430,9 @@ export default function CreatorProfiles() {
           demographics: {
             ...formData.demographics,
             [selectedDemoPlatform]: {
-              ...formData.demographics[selectedDemoPlatform],
+              ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
               location: {
-                ...formData.demographics[selectedDemoPlatform].location,
+                ...((formData.demographics?.[selectedDemoPlatform]?.location) || {}),
                 [country]: 0
               }
             }
@@ -688,14 +688,14 @@ export default function CreatorProfiles() {
                       <Label className="text-xs text-muted-foreground">Female</Label>
                       <Input
                         type="number"
-                        value={formData.demographics[selectedDemoPlatform].gender.female}
+                        value={formData.demographics?.[selectedDemoPlatform]?.gender?.female ?? 0}
                         onChange={(e) => setFormData({
                           ...formData,
                           demographics: {
                             ...formData.demographics,
                             [selectedDemoPlatform]: {
-                              ...formData.demographics[selectedDemoPlatform],
-                              gender: { ...formData.demographics[selectedDemoPlatform].gender, female: Number(e.target.value) }
+                              ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
+                              gender: { ...(formData.demographics?.[selectedDemoPlatform]?.gender || { female: 0, male: 0 }), female: Number(e.target.value) }
                             }
                           }
                         })}
@@ -706,14 +706,14 @@ export default function CreatorProfiles() {
                       <Label className="text-xs text-muted-foreground">Male</Label>
                       <Input
                         type="number"
-                        value={formData.demographics[selectedDemoPlatform].gender.male}
+                        value={formData.demographics?.[selectedDemoPlatform]?.gender?.male ?? 0}
                         onChange={(e) => setFormData({
                           ...formData,
                           demographics: {
                             ...formData.demographics,
                             [selectedDemoPlatform]: {
-                              ...formData.demographics[selectedDemoPlatform],
-                              gender: { ...formData.demographics[selectedDemoPlatform].gender, male: Number(e.target.value) }
+                              ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
+                              gender: { ...(formData.demographics?.[selectedDemoPlatform]?.gender || { female: 0, male: 0 }), male: Number(e.target.value) }
                             }
                           }
                         })}
@@ -831,12 +831,12 @@ export default function CreatorProfiles() {
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(formData.demographics[selectedDemoPlatform].location).map(([country, percentage]) => (
+                  {Object.entries(formData.demographics?.[selectedDemoPlatform]?.location || {}).map(([country, percentage]) => (
                     <div key={country} className="flex gap-2">
                       <Input
                         value={country}
                         onChange={(e) => {
-                          const newLocation = { ...formData.demographics[selectedDemoPlatform].location };
+                          const newLocation = { ...(formData.demographics?.[selectedDemoPlatform]?.location || {}) };
                           delete newLocation[country];
                           newLocation[e.target.value] = percentage;
                           setFormData({
@@ -844,7 +844,7 @@ export default function CreatorProfiles() {
                             demographics: {
                               ...formData.demographics,
                               [selectedDemoPlatform]: {
-                                ...formData.demographics[selectedDemoPlatform],
+                                ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
                                 location: newLocation
                               }
                             }
@@ -861,9 +861,9 @@ export default function CreatorProfiles() {
                           demographics: {
                             ...formData.demographics,
                             [selectedDemoPlatform]: {
-                              ...formData.demographics[selectedDemoPlatform],
+                              ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
                               location: {
-                                ...formData.demographics[selectedDemoPlatform].location,
+                                ...((formData.demographics?.[selectedDemoPlatform]?.location) || {}),
                                 [country]: Number(e.target.value)
                               }
                             }
@@ -876,14 +876,14 @@ export default function CreatorProfiles() {
                         variant="outline" 
                         size="sm"
                         onClick={() => {
-                          const newLocation = { ...formData.demographics[selectedDemoPlatform].location };
+                          const newLocation = { ...(formData.demographics?.[selectedDemoPlatform]?.location || {}) };
                           delete newLocation[country];
                           setFormData({
                             ...formData,
                             demographics: {
                               ...formData.demographics,
                               [selectedDemoPlatform]: {
-                                ...formData.demographics[selectedDemoPlatform],
+                                ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
                                 location: newLocation
                               }
                             }
@@ -1192,12 +1192,12 @@ export default function CreatorProfiles() {
                             <div className="space-y-2">
                               <div className="flex items-center gap-3">
                                 <User className="h-4 w-4" />
-                                <span className="text-2xl font-bold">{selectedCreatorProfile.demographics[selectedPlatform].gender.female}%</span>
+                                <span className="text-2xl font-bold">{(selectedCreatorProfile?.demographics?.[selectedPlatform]?.gender?.female ?? 0)}%</span>
                                 <span className="text-sm text-muted-foreground">Women</span>
                               </div>
                               <div className="flex items-center gap-3">
                                 <User className="h-4 w-4" />
-                                <span className="text-2xl font-bold">{selectedCreatorProfile.demographics[selectedPlatform].gender.male}%</span>
+                                <span className="text-2xl font-bold">{(selectedCreatorProfile?.demographics?.[selectedPlatform]?.gender?.male ?? 0)}%</span>
                                 <span className="text-sm text-muted-foreground">Men</span>
                               </div>
                             </div>
@@ -1208,7 +1208,7 @@ export default function CreatorProfiles() {
                           <div>
                             <h4 className="font-medium mb-2">Age</h4>
                             <div className="space-y-2">
-                              {Object.entries(selectedCreatorProfile.demographics[selectedPlatform].age).map(([range, percentage]) => (
+                              {Object.entries((selectedCreatorProfile?.demographics?.[selectedPlatform]?.age) || {}).map(([range, percentage]) => (
                                 <div key={range} className="flex items-center gap-3">
                                   <User className="h-4 w-4" />
                                   <span className="text-sm font-medium">{range}</span>
@@ -1229,7 +1229,7 @@ export default function CreatorProfiles() {
                           <div>
                             <h4 className="font-medium mb-2">Location</h4>
                             <div className="space-y-2">
-                              {Object.entries(selectedCreatorProfile.demographics[selectedPlatform].location).map(([country, percentage]) => (
+                              {Object.entries((selectedCreatorProfile?.demographics?.[selectedPlatform]?.location) || {}).map(([country, percentage]) => (
                                 <div key={country} className="flex items-center gap-3">
                                   <MapPin className="h-4 w-4" />
                                   <span className="text-sm font-medium">{country}</span>
