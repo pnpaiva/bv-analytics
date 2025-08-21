@@ -94,35 +94,6 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Public Media Kit Section */}
-        <div className="text-center p-8 rounded-lg border bg-card">
-          <h3 className="text-2xl font-semibold mb-4">Public Media Kits</h3>
-          <p className="text-lg text-muted-foreground mb-6 max-w-3xl mx-auto">
-            Access public media kits for our creators. These pages are available to anyone with the link and don't require authentication.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-4xl mx-auto">
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">Available Creators:</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>• André Pilli - @andrepilli</li>
-                <li>• Eda Atilla - @edaatilla</li>
-                <li>• João Curry - @joaocurry</li>
-                <li>• Eliezer Tymniak - @eliezertymniak</li>
-                <li>• Arthur Miller - @arthurmiller</li>
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-semibold text-lg">What You'll Find:</h4>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>• Creator statistics and demographics</li>
-                <li>• Platform-specific analytics</li>
-                <li>• Top performing content</li>
-                <li>• Collaboration history</li>
-                <li>• Contact information</li>
-              </ul>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
