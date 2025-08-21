@@ -81,6 +81,13 @@ export type Database = {
             referencedRelation: "dashboard_analytics"
             referencedColumns: ["campaign_id"]
           },
+          {
+            foreignKeyName: "analytics_data_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "public_collaborations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       analytics_jobs: {
@@ -131,6 +138,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dashboard_analytics"
             referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "analytics_jobs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "public_collaborations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -235,6 +249,13 @@ export type Database = {
             referencedColumns: ["campaign_id"]
           },
           {
+            foreignKeyName: "fk_campaign_creators_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "public_collaborations"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_campaign_creators_creator"
             columns: ["creator_id"]
             isOneToOne: false
@@ -309,6 +330,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dashboard_analytics"
             referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "campaign_url_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "public_collaborations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -425,6 +453,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dashboard_analytics"
             referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "campaigns_master_campaign_id_fkey"
+            columns: ["master_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "public_collaborations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -933,6 +968,28 @@ export type Database = {
           },
         ]
       }
+      public_collaborations: {
+        Row: {
+          brand_name: string | null
+          campaign_date: string | null
+          creator_id: string | null
+          engagement_rate: number | null
+          id: string | null
+          logo_url: string | null
+          status: string | null
+          total_engagement: number | null
+          total_views: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_campaign_creators_creator"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       roster_analytics_summary: {
         Row: {
           avg_engagement_rate: number | null
@@ -1037,6 +1094,17 @@ export type Database = {
           total_engagement: number
           total_views: number
           url: string
+        }[]
+      }
+      get_creator_collaborations: {
+        Args: { p_creator_id: string }
+        Returns: {
+          brand_name: string
+          campaign_date: string
+          engagement_rate: number
+          logo_url: string
+          total_engagement: number
+          total_views: number
         }[]
       }
       get_current_user_role: {
