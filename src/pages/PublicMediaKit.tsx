@@ -114,13 +114,16 @@ export default function PublicMediaKit() {
   // Helper function to get social media links
   const getSocialLink = (platform: string, handle: string) => {
     const platformLower = platform.toLowerCase();
+    // Remove @ prefix if it exists to avoid double @
+    const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
+    
     switch (platformLower) {
       case 'youtube':
-        return `https://www.youtube.com/@${handle}`;
+        return `https://www.youtube.com/@${cleanHandle}`;
       case 'instagram':
-        return `https://www.instagram.com/${handle}`;
+        return `https://www.instagram.com/${cleanHandle}`;
       case 'tiktok':
-        return `https://www.tiktok.com/@${handle}`;
+        return `https://www.tiktok.com/@${cleanHandle}`;
       default:
         return '#';
     }
@@ -346,7 +349,7 @@ export default function PublicMediaKit() {
       case 'tiktok':
         return (
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.321 5.562a5.124 5.124 0 0 1-.443-.258 6.228 6.228 0 0 1-1.137-.966c-.849-.936-1.343-2.164-1.343-3.472V.866h-3.431v11.9c0 1.447-.591 2.517-1.634 3.067-.697.366-1.527.446-2.277.233-.75-.214-1.394-.686-1.764-1.293-.37-.608-.434-1.324-.175-1.962.26-.639.78-1.164 1.423-1.438.643-.275 1.375-.269 2.008.016l.633-3.158c-1.104-.386-2.288-.455-3.434-.2-1.146.255-2.204.83-3.065 1.665-.861.835-1.485 1.899-1.809 3.084-.324 1.185-.34 2.446-.045 3.64.295 1.194.895 2.284 1.738 3.157.843.873 1.895 1.494 3.048 1.8.652.173 1.322.2 1.981.079.659-.121 1.288-.382 1.86-.772 1.144-.78 1.968-1.944 2.283-3.226.158-.642.158-1.304 0-1.946V7.482c.697.402 1.463.688 2.26.844v-3.431c-.489-.108-.957-.295-1.376-.564z"/>
+            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
           </svg>
         );
       default:
