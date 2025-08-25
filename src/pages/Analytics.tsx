@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video } from 'lucide-react';
@@ -68,6 +69,8 @@ export default function Analytics() {
   const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
   const [usePercentEngagement, setUsePercentEngagement] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
+  const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -502,21 +505,21 @@ export default function Analytics() {
     // Apply bubble chart specific filters
     let bubbleVideoData = filteredVideoAnalytics;
     
-    // Apply campaign filter
-    if (campaignFilters.length > 0) {
+    // Apply bubble chart specific campaign filter
+    if (bubbleCampaignFilter.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
-        campaigns.some(c => c.id && campaignFilters.includes(c.id) && c.brand_name === v.campaign)
+        campaigns.some(c => c.id && bubbleCampaignFilter.includes(c.id) && c.brand_name === v.campaign)
       );
     }
     
-    // Apply creator filter
-    if (creatorFilters.length > 0) {
+    // Apply bubble chart specific creator filter
+    if (bubbleCreatorFilter.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
-        creators.some(c => c.id && creatorFilters.includes(c.id) && c.name === v.creator)
+        creators.some(c => c.id && bubbleCreatorFilter.includes(c.id) && c.name === v.creator)
       );
     }
     
-    // Apply master campaign filter
+    // Apply master campaign filter (keep existing)
     if (masterCampaignFilters.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
         campaigns.some(c => 
@@ -544,7 +547,7 @@ export default function Analytics() {
       (groups[v.platform] ||= []).push(item);
     });
     return groups;
-  }, [filteredVideoAnalytics, usePercentEngagement, campaignFilters, creatorFilters, masterCampaignFilters, campaigns, creators]);
+  }, [filteredVideoAnalytics, usePercentEngagement, bubbleCampaignFilter, bubbleCreatorFilter, masterCampaignFilters, campaigns, creators]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -1182,59 +1185,131 @@ export default function Analytics() {
                     </SelectContent>
                   </Select>
                   
-                  {/* Creator Filter for Bubble Chart */}
-                  <Select 
-                    value={creatorFilters.length === 1 ? creatorFilters[0] : "all"} 
-                    onValueChange={(value) => setCreatorFilters(value === "all" ? [] : [value])}
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Creator" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Creators</SelectItem>
-                      {creators.map(creator => (
-                        <SelectItem key={creator.id} value={creator.id}>
-                          {creator.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Creator Multi-Select Filter for Bubble Chart */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-36 justify-between">
+                        {bubbleCreatorFilter.length === 0 
+                          ? "All Creators" 
+                          : bubbleCreatorFilter.length === 1 
+                          ? creators.find(c => c.id === bubbleCreatorFilter[0])?.name || "All Creators"
+                          : `${bubbleCreatorFilter.length} Creators`
+                        }
+                        <Search className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="all-creators"
+                            checked={bubbleCreatorFilter.length === 0}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setBubbleCreatorFilter([]);
+                              }
+                            }}
+                          />
+                          <Label htmlFor="all-creators" className="text-sm font-medium">
+                            All Creators
+                          </Label>
+                        </div>
+                        <Separator />
+                        {creators.map(creator => {
+                          const isSelected = bubbleCreatorFilter.includes(creator.id);
+                          return (
+                            <div key={creator.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`creator-${creator.id}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setBubbleCreatorFilter(prev => [...prev, creator.id]);
+                                  } else {
+                                    setBubbleCreatorFilter(prev => prev.filter(id => id !== creator.id));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`creator-${creator.id}`} className="text-sm">
+                                {creator.name}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   
-                  {/* Campaign Filter for Bubble Chart */}
-                  <Select 
-                    value={campaignFilters.length === 1 ? campaignFilters[0] : "all"} 
-                    onValueChange={(value) => setCampaignFilters(value === "all" ? [] : [value])}
-                  >
-                    <SelectTrigger className="w-36">
-                      <SelectValue placeholder="Campaign" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Campaigns</SelectItem>
-                      {campaigns.map(campaign => (
-                        <SelectItem key={campaign.id} value={campaign.id}>
-                          {campaign.brand_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Campaign Multi-Select Filter for Bubble Chart */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-36 justify-between">
+                        {bubbleCampaignFilter.length === 0 
+                          ? "All Campaigns" 
+                          : bubbleCampaignFilter.length === 1 
+                          ? campaigns.find(c => c.id === bubbleCampaignFilter[0])?.brand_name || "All Campaigns"
+                          : `${bubbleCampaignFilter.length} Campaigns`
+                        }
+                        <Search className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="all-campaigns"
+                            checked={bubbleCampaignFilter.length === 0}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setBubbleCampaignFilter([]);
+                              }
+                            }}
+                          />
+                          <Label htmlFor="all-campaigns" className="text-sm font-medium">
+                            All Campaigns
+                          </Label>
+                        </div>
+                        <Separator />
+                        {campaigns.map(campaign => {
+                          const isSelected = bubbleCampaignFilter.includes(campaign.id);
+                          return (
+                            <div key={campaign.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`campaign-${campaign.id}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setBubbleCampaignFilter(prev => [...prev, campaign.id]);
+                                  } else {
+                                    setBubbleCampaignFilter(prev => prev.filter(id => id !== campaign.id));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`campaign-${campaign.id}`} className="text-sm">
+                                {campaign.brand_name}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   
-                  {/* Master Campaign Filter for Bubble Chart */}
-                  <Select 
-                    value={masterCampaignFilters.length === 1 ? masterCampaignFilters[0] : "all"} 
-                    onValueChange={(value) => setMasterCampaignFilters(value === "all" ? [] : [value])}
-                  >
-                    <SelectTrigger className="w-40">
-                      <SelectValue placeholder="Master Campaign" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Master Campaigns</SelectItem>
-                      {Array.from(new Set(campaigns.map(c => c.master_campaign_name).filter(Boolean))).map(name => (
-                        <SelectItem key={name} value={name!}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Clear Filters Button */}
+                  {(bubbleCreatorFilter.length > 0 || bubbleCampaignFilter.length > 0) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setBubbleCreatorFilter([]);
+                        setBubbleCampaignFilter([]);
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear Filters
+                    </Button>
+                  )}
                   
                   <Button variant="outline" size="sm" onClick={() => setUsePercentEngagement((p) => !p)}>
                     {usePercentEngagement ? 'X: Engagement %' : 'X: Total Engagement'}
