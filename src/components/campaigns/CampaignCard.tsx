@@ -6,11 +6,10 @@ import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/us
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, ChevronUp, ChevronDown } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
-import { DailyCampaignChart } from './DailyCampaignChart';
 import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
 import { toast } from 'sonner';
 import {
@@ -34,7 +33,6 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
-  const [showDailyChart, setShowDailyChart] = useState(false);
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
@@ -270,14 +268,10 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowDailyChart(!showDailyChart)}
+              onClick={() => onViewAnalytics(campaign)}
             >
-              {showDailyChart ? (
-                <ChevronUp className="h-4 w-4 mr-1" />
-              ) : (
-                <BarChart3 className="h-4 w-4 mr-1" />
-              )}
-              {showDailyChart ? 'Hide Chart' : 'Analytics'}
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Analytics
             </Button>
             <Button
               variant="outline"
@@ -343,16 +337,6 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
         </div>
       </CardFooter>
     </Card>
-
-    {/* Daily Performance Chart */}
-    {showDailyChart && (
-      <div className="mt-4">
-        <DailyCampaignChart 
-          campaignId={campaign.id} 
-          campaignName={campaign.brand_name} 
-        />
-      </div>
-    )}
 
     <EditCampaignDialog
       campaign={campaign}

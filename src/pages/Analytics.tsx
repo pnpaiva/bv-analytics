@@ -30,6 +30,7 @@ interface AggregateMetrics {
   avgEngagementRate: number;
   campaignCount: number;
   avgCPV: number;
+  totalPiecesOfContent: number;
 }
 
 interface PlatformBreakdown {
@@ -225,6 +226,24 @@ export default function Analytics() {
     }, 0);
     const avgCPV = totalViews > 0 ? totalDealValue / totalViews : 0;
 
+    // Calculate total pieces of content
+    const totalPiecesOfContent = selectedCampaignData.reduce((sum, campaign) => {
+      let contentCount = 0;
+      
+      // Count URLs from campaign creators
+      const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+      campaignCreatorData.forEach(cc => {
+        const contentUrls = cc.content_urls || {};
+        Object.values(contentUrls).forEach((urls: any) => {
+          if (Array.isArray(urls)) {
+            contentCount += urls.filter(url => url && url.trim()).length;
+          }
+        });
+      });
+      
+      return sum + contentCount;
+    }, 0);
+
     console.log('Analytics - Aggregate calculation:', {
       campaignCount: selectedCampaignData.length,
       totalViews,
@@ -243,9 +262,10 @@ export default function Analytics() {
       totalEngagement,
       avgEngagementRate,
       campaignCount: selectedCampaignData.length,
-      avgCPV
+      avgCPV,
+      totalPiecesOfContent
     };
-  }, [filteredCampaigns]);
+  }, [filteredCampaigns, campaignCreators]);
 
   // Calculate platform breakdown
   const platformBreakdown = useMemo((): PlatformBreakdown => {
@@ -851,7 +871,7 @@ export default function Analytics() {
         </Card>
 
         {/* Aggregate Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
@@ -859,6 +879,16 @@ export default function Analytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{aggregateMetrics.campaignCount}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Pieces of Content</CardTitle>
+              <Video className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{aggregateMetrics.totalPiecesOfContent}</div>
             </CardContent>
           </Card>
 
