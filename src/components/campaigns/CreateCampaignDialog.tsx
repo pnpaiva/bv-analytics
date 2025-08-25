@@ -33,7 +33,8 @@ export function CreateCampaignDialog() {
     brand_name: '',
     campaign_date: '',
     campaign_month: '',
-    deal_value: '',
+    fixed_deal_value: '',
+    variable_deal_value: '',
     client_id: '',
     master_campaign_name: '',
     logo_url: '',
@@ -71,7 +72,8 @@ export function CreateCampaignDialog() {
       brand_name: formData.brand_name,
       campaign_date: formData.campaign_date,
       campaign_month: formData.campaign_month || undefined,
-      deal_value: formData.deal_value ? parseFloat(formData.deal_value) : undefined,
+      fixed_deal_value: formData.fixed_deal_value ? parseFloat(formData.fixed_deal_value) : undefined,
+      variable_deal_value: formData.variable_deal_value ? parseFloat(formData.variable_deal_value) : undefined,
       client_id: formData.client_id || undefined,
       master_campaign_name: formData.master_campaign_name || undefined,
       logo_url: formData.logo_url || undefined,
@@ -83,7 +85,8 @@ export function CreateCampaignDialog() {
       brand_name: '',
       campaign_date: '',
       campaign_month: '',
-      deal_value: '',
+      fixed_deal_value: '',
+      variable_deal_value: '',
       client_id: '',
       master_campaign_name: '',
       logo_url: '',
@@ -162,16 +165,28 @@ export function CreateCampaignDialog() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="deal_value">Deal Value</Label>
+              <Label htmlFor="fixed_deal_value">Fixed Deal Value</Label>
               <Input
-                id="deal_value"
+                id="fixed_deal_value"
                 type="number"
                 step="0.01"
                 placeholder="0.00"
-                value={formData.deal_value}
-                onChange={(e) => setFormData({ ...formData, deal_value: e.target.value })}
+                value={formData.fixed_deal_value}
+                onChange={(e) => setFormData({ ...formData, fixed_deal_value: e.target.value })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="variable_deal_value">Variable Deal Value</Label>
+              <Input
+                id="variable_deal_value"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.variable_deal_value}
+                onChange={(e) => setFormData({ ...formData, variable_deal_value: e.target.value })}
               />
             </div>
             

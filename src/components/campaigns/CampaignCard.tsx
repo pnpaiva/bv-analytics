@@ -243,13 +243,16 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
         <div className="text-sm text-muted-foreground">
           <p>Rate: {campaign.engagement_rate.toFixed(2)}%</p>
           <p>Month: {campaign.campaign_month || format(new Date(campaign.campaign_date), 'MMM yyyy')}</p>
-        {campaign.clients && (
-          <p>Client: {campaign.clients.name}</p>
-        )}
-        {campaign.airtable_id && (
-          <p>Airtable ID: {campaign.airtable_id}</p>
-        )}
-      </div>
+          {(campaign.fixed_deal_value || campaign.variable_deal_value) && (
+            <p>Deal Value: Fixed ${(campaign.fixed_deal_value || 0).toLocaleString()} + Variable ${(campaign.variable_deal_value || 0).toLocaleString()}</p>
+          )}
+          {campaign.clients && (
+            <p>Client: {campaign.clients.name}</p>
+          )}
+          {campaign.airtable_id && (
+            <p>Airtable ID: {campaign.airtable_id}</p>
+          )}
+        </div>
 
         {renderContentUrls()}
       </CardContent>

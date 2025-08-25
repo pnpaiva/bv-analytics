@@ -13,7 +13,9 @@ export interface Campaign {
   engagement_rate: number;
   campaign_date: string;
   campaign_month?: string;
-  deal_value?: number;
+  deal_value?: number; // Keep for backward compatibility
+  fixed_deal_value?: number;
+  variable_deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;
   master_campaign_start_date?: string;
@@ -38,7 +40,8 @@ export interface CreateCampaignData {
   brand_name: string;
   campaign_date: string;
   campaign_month?: string;
-  deal_value?: number;
+  fixed_deal_value?: number;
+  variable_deal_value?: number;
   client_id?: string;
   master_campaign_name?: string;
   logo_url?: string;

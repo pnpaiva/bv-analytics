@@ -355,6 +355,7 @@ export type Database = {
           creator_id: string | null
           deal_value: number | null
           engagement_rate: number | null
+          fixed_deal_value: number | null
           id: string
           is_master_campaign_template: boolean | null
           logo_url: string | null
@@ -368,6 +369,7 @@ export type Database = {
           total_views: number | null
           updated_at: string
           user_id: string
+          variable_deal_value: number | null
         }
         Insert: {
           airtable_id?: string | null
@@ -383,6 +385,7 @@ export type Database = {
           creator_id?: string | null
           deal_value?: number | null
           engagement_rate?: number | null
+          fixed_deal_value?: number | null
           id?: string
           is_master_campaign_template?: boolean | null
           logo_url?: string | null
@@ -396,6 +399,7 @@ export type Database = {
           total_views?: number | null
           updated_at?: string
           user_id: string
+          variable_deal_value?: number | null
         }
         Update: {
           airtable_id?: string | null
@@ -411,6 +415,7 @@ export type Database = {
           creator_id?: string | null
           deal_value?: number | null
           engagement_rate?: number | null
+          fixed_deal_value?: number | null
           id?: string
           is_master_campaign_template?: boolean | null
           logo_url?: string | null
@@ -424,6 +429,7 @@ export type Database = {
           total_views?: number | null
           updated_at?: string
           user_id?: string
+          variable_deal_value?: number | null
         }
         Relationships: [
           {
@@ -676,43 +682,61 @@ export type Database = {
       public_media_kits: {
         Row: {
           avatar_url: string | null
+          bio: string | null
           created_at: string
           creator_id: string | null
+          demographics: Json | null
           id: string
+          location: string | null
           name: string
           platform_handles: Json | null
+          platform_metrics: Json | null
           published: boolean
           published_at: string | null
+          services: Json | null
           slug: string
           stats: Json | null
+          top_videos: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           creator_id?: string | null
+          demographics?: Json | null
           id?: string
+          location?: string | null
           name: string
           platform_handles?: Json | null
+          platform_metrics?: Json | null
           published?: boolean
           published_at?: string | null
+          services?: Json | null
           slug: string
           stats?: Json | null
+          top_videos?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           creator_id?: string | null
+          demographics?: Json | null
           id?: string
+          location?: string | null
           name?: string
           platform_handles?: Json | null
+          platform_metrics?: Json | null
           published?: boolean
           published_at?: string | null
+          services?: Json | null
           slug?: string
           stats?: Json | null
+          top_videos?: Json | null
           updated_at?: string
           user_id?: string
         }

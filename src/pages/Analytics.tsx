@@ -29,6 +29,7 @@ interface AggregateMetrics {
   totalEngagement: number;
   avgEngagementRate: number;
   campaignCount: number;
+  avgCPV: number;
 }
 
 interface PlatformBreakdown {
@@ -216,6 +217,13 @@ export default function Analytics() {
     const totalViews = selectedCampaignData.reduce((sum, c) => sum + (c.total_views || 0), 0);
     const totalEngagement = selectedCampaignData.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
     const avgEngagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
+    
+    const totalDealValue = selectedCampaignData.reduce((sum, c) => {
+      const fixed = c.fixed_deal_value || 0;
+      const variable = c.variable_deal_value || 0;
+      return sum + fixed + variable;
+    }, 0);
+    const avgCPV = totalViews > 0 ? totalDealValue / totalViews : 0;
 
     console.log('Analytics - Aggregate calculation:', {
       campaignCount: selectedCampaignData.length,
@@ -234,7 +242,8 @@ export default function Analytics() {
       totalViews,
       totalEngagement,
       avgEngagementRate,
-      campaignCount: selectedCampaignData.length
+      campaignCount: selectedCampaignData.length,
+      avgCPV
     };
   }, [filteredCampaigns]);
 
@@ -880,6 +889,16 @@ export default function Analytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{aggregateMetrics.avgEngagementRate.toFixed(2)}%</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Average CPV</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">${aggregateMetrics.avgCPV.toFixed(4)}</div>
             </CardContent>
           </Card>
 

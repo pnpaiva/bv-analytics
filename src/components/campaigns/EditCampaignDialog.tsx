@@ -44,7 +44,8 @@ const formSchema = z.object({
   brand_name: z.string().min(1, 'Brand name is required'),
   campaign_date: z.string().min(1, 'Campaign date is required'),
   campaign_month: z.string().optional(),
-  deal_value: z.string().optional(),
+  fixed_deal_value: z.string().optional(),
+  variable_deal_value: z.string().optional(),
   client_id: z.string().optional(),
   logo_url: z.string().optional(),
   masterCampaignName: z.string().optional(),
@@ -76,7 +77,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       brand_name: '',
       campaign_date: '',
       campaign_month: '',
-      deal_value: '',
+      fixed_deal_value: '',
+      variable_deal_value: '',
       client_id: '',
       logo_url: '',
       masterCampaignName: '',
@@ -91,7 +93,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
         brand_name: campaign.brand_name,
         campaign_date: campaign.campaign_date,
         campaign_month: campaign.campaign_month || '',
-        deal_value: campaign.deal_value?.toString() || '',
+        fixed_deal_value: campaign.fixed_deal_value?.toString() || '',
+        variable_deal_value: campaign.variable_deal_value?.toString() || '',
         client_id: campaign.client_id || '',
         logo_url: campaign.logo_url || '',
         masterCampaignName: campaign.master_campaign_name || '__no_master__',
@@ -141,7 +144,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
           brand_name: data.brand_name,
           campaign_date: data.campaign_date,
           campaign_month: data.campaign_month || null,
-          deal_value: data.deal_value ? parseFloat(data.deal_value) : null,
+          fixed_deal_value: data.fixed_deal_value ? parseFloat(data.fixed_deal_value) : null,
+          variable_deal_value: data.variable_deal_value ? parseFloat(data.variable_deal_value) : null,
           client_id: data.client_id || null,
           logo_url: data.logo_url || null,
           master_campaign_name: data.masterCampaignName === '__no_master__' ? null : data.masterCampaignName || null,
@@ -228,8 +232,8 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
               />
             </div>
 
-            {/* Campaign Month, Deal Value, and Airtable ID */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* Campaign Month, Deal Values, and Airtable ID */}
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="campaign_month"
@@ -238,20 +242,6 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
                     <FormLabel>Campaign Month</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., January 2024, Q1 2024" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="deal_value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Deal Value</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -266,6 +256,37 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
                     <FormLabel>Airtable ID</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter Airtable ID" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Deal Values */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="fixed_deal_value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fixed Deal Value</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="variable_deal_value"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Variable Deal Value</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
