@@ -873,8 +873,8 @@ export default function Analytics() {
         {/* Aggregate Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+              <CardTitle className="text-sm font-medium leading-tight">Total Campaigns</CardTitle>
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -883,8 +883,8 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Pieces of Content</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+              <CardTitle className="text-sm font-medium leading-tight">Total Content</CardTitle>
               <Video className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -893,8 +893,8 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Views</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+              <CardTitle className="text-sm font-medium leading-tight">Total Views</CardTitle>
               <Eye className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -903,8 +903,8 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Engagement</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+              <CardTitle className="text-sm font-medium leading-tight">Total Engagement</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -913,8 +913,8 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Engagement Rate</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+              <CardTitle className="text-sm font-medium leading-tight">Avg Engagement Rate</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -923,8 +923,8 @@ export default function Analytics() {
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average CPV</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+              <CardTitle className="text-sm font-medium leading-tight">Average CPV</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
