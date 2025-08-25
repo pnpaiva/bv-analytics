@@ -503,13 +503,13 @@ export default function Analytics() {
   };
 
   const bubbleSeries = useMemo(() => {
-    // Apply bubble chart specific filters
-    let bubbleVideoData = filteredVideoAnalytics;
+    // Start with raw video analytics data, not the pre-filtered version
+    let bubbleVideoData = videoAnalytics;
     
     // Apply bubble chart specific platform filter
     if (bubblePlatformFilter.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
-        bubblePlatformFilter.includes(v.platform)
+        bubblePlatformFilter.includes(v.platform.toLowerCase())
       );
     }
     
@@ -554,8 +554,16 @@ export default function Analytics() {
       };
       (groups[v.platform] ||= []).push(item);
     });
+    
+    console.log('Bubble series data:', { 
+      bubblePlatformFilter, 
+      bubbleVideoDataLength: bubbleVideoData.length, 
+      groupsKeys: Object.keys(groups),
+      groups 
+    });
+    
     return groups;
-  }, [filteredVideoAnalytics, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, masterCampaignFilters, campaigns, creators]);
+  }, [videoAnalytics, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, masterCampaignFilters, campaigns, creators]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
