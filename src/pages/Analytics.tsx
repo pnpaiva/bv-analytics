@@ -71,6 +71,7 @@ export default function Analytics() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
   const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
+  const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -505,6 +506,13 @@ export default function Analytics() {
     // Apply bubble chart specific filters
     let bubbleVideoData = filteredVideoAnalytics;
     
+    // Apply bubble chart specific platform filter
+    if (bubblePlatformFilter.length > 0) {
+      bubbleVideoData = bubbleVideoData.filter(v => 
+        bubblePlatformFilter.includes(v.platform)
+      );
+    }
+    
     // Apply bubble chart specific campaign filter
     if (bubbleCampaignFilter.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
@@ -547,7 +555,7 @@ export default function Analytics() {
       (groups[v.platform] ||= []).push(item);
     });
     return groups;
-  }, [filteredVideoAnalytics, usePercentEngagement, bubbleCampaignFilter, bubbleCreatorFilter, masterCampaignFilters, campaigns, creators]);
+  }, [filteredVideoAnalytics, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, masterCampaignFilters, campaigns, creators]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -1173,17 +1181,61 @@ export default function Analytics() {
                   <CardDescription>Y: Views, X: {usePercentEngagement ? 'Engagement %' : 'Engagement total'}. Click on Any Bubble to Open the Video.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Select value={videoPlatformFilter} onValueChange={setVideoPlatformFilter}>
-                    <SelectTrigger className="w-32">
-                      <SelectValue placeholder="Platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Platforms</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
-                      <SelectItem value="instagram">Instagram</SelectItem>
-                      <SelectItem value="tiktok">TikTok</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Platform Multi-Select Filter for Bubble Chart */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-32 justify-between">
+                        {bubblePlatformFilter.length === 0 
+                          ? "All Platforms" 
+                          : bubblePlatformFilter.length === 1 
+                          ? bubblePlatformFilter[0].charAt(0).toUpperCase() + bubblePlatformFilter[0].slice(1)
+                          : `${bubblePlatformFilter.length} Platforms`
+                        }
+                        <Search className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="all-platforms"
+                            checked={bubblePlatformFilter.length === 0}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setBubblePlatformFilter([]);
+                              }
+                            }}
+                          />
+                          <Label htmlFor="all-platforms" className="text-sm font-medium">
+                            All Platforms
+                          </Label>
+                        </div>
+                        <Separator />
+                        {['youtube', 'instagram', 'tiktok'].map(platform => {
+                          const isSelected = bubblePlatformFilter.includes(platform);
+                          const displayName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                          return (
+                            <div key={platform} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`platform-${platform}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setBubblePlatformFilter(prev => [...prev, platform]);
+                                  } else {
+                                    setBubblePlatformFilter(prev => prev.filter(p => p !== platform));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`platform-${platform}`} className="text-sm">
+                                {displayName}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   
                   {/* Creator Multi-Select Filter for Bubble Chart */}
                   <Popover>
@@ -1296,13 +1348,14 @@ export default function Analytics() {
                   </Popover>
                   
                   {/* Clear Filters Button */}
-                  {(bubbleCreatorFilter.length > 0 || bubbleCampaignFilter.length > 0) && (
+                  {(bubbleCreatorFilter.length > 0 || bubbleCampaignFilter.length > 0 || bubblePlatformFilter.length > 0) && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={() => {
                         setBubbleCreatorFilter([]);
                         setBubbleCampaignFilter([]);
+                        setBubblePlatformFilter([]);
                       }}
                       className="text-muted-foreground hover:text-foreground"
                     >
