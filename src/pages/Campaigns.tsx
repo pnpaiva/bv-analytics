@@ -30,7 +30,7 @@ export default function Campaigns() {
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [analyticsOpen, setAnalyticsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
   const [refreshAllDialogOpen, setRefreshAllDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +47,7 @@ export default function Campaigns() {
   const handleExportPDF = async (options: ExportCustomizationOptions) => {
     try {
       const exporter = new PremiumPDFExporter();
-      const exportTitle = options.customTitle || (searchTerm || statusFilter !== 'all' 
+      const exportTitle = options.customTitle || (searchTerm 
         ? `Filtered Campaigns Report` 
         : 'All Campaigns Report');
       
@@ -88,14 +88,9 @@ export default function Campaigns() {
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.creators?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
-  const statusCounts = campaigns.reduce((acc, campaign) => {
-    acc[campaign.status] = (acc[campaign.status] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
@@ -106,7 +101,7 @@ export default function Campaigns() {
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm]);
 
   if (isLoading) {
     return (
@@ -155,39 +150,6 @@ export default function Campaigns() {
             />
           </div>
           
-          <div className="flex items-center space-x-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <div className="flex space-x-2">
-              <Badge
-                variant={statusFilter === 'all' ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => setStatusFilter('all')}
-              >
-                All ({campaigns.length})
-              </Badge>
-              <Badge
-                variant={statusFilter === 'completed' ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => setStatusFilter('completed')}
-              >
-                Completed ({statusCounts.completed || 0})
-              </Badge>
-              <Badge
-                variant={statusFilter === 'analyzing' ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => setStatusFilter('analyzing')}
-              >
-                Analyzing ({statusCounts.analyzing || 0})
-              </Badge>
-              <Badge
-                variant={statusFilter === 'draft' ? 'default' : 'outline'}
-                className="cursor-pointer"
-                onClick={() => setStatusFilter('draft')}
-              >
-                Draft ({statusCounts.draft || 0})
-              </Badge>
-            </div>
-          </div>
         </div>
 
         {filteredCampaigns.length === 0 ? (
@@ -285,7 +247,7 @@ export default function Campaigns() {
           onOpenChange={setExportDialogOpen}
           onExport={handleExportPDF}
           campaignCount={filteredCampaigns.length}
-          defaultTitle={searchTerm || statusFilter !== 'all' 
+          defaultTitle={searchTerm 
             ? `Filtered Campaigns Report` 
             : 'All Campaigns Report'}
         />

@@ -218,6 +218,16 @@ Deno.serve(async (req) => {
               p_analytics_data: platformResults,
             });
 
+            // Collect daily performance data
+            try {
+              await supabase.functions.invoke('collect-daily-performance', {
+                body: { campaignId: campaign.id },
+              });
+            } catch (dailyError) {
+              console.error('Error collecting daily performance:', dailyError);
+              // Don't fail the whole process if daily collection fails
+            }
+
             progress.status = 'completed';
             send(progress);
           }

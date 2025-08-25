@@ -634,6 +634,42 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_campaign_performance: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          date_recorded: string
+          engagement_rate: number | null
+          id: string
+          platform_breakdown: Json | null
+          total_engagement: number | null
+          total_views: number | null
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          date_recorded?: string
+          engagement_rate?: number | null
+          id?: string
+          platform_breakdown?: Json | null
+          total_engagement?: number | null
+          total_views?: number | null
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          date_recorded?: string
+          engagement_rate?: number | null
+          id?: string
+          platform_breakdown?: Json | null
+          total_engagement?: number | null
+          total_views?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       error_logs: {
         Row: {
           context: Json | null
@@ -1311,6 +1347,17 @@ export type Database = {
           p_platform: string
           p_shares?: number
           p_views?: number
+        }
+        Returns: undefined
+      }
+      upsert_daily_campaign_performance: {
+        Args: {
+          p_campaign_id: string
+          p_date_recorded: string
+          p_engagement_rate?: number
+          p_platform_breakdown?: Json
+          p_total_engagement?: number
+          p_total_views?: number
         }
         Returns: undefined
       }
