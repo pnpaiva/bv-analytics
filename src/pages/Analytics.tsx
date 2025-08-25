@@ -4,6 +4,10 @@ import { useCreators } from '@/hooks/useCreators';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
+import { CampaignPlatformComparison } from '@/components/insights/CampaignPlatformComparison';
+import { CampaignCreatorComparison } from '@/components/insights/CampaignCreatorComparison';
+import { PlatformCreatorComparison } from '@/components/insights/PlatformCreatorComparison';
+import { CreatorPlatformAverages } from '@/components/insights/CreatorPlatformAverages';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -887,9 +891,10 @@ export default function Analytics() {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="videos">Video Analytics</TabsTrigger>
+            <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -1291,6 +1296,55 @@ export default function Analytics() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="insights" className="space-y-6">
+            <Tabs defaultValue="campaign-platform" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="campaign-platform">Campaign × Platform</TabsTrigger>
+                <TabsTrigger value="campaign-creator">Campaign × Creator</TabsTrigger>
+                <TabsTrigger value="platform-creator">Platform × Creator</TabsTrigger>
+                <TabsTrigger value="averages">Performance Averages</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="campaign-platform">
+                <CampaignPlatformComparison 
+                  campaigns={campaigns}
+                  filteredCampaigns={filteredCampaigns}
+                />
+              </TabsContent>
+
+              <TabsContent value="campaign-creator">
+                <CampaignCreatorComparison 
+                  campaigns={campaigns}
+                  filteredCampaigns={filteredCampaigns}
+                  creators={creators}
+                  campaignCreators={campaignCreators}
+                  getCreatorIdForUrl={getCreatorIdForUrl}
+                  creatorLookup={creatorLookup}
+                />
+              </TabsContent>
+
+              <TabsContent value="platform-creator">
+                <PlatformCreatorComparison 
+                  campaigns={campaigns}
+                  filteredCampaigns={filteredCampaigns}
+                  creators={creators}
+                  getCreatorIdForUrl={getCreatorIdForUrl}
+                  creatorLookup={creatorLookup}
+                />
+              </TabsContent>
+
+              <TabsContent value="averages">
+                <CreatorPlatformAverages 
+                  campaigns={campaigns}
+                  filteredCampaigns={filteredCampaigns}
+                  creators={creators}
+                  getCreatorIdForUrl={getCreatorIdForUrl}
+                  creatorLookup={creatorLookup}
+                />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
 
