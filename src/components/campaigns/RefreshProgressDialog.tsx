@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProgressUpdate {
   campaignId: string;
@@ -33,6 +34,7 @@ export function RefreshProgressDialog({
   const [overallProgress, setOverallProgress] = useState(0);
   const [totalProcessedUrls, setTotalProcessedUrls] = useState(0);
   const [grandTotalUrls, setGrandTotalUrls] = useState(0);
+  const [streamEnded, setStreamEnded] = useState(false);
 
   useEffect(() => {
     if (!open || campaignIds.length === 0) return;
@@ -58,6 +60,27 @@ export function RefreshProgressDialog({
       };
     });
     setProgress(initialProgress);
+
+    // Prefill campaign names for a better UX
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('campaigns')
+          .select('id, brand_name')
+          .in('id', campaignIds);
+        if (data) {
+          setProgress(prev => {
+            const next = { ...prev };
+            data.forEach((c: any) => {
+              if (next[c.id]) next[c.id].campaignName = c.brand_name;
+            });
+            return next;
+          });
+        }
+      } catch (e) {
+        console.warn('Could not prefill campaign names', e);
+      }
+    })();
 
     // Start the refresh process
     const startRefresh = async () => {
@@ -100,15 +123,14 @@ export function RefreshProgressDialog({
               console.log('Received SSE data:', data);
               
               if (data.type === 'complete') {
-                console.log('Refresh complete');
-                setIsComplete(true);
-                setOverallProgress(100);
+                console.log('Refresh complete (stream ended)');
+                setStreamEnded(true);
                 onComplete();
                 continue;
               }
               if (data.type === 'error') {
                 console.error('Stream error:', data.message);
-                setIsComplete(true);
+                setStreamEnded(true);
                 continue;
               }
               if (data.campaignId) {
@@ -176,6 +198,20 @@ export function RefreshProgressDialog({
         return <Badge variant="outline">Pending</Badge>;
     }
   };
+  // Derive overall progress and completion from progress map
+  useEffect(() => {
+    const all = Object.values(progress);
+    const totalC = campaignIds.length;
+    const completedCount = all.filter(p => p.status === 'completed' || p.status === 'error').length;
+    const urlsTotal = all.reduce((sum, p) => sum + (p.totalUrls || 0), 0);
+    const urlsDone = all.reduce((sum, p) => sum + (p.processedUrls || 0), 0);
+
+    const ratioUrls = urlsTotal > 0 ? Math.round((urlsDone / urlsTotal) * 100) : 0;
+    const ratioCamps = Math.round((completedCount / totalC) * 100);
+    setOverallProgress(urlsTotal > 0 ? ratioUrls : ratioCamps);
+
+    if (streamEnded && completedCount === totalC) setIsComplete(true);
+  }, [progress, campaignIds.length, streamEnded]);
 
   const totalCampaigns = campaignIds.length;
   const completedCampaigns = Object.values(progress).filter(p => p.status === 'completed' || p.status === 'error').length;
