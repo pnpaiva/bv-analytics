@@ -341,6 +341,12 @@ Deno.serve(async (req) => {
       throw updateError;
     }
 
+    // Set status to completed on success
+    await supabase.rpc('set_campaign_status', {
+      p_campaign_id: campaignId,
+      p_status: 'completed'
+    });
+
     return new Response(
       JSON.stringify({
         success: true,

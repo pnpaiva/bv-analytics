@@ -85,6 +85,8 @@ export function CampaignCard({
       console.error('Error refreshing campaign:', error);
       await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
     } finally {
+      // Ensure we refetch campaigns to get the latest status from server
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       setRefreshing(false);
     }
   };
@@ -318,14 +320,33 @@ export function CampaignCard({
               <Edit3 className="h-4 w-4 mr-1" />
               Edit
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setMasterCampaignDialogOpen(true)}
-            >
-              <Link2 className="h-4 w-4 mr-1" />
-              {campaign.master_campaign_name ? 'Unlink' : 'Link'}
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                >
+                  <Link2 className="h-4 w-4 mr-1" />
+                  {campaign.master_campaign_name ? 'Unlink' : 'Link'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{campaign.master_campaign_name ? 'Unlink from Master Campaign' : 'Link to Master Campaign'}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {campaign.master_campaign_name ?
+                      `Are you sure you want to unlink "${campaign.brand_name}" from "${campaign.master_campaign_name}"? You can relink later.` :
+                      `Link "${campaign.brand_name}" to a master campaign.`}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => setMasterCampaignDialogOpen(true)}>
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm">

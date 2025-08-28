@@ -186,13 +186,11 @@ Deno.serve(async (req) => {
               totalUrls: 0,
             };
 
-            // Send initial processing status immediately
-            send(progress);
-
-            // Move to analyzing (DB status)
+            // Ensure DB status reflects processing
             await supabase.rpc('set_campaign_status', { p_campaign_id: campaign.id, p_status: 'analyzing' });
 
-            // Gather, normalize and dedupe URLs
+            // Send initial processing status immediately
+            send(progress);
             const urls = collectUrls(campaign);
             progress.totalUrls = urls.length;
             console.log(`Campaign ${campaign.brand_name} has ${urls.length} URLs to process`);
@@ -209,6 +207,8 @@ Deno.serve(async (req) => {
                 p_engagement_rate: 0,
                 p_analytics_data: {},
               });
+              // Mark campaign as completed in DB when no URLs
+              await supabase.rpc('set_campaign_status', { p_campaign_id: campaign.id, p_status: 'completed' });
               progress.status = 'completed';
               send(progress);
               console.log(`Campaign ${campaign.brand_name} completed (no URLs)`);
@@ -276,8 +276,10 @@ Deno.serve(async (req) => {
                 });
               } catch (dailyError) {
                 console.error('Error collecting daily performance:', dailyError);
-                // Don't fail the whole process if daily collection fails
               }
+
+              // Mark campaign as completed in DB
+              await supabase.rpc('set_campaign_status', { p_campaign_id: campaign.id, p_status: 'completed' });
 
               progress.status = 'completed';
               send(progress);
@@ -292,6 +294,7 @@ Deno.serve(async (req) => {
               console.error(`Error updating campaign analytics for ${campaign.brand_name}:`, updateError);
               campaignSuccess = false;
               campaignError = `Failed to update analytics: ${String(updateError && (updateError as any).message || updateError)}`;
+              await supabase.rpc('set_campaign_status', { p_campaign_id: campaign.id, p_status: 'error' });
             }
 
             if (!campaignSuccess) {

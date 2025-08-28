@@ -134,7 +134,6 @@ export function MasterCampaignDialog({ campaign, isOpen, onClose, onSave }: Mast
 
   const onSubmit = async (data: FormData) => {
     if (!campaign) return;
-
     setIsLoading(true);
     try {
       let updateData: any = {
