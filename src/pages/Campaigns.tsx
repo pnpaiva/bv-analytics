@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
 import { CreateCampaignDialog } from '@/components/campaigns/CreateCampaignDialog';
@@ -103,13 +103,13 @@ export default function Campaigns() {
     );
   };
 
-  const handleRefreshComplete = () => {
+  const handleRefreshComplete = useCallback(() => {
     // Add a delay to ensure backend has fully committed status changes
     setTimeout(() => {
       refetch();
       toast.success('Campaign refresh completed');
-    }, 2000); // 2 second delay to prevent race conditions
-  };
+    }, 2000);
+  }, [refetch]);
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,6 +117,12 @@ export default function Campaigns() {
     return matchesSearch;
   });
 
+  const computedCampaignIds = useMemo(() => {
+    if (selectedCampaignIds.length > 0) return [...selectedCampaignIds].sort();
+    const ids = campaigns.filter(c => c.status !== 'draft').map(c => c.id);
+    ids.sort();
+    return ids;
+  }, [selectedCampaignIds, campaigns]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
@@ -301,10 +307,7 @@ export default function Campaigns() {
         <RefreshProgressDialog
           open={refreshProgressOpen}
           onOpenChange={setRefreshProgressOpen}
-          campaignIds={selectedCampaignIds.length > 0 
-            ? selectedCampaignIds 
-            : campaigns.filter(c => c.status !== 'draft').map(c => c.id)
-          }
+          campaignIds={computedCampaignIds}
           onComplete={handleRefreshComplete}
         />
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -48,9 +48,17 @@ export function RefreshProgressDialog({
   const [grandTotalUrls, setGrandTotalUrls] = useState(0);
   const [streamEnded, setStreamEnded] = useState(false);
   const [summary, setSummary] = useState<RefreshSummary | null>(null);
+  const startedKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!open || campaignIds.length === 0) return;
+    if (!open || campaignIds.length === 0 || isComplete) return;
+
+    // Build a stable key for the set of campaign IDs to avoid duplicate starts
+    const idsKey = [...campaignIds].sort().join(',');
+    if (startedKeyRef.current === idsKey) {
+      return; // already streaming for this exact set
+    }
+    startedKeyRef.current = idsKey;
 
     console.log('Starting refresh progress tracking for campaigns:', campaignIds);
     
@@ -148,8 +156,9 @@ export function RefreshProgressDialog({
     };
     return () => {
       es.close();
+      startedKeyRef.current = null;
     };
-  }, [open, campaignIds, onComplete]);
+  }, [open, campaignIds, isComplete]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
