@@ -98,12 +98,13 @@ Deno.serve(async (req) => {
             // Not a valid absolute URL, best effort normalization below
           }
 
-          const lower = url.toLowerCase();
+          // Preserve original case for IDs (YouTube IDs are case-sensitive)
           if (platform === 'youtube') {
             // Convert youtu.be/<id> to youtube.com/watch?v=<id>
-            const short = lower.match(/https?:\/\/youtu\.be\/([a-z0-9_-]{6,})/i);
+            const short = url.match(/https?:\/\/youtu\.be\/([A-Za-z0-9_-]{6,})/i);
             if (short) return `https://www.youtube.com/watch?v=${short[1]}`;
-            const shorts = lower.match(/https?:\/\/(?:www\.)?youtube\.com\/shorts\/([a-z0-9_-]{6,})/i);
+            // Convert shorts path to standard watch URL
+            const shorts = url.match(/https?:\/\/(?:www\.)?youtube\.com\/shorts\/([A-Za-z0-9_-]{6,})/i);
             if (shorts) return `https://www.youtube.com/watch?v=${shorts[1]}`;
             return url;
           }
