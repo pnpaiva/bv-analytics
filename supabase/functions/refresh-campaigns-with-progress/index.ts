@@ -22,9 +22,18 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { campaignIds } = await req.json();
+    let campaignIds: string[] = [];
+
+    if (req.method === 'GET') {
+      const u = new URL(req.url);
+      const ids = u.searchParams.get('ids') || '';
+      campaignIds = ids.split(',').map((s) => s.trim()).filter(Boolean);
+    } else {
+      const body = await req.json().catch(() => ({}));
+      campaignIds = Array.isArray(body.campaignIds) ? body.campaignIds : [];
+    }
     
-    if (!campaignIds || !Array.isArray(campaignIds)) {
+    if (!campaignIds || !Array.isArray(campaignIds) || campaignIds.length === 0) {
       return new Response(
         JSON.stringify({ error: 'Campaign IDs array is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
