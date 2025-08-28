@@ -156,7 +156,10 @@ Deno.serve(async (req) => {
               totalUrls: 0,
             };
 
-            // Move to analyzing
+            // Send initial processing status immediately
+            send(progress);
+
+            // Move to analyzing (DB status)
             await supabase.rpc('set_campaign_status', { p_campaign_id: campaign.id, p_status: 'analyzing' });
 
             // Gather, normalize and dedupe URLs
