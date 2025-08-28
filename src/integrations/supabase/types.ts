@@ -264,6 +264,48 @@ export type Database = {
           },
         ]
       }
+      campaign_refresh_logs: {
+        Row: {
+          campaign_results: Json
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          failed_campaigns: number
+          id: string
+          started_at: string
+          successful_campaigns: number
+          total_campaigns: number
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_results?: Json
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_campaigns?: number
+          id?: string
+          started_at?: string
+          successful_campaigns?: number
+          total_campaigns?: number
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_results?: Json
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_campaigns?: number
+          id?: string
+          started_at?: string
+          successful_campaigns?: number
+          total_campaigns?: number
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaign_url_analytics: {
         Row: {
           analytics_metadata: Json | null
@@ -1269,6 +1311,16 @@ export type Database = {
         Args: { p_creator_id: string }
         Returns: boolean
       }
+      log_campaign_refresh_completion: {
+        Args: {
+          p_campaign_results: Json
+          p_failed_campaigns: number
+          p_log_id: string
+          p_successful_campaigns: number
+          p_total_campaigns: number
+        }
+        Returns: undefined
+      }
       publish_public_media_kit: {
         Args: { p_creator_id: string; p_slug?: string }
         Returns: string
@@ -1289,6 +1341,10 @@ export type Database = {
           new_expires_at?: string
         }
         Returns: boolean
+      }
+      schedule_daily_campaign_refresh: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       set_campaign_status: {
         Args: { p_campaign_id: string; p_status: string }

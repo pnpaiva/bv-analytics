@@ -23,6 +23,18 @@ interface RefreshProgressDialogProps {
   onComplete: () => void;
 }
 
+interface RefreshSummary {
+  total: number;
+  successful: number;
+  failed: number;
+  results: Array<{
+    id: string;
+    name: string;
+    status: 'success' | 'failed';
+    error?: string;
+  }>;
+}
+
 export function RefreshProgressDialog({ 
   open, 
   onOpenChange, 
@@ -35,6 +47,7 @@ export function RefreshProgressDialog({
   const [totalProcessedUrls, setTotalProcessedUrls] = useState(0);
   const [grandTotalUrls, setGrandTotalUrls] = useState(0);
   const [streamEnded, setStreamEnded] = useState(false);
+  const [summary, setSummary] = useState<RefreshSummary | null>(null);
 
   useEffect(() => {
     if (!open || campaignIds.length === 0) return;
@@ -47,6 +60,7 @@ export function RefreshProgressDialog({
     setOverallProgress(0);
     setTotalProcessedUrls(0);
     setGrandTotalUrls(0);
+    setSummary(null);
 
     // Initialize progress for all campaigns
     const initialProgress: Record<string, ProgressUpdate> = {};
@@ -95,6 +109,9 @@ export function RefreshProgressDialog({
 
         if (data.type === 'complete') {
           console.log('Stream completed, marking as ended');
+          if (data.summary) {
+            setSummary(data.summary);
+          }
           setStreamEnded(true);
           onComplete();
           return;
@@ -187,77 +204,146 @@ export function RefreshProgressDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Refreshing Campaigns</DialogTitle>
+          <DialogTitle>
+            {isComplete ? 'Refresh Complete' : 'Refreshing Campaigns'}
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
-          {/* Overall Progress */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>Overall Progress</span>
-              <span>{completedCampaigns} of {totalCampaigns} campaigns</span>
-            </div>
-            <Progress value={overallProgress} className="w-full" />
-          </div>
-
-          {/* URL Progress */}
-          {grandTotalUrls > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span>URLs Processed</span>
-                <span>{totalProcessedUrls} of {grandTotalUrls} URLs</span>
+        
+        {summary ? (
+          // Show summary when refresh is complete
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold">{summary.total}</div>
+                <div className="text-sm text-muted-foreground">Total Campaigns</div>
               </div>
-              <Progress value={grandTotalUrls > 0 ? (totalProcessedUrls / grandTotalUrls) * 100 : 0} className="w-full" />
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{summary.successful}</div>
+                <div className="text-sm text-muted-foreground">Successful</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{summary.failed}</div>
+                <div className="text-sm text-muted-foreground">Failed</div>
+              </div>
             </div>
-          )}
 
-          {/* Campaign Details */}
-          <div className="space-y-3">
-            <h4 className="font-medium">Campaign Details</h4>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {Object.values(progress).map((campaign) => (
-                <div key={campaign.campaignId} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    {getStatusIcon(campaign.status)}
-                    <div>
-                      <p className="font-medium text-sm">{campaign.campaignName}</p>
-                      {campaign.totalUrls > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {campaign.processedUrls} of {campaign.totalUrls} URLs
-                        </p>
-                      )}
-                      {campaign.error && (
-                        <p className="text-xs text-red-500">{campaign.error}</p>
+            <div className="space-y-2">
+              <h4 className="font-medium">Campaign Details:</h4>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {summary.results.map((result) => (
+                  <div key={result.id} className="flex items-center justify-between p-3 border rounded">
+                    <span className="font-medium">{result.name}</span>
+                    <div className="flex items-center gap-2">
+                      {result.status === 'success' ? (
+                        <Badge className="bg-green-100 text-green-800">Success</Badge>
+                      ) : (
+                        <Badge variant="destructive">Failed</Badge>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {getStatusBadge(campaign.status)}
-                    {campaign.status === 'processing' && campaign.totalUrls > 0 && (
-                      <div className="w-16">
-                        <Progress 
-                          value={(campaign.processedUrls / campaign.totalUrls) * 100} 
-                          className="h-2"
-                        />
+                ))}
+              </div>
+            </div>
+
+            {summary.failed > 0 && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h4 className="font-medium text-red-800 mb-2">Failed Campaigns:</h4>
+                <div className="space-y-2 text-sm">
+                  {summary.results
+                    .filter(r => r.status === 'failed')
+                    .map((result) => (
+                      <div key={result.id} className="space-y-1">
+                        <div className="font-medium">{result.name}</div>
+                        {result.error && (
+                          <div className="text-muted-foreground ml-2">
+                            Error: {result.error}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end">
+              <Button onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
             </div>
           </div>
+        ) : (
+          // Show progress when refresh is in progress
+          <div className="space-y-6">
+            {/* Overall Progress */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>Overall Progress</span>
+                <span>{completedCampaigns} of {totalCampaigns} campaigns</span>
+              </div>
+              <Progress value={overallProgress} className="w-full" />
+            </div>
 
-          {/* Actions */}
-          <div className="flex justify-end">
-            <Button 
-              onClick={() => onOpenChange(false)}
-              disabled={!isComplete}
-              variant={isComplete ? "default" : "outline"}
-            >
-              {isComplete ? 'Close' : 'Cancel'}
-            </Button>
+            {/* URL Progress */}
+            {grandTotalUrls > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>URLs Processed</span>
+                  <span>{totalProcessedUrls} of {grandTotalUrls} URLs</span>
+                </div>
+                <Progress value={grandTotalUrls > 0 ? (totalProcessedUrls / grandTotalUrls) * 100 : 0} className="w-full" />
+              </div>
+            )}
+
+            {/* Campaign Details */}
+            <div className="space-y-3">
+              <h4 className="font-medium">Campaign Details</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {Object.values(progress).map((campaign) => (
+                  <div key={campaign.campaignId} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      {getStatusIcon(campaign.status)}
+                      <div>
+                        <p className="font-medium text-sm">{campaign.campaignName}</p>
+                        {campaign.totalUrls > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            {campaign.processedUrls} of {campaign.totalUrls} URLs
+                          </p>
+                        )}
+                        {campaign.error && (
+                          <p className="text-xs text-red-500">{campaign.error}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {getStatusBadge(campaign.status)}
+                      {campaign.status === 'processing' && campaign.totalUrls > 0 && (
+                        <div className="w-16">
+                          <Progress 
+                            value={(campaign.processedUrls / campaign.totalUrls) * 100} 
+                            className="h-2"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end">
+              <Button 
+                onClick={() => onOpenChange(false)}
+                disabled={!isComplete}
+                variant={isComplete ? "default" : "outline"}
+              >
+                {isComplete ? 'Close' : 'Cancel'}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

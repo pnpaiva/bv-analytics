@@ -47,6 +47,19 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Create refresh log entry
+    const { data: refreshLog } = await supabase
+      .from('campaign_refresh_logs')
+      .insert({
+        total_campaigns: campaignIds.length,
+        trigger_type: 'bulk',
+        campaign_results: []
+      })
+      .select('id')
+      .single();
+
+    const refreshLogId = refreshLog?.id;
+
     // Create a streaming response
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -158,6 +171,8 @@ Deno.serve(async (req) => {
 
           console.log(`Processing ${campaigns.length} campaigns`);
           
+          const campaignResults: Array<{id: string, name: string, status: 'success' | 'failed', error?: string}> = [];
+          
           for (let i = 0; i < campaigns.length; i++) {
             const campaign = campaigns[i];
             console.log(`Starting campaign ${i + 1}/${campaigns.length}: ${campaign.brand_name} (${campaign.id})`);
@@ -182,6 +197,9 @@ Deno.serve(async (req) => {
             console.log(`Campaign ${campaign.brand_name} has ${urls.length} URLs to process`);
             send(progress);
 
+            let campaignSuccess = true;
+            let campaignError = '';
+
             if (urls.length === 0) {
               await supabase.rpc('update_campaign_analytics', {
                 p_campaign_id: campaign.id,
@@ -193,6 +211,11 @@ Deno.serve(async (req) => {
               progress.status = 'completed';
               send(progress);
               console.log(`Campaign ${campaign.brand_name} completed (no URLs)`);
+              campaignResults.push({
+                id: campaign.id,
+                name: campaign.brand_name,
+                status: 'success'
+              });
               continue;
             }
 
@@ -223,6 +246,8 @@ Deno.serve(async (req) => {
                 console.error(`Final failure processing ${platform} URL ${url}:`, err);
                 if (!platformResults[platform]) platformResults[platform] = [];
                 platformResults[platform].push({ url, error: String(err && (err as any).message || err) });
+                campaignSuccess = false;
+                campaignError = `Failed processing ${platform} URL: ${String(err && (err as any).message || err)}`;
               }
 
               // Update progress after each URL
@@ -233,32 +258,75 @@ Deno.serve(async (req) => {
               await sleep(perPlatformDelay[platform] ?? 1200);
             }
 
-            const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
-            await supabase.rpc('update_campaign_analytics', {
-              p_campaign_id: campaign.id,
-              p_total_views: totalViews,
-              p_total_engagement: totalEngagement,
-              p_engagement_rate: engagementRate,
-              p_analytics_data: platformResults,
-            });
-
-            // Collect daily performance data
             try {
-              await supabase.functions.invoke('collect-daily-performance', {
-                body: { campaignId: campaign.id },
+              const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+              await supabase.rpc('update_campaign_analytics', {
+                p_campaign_id: campaign.id,
+                p_total_views: totalViews,
+                p_total_engagement: totalEngagement,
+                p_engagement_rate: engagementRate,
+                p_analytics_data: platformResults,
               });
-            } catch (dailyError) {
-              console.error('Error collecting daily performance:', dailyError);
-              // Don't fail the whole process if daily collection fails
+
+              // Collect daily performance data
+              try {
+                await supabase.functions.invoke('collect-daily-performance', {
+                  body: { campaignId: campaign.id },
+                });
+              } catch (dailyError) {
+                console.error('Error collecting daily performance:', dailyError);
+                // Don't fail the whole process if daily collection fails
+              }
+
+              progress.status = 'completed';
+              send(progress);
+              console.log(`Campaign ${campaign.brand_name} completed successfully`);
+              
+              campaignResults.push({
+                id: campaign.id,
+                name: campaign.brand_name,
+                status: 'success'
+              });
+            } catch (updateError) {
+              console.error(`Error updating campaign analytics for ${campaign.brand_name}:`, updateError);
+              campaignSuccess = false;
+              campaignError = `Failed to update analytics: ${String(updateError && (updateError as any).message || updateError)}`;
             }
 
-            progress.status = 'completed';
-            send(progress);
-            console.log(`Campaign ${campaign.brand_name} completed successfully`);
+            if (!campaignSuccess) {
+              campaignResults.push({
+                id: campaign.id,
+                name: campaign.brand_name,
+                status: 'failed',
+                error: campaignError
+              });
+            }
+          }
+
+          // Log completion summary
+          if (refreshLogId) {
+            const successCount = campaignResults.filter(r => r.status === 'success').length;
+            const failedCount = campaignResults.filter(r => r.status === 'failed').length;
+            
+            await supabase.rpc('log_campaign_refresh_completion', {
+              p_log_id: refreshLogId,
+              p_total_campaigns: campaigns.length,
+              p_successful_campaigns: successCount,
+              p_failed_campaigns: failedCount,
+              p_campaign_results: campaignResults
+            });
           }
 
           console.log('All campaigns processed, sending completion signal');
-          send({ type: 'complete' });
+          send({ 
+            type: 'complete', 
+            summary: {
+              total: campaigns.length,
+              successful: campaignResults.filter(r => r.status === 'success').length,
+              failed: campaignResults.filter(r => r.status === 'failed').length,
+              results: campaignResults
+            }
+          });
         } catch (error: any) {
           console.error('Error in progressive refresh:', error);
           send({ type: 'error', message: String(error?.message || error) });
