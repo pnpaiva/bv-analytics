@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Campaign } from '@/hooks/useCampaigns';
 import { useCampaignTimeline } from '@/hooks/useCampaignTimeline';
 import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
+import { useDailyCampaignPerformance } from '@/hooks/useDailyCampaignPerformance';
 import { Eye, Heart, Share2, MessageCircle, Download, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
@@ -23,90 +24,17 @@ interface CampaignAnalyticsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Generate realistic timeline data from actual database
-const generateTimelineData = (campaign: Campaign, timelineData: any[]) => {
-  if (!timelineData || timelineData.length === 0) {
-    // Fallback to old method if no timeline data available
-    if (!campaign.analytics_data) return [];
-    
-    const analyticsData = campaign.analytics_data as any;
-    const allVideos: Array<{url: string, views: number, engagement: number, platform: string}> = [];
-    
-    // Collect all videos from all platforms
-    if (analyticsData.youtube?.length > 0) {
-      analyticsData.youtube.forEach((video: any) => {
-        allVideos.push({
-          url: video.url,
-          views: video.views || 0,
-          engagement: video.engagement || 0,
-          platform: 'YouTube'
-        });
-      });
-    }
-    
-    if (analyticsData.instagram?.length > 0) {
-      analyticsData.instagram.forEach((video: any) => {
-        allVideos.push({
-          url: video.url,
-          views: video.views || 0,
-          engagement: video.engagement || 0,
-          platform: 'Instagram'
-        });
-      });
-    }
-    
-    if (analyticsData.tiktok?.length > 0) {
-      analyticsData.tiktok.forEach((video: any) => {
-        allVideos.push({
-          url: video.url,
-          views: video.views || 0,
-          engagement: video.engagement || 0,
-          platform: 'TikTok'
-        });
-      });
-    }
-    
-    if (allVideos.length === 0) return [];
-    
-    // Create timeline based on video release simulation
-    const baseDate = new Date(campaign.campaign_date);
-    const timelineData = [];
-    
-    // Simulate videos being released over time
-    const totalVideos = allVideos.length;
-    const daysToSpread = Math.min(totalVideos, 7); // Spread over up to 7 days
-    
-    for (let i = 0; i < daysToSpread; i++) {
-      const date = new Date(baseDate);
-      date.setDate(date.getDate() + i);
-      
-      // Calculate how many videos would be "released" by this day
-      const videosReleased = Math.ceil((i + 1) * totalVideos / daysToSpread);
-      const videosToInclude = allVideos.slice(0, videosReleased);
-      
-      const views = videosToInclude.reduce((sum, v) => sum + v.views, 0);
-      const engagement = videosToInclude.reduce((sum, v) => sum + v.engagement, 0);
-      const engagementRate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
-      
-      timelineData.push({
-        date: date.toISOString().split('T')[0],
-        views,
-        engagement,
-        engagementRate,
-        videosCount: videosReleased
-      });
-    }
-    
-    return timelineData;
-  }
+// Generate timeline data from daily_campaign_performance table
+const generateTimelineData = (dailyData: any[]) => {
+  if (!dailyData || dailyData.length === 0) return [];
   
-  // Use actual timeline data from database
-  return timelineData.map((day: any) => ({
+  // Use actual daily campaign performance data
+  return dailyData.map((day: any) => ({
     date: day.date_recorded,
-    views: day.total_views,
-    engagement: day.total_engagement,
-    engagementRate: Number(day.engagement_rate.toFixed(2)),
-    platformBreakdown: day.platform_breakdown
+    views: day.total_views || 0,
+    engagement: day.total_engagement || 0,
+    engagementRate: Number((day.engagement_rate || 0).toFixed(2)),
+    platformBreakdown: day.platform_breakdown || {}
   }));
 };
 
@@ -171,7 +99,8 @@ const getPlatformDataStatic = (campaign: Campaign) => {
 export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: CampaignAnalyticsModalProps) {
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Fetch real timeline data from database
+  // Fetch real historical data from daily_campaign_performance table
+  const { data: dailyPerformanceData = [] } = useDailyCampaignPerformance(campaign?.id || '', 30);
   const { data: timelineData = [] } = useCampaignTimeline(campaign?.id || '', 30);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign?.id || '');
 
@@ -236,7 +165,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   };
 
   const platformData = getPlatformData();
-  const finalTimelineData = generateTimelineData(campaign, timelineData);
+  const finalTimelineData = generateTimelineData(dailyPerformanceData);
 
   const handleExport = () => {
     const data = {
@@ -296,7 +225,6 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{campaign.total_views.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">+12% from last week</p>
                 </CardContent>
               </Card>
 
@@ -307,7 +235,6 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{campaign.total_engagement.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">+8% from last week</p>
                 </CardContent>
               </Card>
 
@@ -318,7 +245,6 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{campaign.engagement_rate.toFixed(2)}%</div>
-                  <p className="text-xs text-muted-foreground">+0.5% from last week</p>
                 </CardContent>
               </Card>
 
@@ -454,7 +380,6 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                         <p className="font-medium">{format(new Date(day.date), 'MMMM d, yyyy')}</p>
                         <p className="text-sm text-muted-foreground">
                           {day.views.toLocaleString()} views • {day.engagement.toLocaleString()} engagement
-                          {day.videosCount && ` • ${day.videosCount} videos`}
                         </p>
                       </div>
                       <Badge variant="outline">{day.engagementRate}%</Badge>
