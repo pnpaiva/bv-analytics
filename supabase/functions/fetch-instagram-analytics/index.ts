@@ -119,14 +119,21 @@ Deno.serve(async (req) => {
           console.log('Processing Instagram post data:', JSON.stringify(post, null, 2));
           
           // Instagram Post Scraper response format - handle multiple possible field names
-          // Check for Video Play Count and other view-related fields
-          const views = post.videoPlayCount || post.videoViewCount || post.playCount || 
-                       post.viewsCount || post.views || post['Video Play Count'] || 0;
+          // Normalize metrics from various possible fields and guard against hidden counters (-1)
+          const viewsRaw = post.videoPlayCount ?? post.videoViewCount ?? post.playCount ??
+                           post.viewsCount ?? post.views ?? post['Video Play Count'] ?? 0;
+          const views = Math.max(0, Number(viewsRaw) || 0);
           
-          const likes = Math.max(0, post.likesCount || post.likeCount || post.likes || 
-                       post.diggCount || 0);
+          const likesRaw = post.likesCount ?? post.likeCount ?? post.likes ??
+                           post.edge_liked_by?.count ??
+                           post.edge_media_preview_like?.count ??
+                           post.previewLikeCount ?? post.like_count ?? 0;
+          const likes = Math.max(0, Number(likesRaw) || 0);
           
-          const comments = post.commentsCount || post.commentCount || post.comments || 0;
+          const commentsRaw = post.commentsCount ?? post.commentCount ?? post.comments ??
+                              post.edge_media_to_comment?.count ??
+                              post.comment_count ?? 0;
+          const comments = Math.max(0, Number(commentsRaw) || 0);
           
           const engagement = likes + comments;
           const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
