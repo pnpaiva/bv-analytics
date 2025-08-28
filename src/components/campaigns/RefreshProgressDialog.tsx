@@ -112,15 +112,18 @@ export function RefreshProgressDialog({
           if (data.summary) {
             setSummary(data.summary);
           }
+          // Explicitly close to prevent EventSource auto-reconnect
+          es.close();
           setStreamEnded(true);
-          // Don't call onComplete immediately - let the UI handle timing
           setTimeout(() => {
             onComplete();
-          }, 1000); // 1 second delay to let the stream fully close
+          }, 1000);
           return;
         }
         if (data.type === 'error') {
           console.error('Stream error:', data.message);
+          // Close to avoid auto-reconnect loops
+          es.close();
           setStreamEnded(true);
           return;
         }
@@ -139,13 +142,10 @@ export function RefreshProgressDialog({
     es.onerror = (err) => {
       console.error('EventSource error', err);
       console.log('EventSource readyState:', es.readyState);
-      // Check if connection is closed
-      if (es.readyState === EventSource.CLOSED) {
-        console.log('EventSource connection closed');
-        setStreamEnded(true);
-      }
+      // Close to avoid browser auto-reconnect starting a new refresh
+      es.close();
+      setStreamEnded(true);
     };
-
     return () => {
       es.close();
     };
