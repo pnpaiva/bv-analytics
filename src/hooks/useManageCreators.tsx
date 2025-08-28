@@ -6,6 +6,7 @@ export interface CreateCreatorData {
   name: string;
   platform_handles?: Record<string, string>;
   avatar_url?: string;
+  niche?: string[];
 }
 
 export interface UpdateCreatorData {
@@ -21,6 +22,7 @@ export interface UpdateCreatorData {
   demographics?: Record<string, any>;
   services?: Array<{ name: string; price: number }>;
   top_videos?: Array<any>;
+  niche?: string[];
 }
 
 export function useCreateCreator() {
@@ -76,6 +78,7 @@ export function useUpdateCreator() {
           demographics: data.demographics,
           services: data.services,
           top_videos: data.top_videos,
+          niche: data.niche,
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.id)

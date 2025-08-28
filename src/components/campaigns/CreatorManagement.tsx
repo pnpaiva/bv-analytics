@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +26,10 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Edit, Trash2, Loader2, User } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, User, ChevronDown } from 'lucide-react';
 import { useCreators } from '@/hooks/useCreators';
 import { useCreateCreator, useUpdateCreator, useDeleteCreator } from '@/hooks/useManageCreators';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface CreatorFormData {
   name: string;
@@ -35,7 +37,31 @@ interface CreatorFormData {
   youtube_handle: string;
   instagram_handle: string;
   tiktok_handle: string;
+  niche: string[];
 }
+
+const NICHE_OPTIONS = [
+  'Technology & Digital',
+  'Gaming',
+  'Education & Learning',
+  'Lifestyle & Vlogging',
+  'Health & Fitness',
+  'Food & Cooking',
+  'Business & Finance',
+  'Arts & Creativity',
+  'Entertainment & Commentary',
+  'Music',
+  'Travel & Adventure',
+  'Beauty & Fashion',
+  'Automotive',
+  'Home & Living',
+  'Film, TV & Media',
+  'Science & Curiosity',
+  'Politics & Society',
+  'Animals & Pets',
+  'ASMR & Relaxation',
+  'Other'
+];
 
 export function CreatorManagement() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -47,6 +73,7 @@ export function CreatorManagement() {
     youtube_handle: '',
     instagram_handle: '',
     tiktok_handle: '',
+    niche: [],
   });
 
   const { data: creators = [], isLoading } = useCreators();
@@ -61,6 +88,7 @@ export function CreatorManagement() {
       youtube_handle: '',
       instagram_handle: '',
       tiktok_handle: '',
+      niche: [],
     });
   };
 
@@ -110,11 +138,12 @@ export function CreatorManagement() {
   const openEditDialog = (creator: any) => {
     setEditingCreator(creator);
     setFormData({
-      name: creator.name,
+      name: creator.name || '',
       avatar_url: creator.avatar_url || '',
       youtube_handle: creator.platform_handles?.youtube || '',
       instagram_handle: creator.platform_handles?.instagram || '',
       tiktok_handle: creator.platform_handles?.tiktok || '',
+      niche: (creator as any).niche || [],
     });
     setEditOpen(true);
   };
@@ -204,6 +233,52 @@ export function CreatorManagement() {
                     placeholder="@creatorname"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label>Niche (Select multiple)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {formData.niche.length > 0 
+                          ? `${formData.niche.length} selected`
+                          : "Select niches..."
+                        }
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <div className="max-h-60 overflow-auto p-2">
+                        {NICHE_OPTIONS.map((niche) => (
+                          <div key={niche} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded">
+                            <Checkbox
+                              id={`niche-${niche}`}
+                              checked={formData.niche.includes(niche)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFormData({ ...formData, niche: [...formData.niche, niche] });
+                                } else {
+                                  setFormData({ ...formData, niche: formData.niche.filter(n => n !== niche) });
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`niche-${niche}`} className="text-sm cursor-pointer">
+                              {niche}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {formData.niche.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {formData.niche.map((niche, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {niche}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <DialogFooter>
@@ -254,6 +329,20 @@ export function CreatorManagement() {
                     <Badge variant="outline">TikTok: {creator.platform_handles.tiktok}</Badge>
                   )}
                 </div>
+                         {(creator as any).niche && (creator as any).niche.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {(creator as any).niche.slice(0, 3).map((niche: string, index: number) => (
+                              <Badge key={index} variant="secondary" className="text-xs">
+                                {niche}
+                              </Badge>
+                            ))}
+                            {(creator as any).niche.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{(creator as any).niche.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                 
                 <div className="flex items-center justify-end gap-2">
                   <Button
@@ -367,9 +456,55 @@ export function CreatorManagement() {
                   value={formData.tiktok_handle}
                   onChange={(e) => setFormData({ ...formData, tiktok_handle: e.target.value })}
                   placeholder="@creatorname"
-                />
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Niche (Select multiple)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {formData.niche.length > 0 
+                          ? `${formData.niche.length} selected`
+                          : "Select niches..."
+                        }
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <div className="max-h-60 overflow-auto p-2">
+                        {NICHE_OPTIONS.map((niche) => (
+                          <div key={niche} className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded">
+                            <Checkbox
+                              id={`edit-niche-${niche}`}
+                              checked={formData.niche.includes(niche)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setFormData({ ...formData, niche: [...formData.niche, niche] });
+                                } else {
+                                  setFormData({ ...formData, niche: formData.niche.filter(n => n !== niche) });
+                                }
+                              }}
+                            />
+                            <Label htmlFor={`edit-niche-${niche}`} className="text-sm cursor-pointer">
+                              {niche}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  {formData.niche.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {formData.niche.map((niche, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs">
+                          {niche}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
             <DialogFooter>
               <Button 

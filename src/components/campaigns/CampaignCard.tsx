@@ -31,6 +31,7 @@ interface CampaignCardProps {
   isSelected?: boolean;
   onSelect?: (isSelected: boolean) => void;
   showCheckbox?: boolean;
+  showDealValue?: boolean;
 }
 
 export function CampaignCard({ 
@@ -38,7 +39,8 @@ export function CampaignCard({
   onViewAnalytics, 
   isSelected = false,
   onSelect,
-  showCheckbox = false
+  showCheckbox = false,
+  showDealValue = true
 }: CampaignCardProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -267,7 +269,7 @@ export function CampaignCard({
         <div className="text-sm text-muted-foreground">
           <p>Rate: {campaign.engagement_rate.toFixed(2)}%</p>
           <p>Month: {campaign.campaign_month || format(new Date(campaign.campaign_date), 'MMM yyyy')}</p>
-          {(campaign.fixed_deal_value || campaign.variable_deal_value) && (
+          {showDealValue && (campaign.fixed_deal_value || campaign.variable_deal_value) && (
             <p>Deal Value: Fixed ${(campaign.fixed_deal_value || 0).toLocaleString()} + Variable ${(campaign.variable_deal_value || 0).toLocaleString()}</p>
           )}
           {campaign.clients && (

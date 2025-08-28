@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video } from 'lucide-react';
+import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { PDFExporter } from '@/utils/pdfExporter';
 import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
@@ -69,6 +69,7 @@ export default function Analytics() {
   const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
   const [usePercentEngagement, setUsePercentEngagement] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [showDealValue, setShowDealValue] = useState(true);
   const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
   const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
   const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
@@ -690,6 +691,17 @@ export default function Analytics() {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="deal-value-toggle"
+                checked={showDealValue}
+                onCheckedChange={setShowDealValue}
+              />
+              <Label htmlFor="deal-value-toggle" className="text-sm">
+                {showDealValue ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Label>
+              <span className="text-sm text-muted-foreground">Deal Value</span>
+            </div>
             <Button 
               onClick={() => setExportDialogOpen(true)} 
               disabled={filteredCampaigns.length === 0}
@@ -946,15 +958,17 @@ export default function Analytics() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
-              <CardTitle className="text-sm font-medium leading-tight">Average CPV</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${aggregateMetrics.avgCPV.toFixed(4)}</div>
-            </CardContent>
-          </Card>
+          {showDealValue && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 h-16">
+                <CardTitle className="text-sm font-medium leading-tight">Average CPV</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${aggregateMetrics.avgCPV.toFixed(4)}</div>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
 

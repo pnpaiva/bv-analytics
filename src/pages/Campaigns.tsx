@@ -6,9 +6,11 @@ import { CampaignAnalyticsModal } from '@/components/campaigns/CampaignAnalytics
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
@@ -37,6 +39,7 @@ export default function Campaigns() {
   const [itemsPerPage] = useState(12);
   const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
+  const [showDealValue, setShowDealValue] = useState(true);
   
   const { data: campaigns = [], isLoading, refetch } = useCampaigns();
 
@@ -159,6 +162,17 @@ export default function Campaigns() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="deal-value-toggle"
+                checked={showDealValue}
+                onCheckedChange={setShowDealValue}
+              />
+              <Label htmlFor="deal-value-toggle" className="text-sm">
+                {showDealValue ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Label>
+              <span className="text-sm text-muted-foreground">Deal Value</span>
+            </div>
             {selectedCampaignIds.length > 0 && (
               <Button variant="outline" onClick={handleRefreshSelected}>
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -225,6 +239,7 @@ export default function Campaigns() {
                   isSelected={selectedCampaignIds.includes(campaign.id)}
                   onSelect={(isSelected) => handleCampaignSelect(campaign.id, isSelected)}
                   showCheckbox={campaign.status !== 'draft'}
+                  showDealValue={showDealValue}
                 />
               ))}
             </div>

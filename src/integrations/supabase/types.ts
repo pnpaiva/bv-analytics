@@ -632,6 +632,7 @@ export type Database = {
           id: string
           location: string | null
           name: string
+          niche: string[] | null
           phone: string | null
           platform_handles: Json | null
           platform_metrics: Json | null
@@ -649,6 +650,7 @@ export type Database = {
           id?: string
           location?: string | null
           name: string
+          niche?: string[] | null
           phone?: string | null
           platform_handles?: Json | null
           platform_metrics?: Json | null
@@ -666,6 +668,7 @@ export type Database = {
           id?: string
           location?: string | null
           name?: string
+          niche?: string[] | null
           phone?: string | null
           platform_handles?: Json | null
           platform_metrics?: Json | null
