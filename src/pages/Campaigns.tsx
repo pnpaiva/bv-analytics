@@ -104,9 +104,11 @@ export default function Campaigns() {
   };
 
   const handleRefreshComplete = () => {
-    // Refetch campaigns data
-    refetch();
-    toast.success('Campaign refresh completed');
+    // Add a delay to ensure backend has fully committed status changes
+    setTimeout(() => {
+      refetch();
+      toast.success('Campaign refresh completed');
+    }, 2000); // 2 second delay to prevent race conditions
   };
 
   const filteredCampaigns = campaigns.filter(campaign => {

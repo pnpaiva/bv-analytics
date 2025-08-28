@@ -113,7 +113,10 @@ export function RefreshProgressDialog({
             setSummary(data.summary);
           }
           setStreamEnded(true);
-          onComplete();
+          // Don't call onComplete immediately - let the UI handle timing
+          setTimeout(() => {
+            onComplete();
+          }, 1000); // 1 second delay to let the stream fully close
           return;
         }
         if (data.type === 'error') {
