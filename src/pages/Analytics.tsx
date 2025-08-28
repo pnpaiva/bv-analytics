@@ -522,8 +522,12 @@ export default function Analytics() {
     
     // Apply bubble chart specific creator filter
     if (bubbleCreatorFilter.length > 0) {
+      const selectedCreatorNames = bubbleCreatorFilter.map(creatorId => 
+        creators.find(c => c.id === creatorId)?.name
+      ).filter(Boolean);
+      
       bubbleVideoData = bubbleVideoData.filter(v => 
-        creators.some(c => c.id && bubbleCreatorFilter.includes(c.id) && c.name === v.creator)
+        selectedCreatorNames.includes(v.creator)
       );
     }
     
