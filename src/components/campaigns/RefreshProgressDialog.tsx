@@ -67,6 +67,9 @@ export function RefreshProgressDialog({
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
           },
           body: JSON.stringify({ campaignIds }),
         });
@@ -79,60 +82,63 @@ export function RefreshProgressDialog({
         if (!reader) throw new Error('No reader available');
 
         const decoder = new TextDecoder();
+        let buffer = '';
         
         while (true) {
           const { done, value } = await reader.read();
-          
           if (done) break;
-          
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(line => line.trim());
-          
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
-                console.log('Received SSE data:', data);
-                
-                if (data.type === 'complete') {
-                  console.log('Refresh complete');
-                  setIsComplete(true);
-                  setOverallProgress(100);
-                  onComplete();
-                  break;
-                } else if (data.type === 'error') {
-                  console.error('Stream error:', data.message);
-                  setIsComplete(true);
-                  break;
-                } else if (data.campaignId) {
-                  const update = data as ProgressUpdate;
-                  console.log('Updating campaign progress:', update);
-                  
-                  setProgress(prev => {
-                    const next = {
-                      ...prev,
-                      [update.campaignId]: update
-                    };
-                    
-                    // Calculate cumulative progress
-                    const allProgress = Object.values(next);
-                    const completedCount = allProgress.filter(p => p.status === 'completed' || p.status === 'error').length;
-                    const newOverallProgress = Math.round((completedCount / campaignIds.length) * 100);
-                    
-                    // Update cumulative URL counts
-                    const newTotalUrls = allProgress.reduce((sum, p) => sum + p.totalUrls, 0);
-                    const newProcessedUrls = allProgress.reduce((sum, p) => sum + p.processedUrls, 0);
-                    
-                    setOverallProgress(newOverallProgress);
-                    setGrandTotalUrls(newTotalUrls);
-                    setTotalProcessedUrls(newProcessedUrls);
-                    
-                    return next;
-                  });
-                }
-              } catch (e) {
-                console.error('Error parsing progress data:', e, 'Raw line:', line);
+          buffer += decoder.decode(value, { stream: true });
+
+          const events = buffer.split('\n\n');
+          buffer = events.pop() || '';
+
+          for (const event of events) {
+            const dataLine = event.split('\n').find(l => l.startsWith('data: '));
+            if (!dataLine) continue;
+            try {
+              const data = JSON.parse(dataLine.slice(6));
+              console.log('Received SSE data:', data);
+              
+              if (data.type === 'complete') {
+                console.log('Refresh complete');
+                setIsComplete(true);
+                setOverallProgress(100);
+                onComplete();
+                continue;
               }
+              if (data.type === 'error') {
+                console.error('Stream error:', data.message);
+                setIsComplete(true);
+                continue;
+              }
+              if (data.campaignId) {
+                const update = data as ProgressUpdate;
+                console.log('Updating campaign progress:', update);
+                
+                setProgress(prev => {
+                  const next = {
+                    ...prev,
+                    [update.campaignId]: update
+                  };
+                  
+                  // Calculate cumulative progress
+                  const allProgress = Object.values(next);
+                  const completedCount = allProgress.filter(p => p.status === 'completed' || p.status === 'error').length;
+                  const newOverallProgress = Math.round((completedCount / campaignIds.length) * 100);
+                  
+                  // Update cumulative URL counts
+                  const newTotalUrls = allProgress.reduce((sum, p) => sum + (p.totalUrls || 0), 0);
+                  const newProcessedUrls = allProgress.reduce((sum, p) => sum + (p.processedUrls || 0), 0);
+                  
+                  setOverallProgress(newOverallProgress);
+                  setGrandTotalUrls(newTotalUrls);
+                  setTotalProcessedUrls(newProcessedUrls);
+                  
+                  return next;
+                });
+              }
+            } catch (e) {
+              console.error('Error parsing progress data:', e, 'Raw event:', event);
             }
           }
         }

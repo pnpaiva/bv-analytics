@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract video ID from YouTube URL
+    // Extract video ID from YouTube URL (supports watch, youtu.be and shorts)
     const videoId = extractYouTubeVideoId(url);
     if (!videoId) {
       return new Response(
@@ -32,19 +32,40 @@ Deno.serve(async (req) => {
 
     const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY');
     
+    // Helper: fallback scraping when API key missing or API fails
+    const fetchFromHtml = async (vid: string) => {
+      try {
+        const watchUrl = `https://www.youtube.com/watch?v=${vid}`;
+        const res = await fetch(watchUrl, { headers: { 'Accept-Language': 'en-US,en;q=0.9' } });
+        const html = await res.text();
+        // Prefer structured player response when available
+        const directMatch = html.match(/\"viewCount\":\"(\d+)\"/);
+        let views = 0;
+        if (directMatch && directMatch[1]) {
+          views = parseInt(directMatch[1]);
+        } else {
+          // Fallback to human readable "1,234 views"
+          const readable = html.match(/([\d.,]+)\s+views/);
+          if (readable && readable[1]) {
+            views = Number(readable[1].replace(/[,\.]/g, '')) || 0;
+          }
+        }
+        const likes = 0; // Not reliably available without API
+        const comments = 0; // Not reliably available without API
+        const engagement = likes + comments;
+        const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
+        return { views, likes, comments, engagement, rate };
+      } catch (e) {
+        console.error('HTML fallback failed:', e);
+        return { views: 0, likes: 0, comments: 0, engagement: 0, rate: 0 };
+      }
+    };
+    
     if (!youtubeApiKey) {
-      console.log('YouTube API key not found, returning mock data');
-      // Return mock data when API key is not available
-      const mockData = {
-        views: Math.floor(Math.random() * 100000) + 10000,
-        engagement: Math.floor(Math.random() * 5000) + 500,
-        likes: Math.floor(Math.random() * 3000) + 300,
-        comments: Math.floor(Math.random() * 500) + 50,
-        rate: Number((Math.random() * 5 + 3).toFixed(2))
-      };
-      
+      console.log('YouTube API key not found, using HTML fallback');
+      const result = await fetchFromHtml(videoId);
       return new Response(
-        JSON.stringify(mockData),
+        JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -86,25 +107,43 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error fetching YouTube analytics:', error);
-    
-    // Return mock data on error
-    const mockData = {
-      views: Math.floor(Math.random() * 100000) + 10000,
-      engagement: Math.floor(Math.random() * 5000) + 500,
-      likes: Math.floor(Math.random() * 3000) + 300,
-      comments: Math.floor(Math.random() * 500) + 50,
-      rate: Number((Math.random() * 5 + 3).toFixed(2))
-    };
-    
+    const safeFallback = { views: 0, engagement: 0, likes: 0, comments: 0, rate: 0 };
     return new Response(
-      JSON.stringify(mockData),
+      JSON.stringify(safeFallback),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-function extractYouTubeVideoId(url: string): string | null {
-  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
+function extractYouTubeVideoId(input: string): string | null {
+  try {
+    const u = new URL(input);
+    const host = u.hostname.replace('www.', '');
+
+    // youtu.be short links
+    if (host === 'youtu.be') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      return id && id.length >= 11 ? id.substring(0, 11) : null;
+    }
+
+    if (host.endsWith('youtube.com')) {
+      // Standard watch URL
+      const v = u.searchParams.get('v');
+      if (v) return v.substring(0, 11);
+
+      // Shorts URL
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'shorts' && parts[1]) return parts[1].substring(0, 11);
+
+      // Embed URL
+      if (parts[0] === 'embed' && parts[1]) return parts[1].substring(0, 11);
+    }
+
+    // Fallback regex
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = input.match(regex);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
 }
