@@ -575,7 +575,7 @@ export default function Analytics() {
     const p = payload[0].payload;
     return (
       <div className="rounded-md border bg-background p-2 text-xs">
-        <div className="font-medium">{p.title}</div>
+        <div className="font-medium">{p.campaign}</div>
         <div className="text-muted-foreground">{p.platform} • {p.creator}</div>
         <div>Views: {p.y.toLocaleString()}</div>
         <div>{usePercentEngagement ? 'Engagement %' : 'Engagement'}: {usePercentEngagement ? `${(p.x as number).toFixed(1)}%` : (p.x as number).toLocaleString()}</div>
@@ -1437,7 +1437,6 @@ export default function Analytics() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Video</TableHead>
                         <TableHead>Platform</TableHead>
                         <TableHead>Campaign</TableHead>
                         <TableHead>Creator</TableHead>
@@ -1450,9 +1449,6 @@ export default function Analytics() {
                     <TableBody>
                       {filteredVideoAnalytics.slice(0, 20).map((video) => (
                         <TableRow key={video.id}>
-                          <TableCell className="font-medium max-w-[200px] truncate">
-                            {video.title}
-                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">{video.platform}</Badge>
                           </TableCell>
