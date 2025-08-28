@@ -36,6 +36,7 @@ export default function Campaigns() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12);
   const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   
   const { data: campaigns = [], isLoading, refetch } = useCampaigns();
 
@@ -77,6 +78,29 @@ export default function Campaigns() {
 
     // Open the progress dialog instead of running the refresh directly
     setRefreshProgressOpen(true);
+  };
+
+  const handleRefreshSelected = () => {
+    if (selectedCampaignIds.length === 0) {
+      toast.error('No campaigns selected');
+      return;
+    }
+    setRefreshProgressOpen(true);
+  };
+
+  const handleCampaignSelect = (campaignId: string, isSelected: boolean) => {
+    setSelectedCampaignIds(prev => 
+      isSelected 
+        ? [...prev, campaignId]
+        : prev.filter(id => id !== campaignId)
+    );
+  };
+
+  const handleSelectAll = () => {
+    const filteredIds = filteredCampaigns.filter(c => c.status !== 'draft').map(c => c.id);
+    setSelectedCampaignIds(prev => 
+      prev.length === filteredIds.length ? [] : filteredIds
+    );
   };
 
   const handleRefreshComplete = () => {
@@ -127,6 +151,12 @@ export default function Campaigns() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
+            {selectedCampaignIds.length > 0 && (
+              <Button variant="outline" onClick={handleRefreshSelected}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Selected ({selectedCampaignIds.length})
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setExportDialogOpen(true)} disabled={filteredCampaigns.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export PDF
@@ -149,7 +179,18 @@ export default function Campaigns() {
               className="pl-9"
             />
           </div>
-          
+          {filteredCampaigns.filter(c => c.status !== 'draft').length > 0 && (
+            <Button 
+              variant="outline" 
+              onClick={handleSelectAll}
+              className="whitespace-nowrap"
+            >
+              {selectedCampaignIds.length === filteredCampaigns.filter(c => c.status !== 'draft').length 
+                ? 'Deselect All' 
+                : 'Select All'
+              }
+            </Button>
+          )}
         </div>
 
         {filteredCampaigns.length === 0 ? (
@@ -173,6 +214,9 @@ export default function Campaigns() {
                   key={campaign.id}
                   campaign={campaign}
                   onViewAnalytics={handleViewAnalytics}
+                  isSelected={selectedCampaignIds.includes(campaign.id)}
+                  onSelect={(isSelected) => handleCampaignSelect(campaign.id, isSelected)}
+                  showCheckbox={campaign.status !== 'draft'}
                 />
               ))}
             </div>
@@ -255,7 +299,10 @@ export default function Campaigns() {
         <RefreshProgressDialog
           open={refreshProgressOpen}
           onOpenChange={setRefreshProgressOpen}
-          campaignIds={campaigns.filter(c => c.status !== 'draft').map(c => c.id)}
+          campaignIds={selectedCampaignIds.length > 0 
+            ? selectedCampaignIds 
+            : campaigns.filter(c => c.status !== 'draft').map(c => c.id)
+          }
           onComplete={handleRefreshComplete}
         />
 

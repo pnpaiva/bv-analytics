@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,9 +28,18 @@ import {
 interface CampaignCardProps {
   campaign: Campaign;
   onViewAnalytics: (campaign: Campaign) => void;
+  isSelected?: boolean;
+  onSelect?: (isSelected: boolean) => void;
+  showCheckbox?: boolean;
 }
 
-export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
+export function CampaignCard({ 
+  campaign, 
+  onViewAnalytics, 
+  isSelected = false,
+  onSelect,
+  showCheckbox = false
+}: CampaignCardProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
@@ -185,6 +195,13 @@ export function CampaignCard({ campaign, onViewAnalytics }: CampaignCardProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
+            {showCheckbox && onSelect && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onSelect}
+                className="mt-1"
+              />
+            )}
             {campaign.logo_url && (
               <img 
                 src={campaign.logo_url} 
