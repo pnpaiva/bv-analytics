@@ -123,8 +123,8 @@ Deno.serve(async (req) => {
           const views = post.videoPlayCount || post.videoViewCount || post.playCount || 
                        post.viewsCount || post.views || post['Video Play Count'] || 0;
           
-          const likes = post.likesCount || post.likeCount || post.likes || 
-                       post.diggCount || 0;
+          const likes = Math.max(0, post.likesCount || post.likeCount || post.likes || 
+                       post.diggCount || 0);
           
           const comments = post.commentsCount || post.commentCount || post.comments || 0;
           
