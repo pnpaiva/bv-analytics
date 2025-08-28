@@ -1334,7 +1334,9 @@ export default function Analytics() {
                           </Label>
                         </div>
                         <Separator />
-                        {campaigns.map(campaign => {
+                        {campaigns
+                          .sort((a, b) => a.brand_name.localeCompare(b.brand_name))
+                          .map(campaign => {
                           const isSelected = bubbleCampaignFilter.includes(campaign.id);
                           return (
                             <div key={campaign.id} className="flex items-center space-x-2">
