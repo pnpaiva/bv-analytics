@@ -192,9 +192,16 @@ export function CreateCampaignDialog() {
             
             <div className="space-y-2">
               <Label htmlFor="master_campaign_name">Master Campaign</Label>
-              <Select
+                <Select
                 value={formData.master_campaign_name}
-                onValueChange={(value) => setFormData({ ...formData, master_campaign_name: value })}
+                onValueChange={(value) => {
+                  const selectedMaster = masterCampaigns.find((mc: any) => mc.name === value);
+                  setFormData({ 
+                    ...formData, 
+                    master_campaign_name: value,
+                    logo_url: selectedMaster?.logo_url || formData.logo_url
+                  });
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select master campaign (optional)" />

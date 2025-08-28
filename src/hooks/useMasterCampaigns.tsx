@@ -16,6 +16,7 @@ export interface CreateMasterCampaignData {
   name: string;
   start_date?: string;
   end_date?: string;
+  logo_url?: string;
 }
 
 export interface UpdateMasterCampaignData {
@@ -23,6 +24,7 @@ export interface UpdateMasterCampaignData {
   name: string;
   start_date?: string;
   end_date?: string;
+  logo_url?: string;
 }
 
 export function useMasterCampaigns() {
@@ -31,7 +33,7 @@ export function useMasterCampaigns() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('campaigns')
-        .select('master_campaign_name')
+        .select('master_campaign_name, master_campaign_start_date, master_campaign_end_date, master_campaign_logo_url')
         .not('master_campaign_name', 'is', null)
         .order('master_campaign_name');
 
@@ -40,9 +42,21 @@ export function useMasterCampaigns() {
         throw error;
       }
 
-      // Get unique master campaign names
-      const uniqueNames = Array.from(new Set(data.map(item => item.master_campaign_name)));
-      return uniqueNames.map(name => ({ name }));
+      // Group by master campaign name and get the most recent data
+      const grouped = data.reduce((acc, item) => {
+        const name = item.master_campaign_name;
+        if (!acc[name] || !acc[name].master_campaign_start_date) {
+          acc[name] = {
+            name,
+            start_date: item.master_campaign_start_date,
+            end_date: item.master_campaign_end_date,
+            logo_url: item.master_campaign_logo_url,
+          };
+        }
+        return acc;
+      }, {} as Record<string, any>);
+
+      return Object.values(grouped);
     },
   });
 }
@@ -79,6 +93,7 @@ export function useCreateMasterCampaign() {
           master_campaign_name: data.name,
           master_campaign_start_date: data.start_date,
           master_campaign_end_date: data.end_date,
+          master_campaign_logo_url: data.logo_url,
           is_master_campaign_template: true,
           status: 'draft',
           total_views: 0,
@@ -118,6 +133,7 @@ export function useUpdateMasterCampaign() {
           master_campaign_name: data.name,
           master_campaign_start_date: data.start_date,
           master_campaign_end_date: data.end_date,
+          master_campaign_logo_url: data.logo_url,
           updated_at: new Date().toISOString(),
         })
         .eq('master_campaign_name', data.id) // data.id is the old name

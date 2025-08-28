@@ -73,6 +73,7 @@ export function MasterCampaignManagement() {
         name: formData.name,
         start_date: formData.start_date || undefined,
         end_date: formData.end_date || undefined,
+        logo_url: formData.logo_url || undefined,
       });
       
       setCreateOpen(false);
@@ -91,6 +92,7 @@ export function MasterCampaignManagement() {
       name: formData.name,
       start_date: formData.start_date || undefined,
       end_date: formData.end_date || undefined,
+      logo_url: formData.logo_url || undefined,
     });
     
     setEditOpen(false);
@@ -102,13 +104,13 @@ export function MasterCampaignManagement() {
     await deleteMasterCampaign.mutateAsync(masterCampaignName);
   };
 
-  const openEditDialog = (masterCampaignName: string) => {
-    setEditingCampaign(masterCampaignName);
+  const openEditDialog = (campaign: any) => {
+    setEditingCampaign(campaign.name);
     setFormData({
-      name: masterCampaignName,
-      start_date: '',
-      end_date: '',
-      logo_url: '',
+      name: campaign.name,
+      start_date: campaign.start_date || '',
+      end_date: campaign.end_date || '',
+      logo_url: campaign.logo_url || '',
     });
     setEditOpen(true);
   };
@@ -218,7 +220,7 @@ export function MasterCampaignManagement() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openEditDialog(campaign.name)}
+                      onClick={() => openEditDialog(campaign)}
                     >
                       <Edit className="h-3 w-3" />
                     </Button>
