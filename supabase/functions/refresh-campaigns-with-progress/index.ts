@@ -156,7 +156,12 @@ Deno.serve(async (req) => {
 
           if (campaignError || !campaigns) throw new Error(`Failed to fetch campaigns: ${campaignError?.message}`);
 
-          for (const campaign of campaigns) {
+          console.log(`Processing ${campaigns.length} campaigns`);
+          
+          for (let i = 0; i < campaigns.length; i++) {
+            const campaign = campaigns[i];
+            console.log(`Starting campaign ${i + 1}/${campaigns.length}: ${campaign.brand_name} (${campaign.id})`);
+            
             const progress: ProgressUpdate = {
               campaignId: campaign.id,
               campaignName: campaign.brand_name,
@@ -174,6 +179,7 @@ Deno.serve(async (req) => {
             // Gather, normalize and dedupe URLs
             const urls = collectUrls(campaign);
             progress.totalUrls = urls.length;
+            console.log(`Campaign ${campaign.brand_name} has ${urls.length} URLs to process`);
             send(progress);
 
             if (urls.length === 0) {
@@ -186,6 +192,7 @@ Deno.serve(async (req) => {
               });
               progress.status = 'completed';
               send(progress);
+              console.log(`Campaign ${campaign.brand_name} completed (no URLs)`);
               continue;
             }
 
@@ -196,7 +203,10 @@ Deno.serve(async (req) => {
             // Sequential processing with retries and per-platform pacing
             const perPlatformDelay: Record<string, number> = { youtube: 900, instagram: 1400, tiktok: 1400 };
 
-            for (const { url, platform } of urls) {
+            for (let urlIndex = 0; urlIndex < urls.length; urlIndex++) {
+              const { url, platform } = urls[urlIndex];
+              console.log(`Processing URL ${urlIndex + 1}/${urls.length} for ${campaign.brand_name}: ${url}`);
+              
               try {
                 const res = await withRetry(async () => {
                   const r = await supabase.functions.invoke(`fetch-${platform}-analytics`, { body: { url } });
@@ -216,8 +226,10 @@ Deno.serve(async (req) => {
               }
 
               // Update progress after each URL
-              progress.processedUrls += 1;
+              progress.processedUrls = urlIndex + 1;
               send(progress);
+              console.log(`Progress for ${campaign.brand_name}: ${progress.processedUrls}/${progress.totalUrls}`);
+              
               await sleep(perPlatformDelay[platform] ?? 1200);
             }
 
@@ -242,8 +254,10 @@ Deno.serve(async (req) => {
 
             progress.status = 'completed';
             send(progress);
+            console.log(`Campaign ${campaign.brand_name} completed successfully`);
           }
 
+          console.log('All campaigns processed, sending completion signal');
           send({ type: 'complete' });
         } catch (error: any) {
           console.error('Error in progressive refresh:', error);

@@ -94,6 +94,7 @@ export function RefreshProgressDialog({
         console.log('SSE message:', data);
 
         if (data.type === 'complete') {
+          console.log('Stream completed, marking as ended');
           setStreamEnded(true);
           onComplete();
           return;
@@ -107,16 +108,6 @@ export function RefreshProgressDialog({
           const update = data as ProgressUpdate;
           setProgress((prev) => {
             const next = { ...prev, [update.campaignId]: update };
-
-            const all = Object.values(next);
-            const completedCount = all.filter((p) => p.status === 'completed' || p.status === 'error').length;
-            const newOverall = Math.round((completedCount / campaignIds.length) * 100);
-            const newTotalUrls = all.reduce((sum, p) => sum + (p.totalUrls || 0), 0);
-            const newProcessedUrls = all.reduce((sum, p) => sum + (p.processedUrls || 0), 0);
-
-            setOverallProgress(newOverall);
-            setGrandTotalUrls(newTotalUrls);
-            setTotalProcessedUrls(newProcessedUrls);
             return next;
           });
         }
@@ -127,7 +118,12 @@ export function RefreshProgressDialog({
 
     es.onerror = (err) => {
       console.error('EventSource error', err);
-      // Do not auto-complete; keep dialog open so the user can retry
+      console.log('EventSource readyState:', es.readyState);
+      // Check if connection is closed
+      if (es.readyState === EventSource.CLOSED) {
+        console.log('EventSource connection closed');
+        setStreamEnded(true);
+      }
     };
 
     return () => {
@@ -168,11 +164,20 @@ export function RefreshProgressDialog({
     const urlsTotal = all.reduce((sum, p) => sum + (p.totalUrls || 0), 0);
     const urlsDone = all.reduce((sum, p) => sum + (p.processedUrls || 0), 0);
 
+    console.log('Progress update:', { completedCount, totalC, urlsDone, urlsTotal, streamEnded });
+
+    setGrandTotalUrls(urlsTotal);
+    setTotalProcessedUrls(urlsDone);
+    
     const ratioUrls = urlsTotal > 0 ? Math.round((urlsDone / urlsTotal) * 100) : 0;
     const ratioCamps = Math.round((completedCount / totalC) * 100);
     setOverallProgress(urlsTotal > 0 ? ratioUrls : ratioCamps);
 
-    if (streamEnded && completedCount === totalC) setIsComplete(true);
+    // Mark complete when all campaigns are done OR when stream ended and we have some completed campaigns
+    if ((completedCount === totalC) || (streamEnded && completedCount > 0 && completedCount === Object.keys(progress).length)) {
+      console.log('Marking as complete');
+      setIsComplete(true);
+    }
   }, [progress, campaignIds.length, streamEnded]);
 
   const totalCampaigns = campaignIds.length;
