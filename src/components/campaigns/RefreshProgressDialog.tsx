@@ -31,6 +31,8 @@ export function RefreshProgressDialog({
   const [progress, setProgress] = useState<Record<string, ProgressUpdate>>({});
   const [isComplete, setIsComplete] = useState(false);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [totalProcessedUrls, setTotalProcessedUrls] = useState(0);
+  const [grandTotalUrls, setGrandTotalUrls] = useState(0);
 
   useEffect(() => {
     if (!open || campaignIds.length === 0) return;
@@ -41,6 +43,8 @@ export function RefreshProgressDialog({
     setProgress({});
     setIsComplete(false);
     setOverallProgress(0);
+    setTotalProcessedUrls(0);
+    setGrandTotalUrls(0);
 
     // Initialize progress for all campaigns
     const initialProgress: Record<string, ProgressUpdate> = {};
@@ -110,11 +114,18 @@ export function RefreshProgressDialog({
                       [update.campaignId]: update
                     };
                     
-                    // Calculate overall progress
+                    // Calculate cumulative progress
                     const allProgress = Object.values(next);
                     const completedCount = allProgress.filter(p => p.status === 'completed' || p.status === 'error').length;
                     const newOverallProgress = Math.round((completedCount / campaignIds.length) * 100);
+                    
+                    // Update cumulative URL counts
+                    const newTotalUrls = allProgress.reduce((sum, p) => sum + p.totalUrls, 0);
+                    const newProcessedUrls = allProgress.reduce((sum, p) => sum + p.processedUrls, 0);
+                    
                     setOverallProgress(newOverallProgress);
+                    setGrandTotalUrls(newTotalUrls);
+                    setTotalProcessedUrls(newProcessedUrls);
                     
                     return next;
                   });
@@ -162,8 +173,6 @@ export function RefreshProgressDialog({
 
   const totalCampaigns = campaignIds.length;
   const completedCampaigns = Object.values(progress).filter(p => p.status === 'completed' || p.status === 'error').length;
-  const totalUrls = Object.values(progress).reduce((sum, p) => sum + p.totalUrls, 0);
-  const processedUrls = Object.values(progress).reduce((sum, p) => sum + p.processedUrls, 0);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -183,13 +192,13 @@ export function RefreshProgressDialog({
           </div>
 
           {/* URL Progress */}
-          {totalUrls > 0 && (
+          {grandTotalUrls > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <span>URLs Processed</span>
-                <span>{processedUrls} of {totalUrls} URLs</span>
+                <span>{totalProcessedUrls} of {grandTotalUrls} URLs</span>
               </div>
-              <Progress value={totalUrls > 0 ? (processedUrls / totalUrls) * 100 : 0} className="w-full" />
+              <Progress value={grandTotalUrls > 0 ? (totalProcessedUrls / grandTotalUrls) * 100 : 0} className="w-full" />
             </div>
           )}
 

@@ -72,6 +72,7 @@ export default function Analytics() {
   const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
   const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
   const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
+  const [campaignSearchTerm, setCampaignSearchTerm] = useState('');
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -1333,30 +1334,44 @@ export default function Analytics() {
                             All Campaigns
                           </Label>
                         </div>
+                        <div className="px-2 py-1">
+                          <input
+                            type="text"
+                            placeholder="Search campaigns..."
+                            value={campaignSearchTerm}
+                            onChange={(e) => setCampaignSearchTerm(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                        </div>
                         <Separator />
-                        {campaigns
-                          .sort((a, b) => a.brand_name.localeCompare(b.brand_name))
-                          .map(campaign => {
-                          const isSelected = bubbleCampaignFilter.includes(campaign.id);
-                          return (
-                            <div key={campaign.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`campaign-${campaign.id}`}
-                                checked={isSelected}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setBubbleCampaignFilter(prev => [...prev, campaign.id]);
-                                  } else {
-                                    setBubbleCampaignFilter(prev => prev.filter(id => id !== campaign.id));
-                                  }
-                                }}
-                              />
-                              <Label htmlFor={`campaign-${campaign.id}`} className="text-sm">
-                                {campaign.brand_name}
-                              </Label>
-                            </div>
-                          );
-                        })}
+                        <div className="max-h-48 overflow-y-auto">
+                          {campaigns
+                            .filter(campaign => 
+                              campaign.brand_name.toLowerCase().includes(campaignSearchTerm.toLowerCase())
+                            )
+                            .sort((a, b) => a.brand_name.localeCompare(b.brand_name))
+                            .map(campaign => {
+                            const isSelected = bubbleCampaignFilter.includes(campaign.id);
+                            return (
+                              <div key={campaign.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`campaign-${campaign.id}`}
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setBubbleCampaignFilter(prev => [...prev, campaign.id]);
+                                    } else {
+                                      setBubbleCampaignFilter(prev => prev.filter(id => id !== campaign.id));
+                                    }
+                                  }}
+                                />
+                                <Label htmlFor={`campaign-${campaign.id}`} className="text-sm">
+                                  {campaign.brand_name}
+                                </Label>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     </PopoverContent>
                   </Popover>
