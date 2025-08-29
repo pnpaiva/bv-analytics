@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ProtectedRoute, AdminProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Campaigns from "./pages/Campaigns";
@@ -68,13 +68,16 @@ const App = () => (
               </ProtectedRoute>
             </AuthProvider>
           } />
-          <Route path="/admin" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <AdminDashboard />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
+          <Route 
+            path="/admin" 
+            element={
+              <AuthProvider>
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              </AuthProvider>
+            } 
+          />
           <Route path="/profile" element={
             <AuthProvider>
               <ProtectedRoute>

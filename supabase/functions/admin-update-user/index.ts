@@ -54,7 +54,7 @@ serve(async (req) => {
       })
     }
 
-    const { userId, email, password, role } = await req.json()
+    const { userId, email, password, role, isViewOnly } = await req.json()
     if (!userId) {
       return new Response(JSON.stringify({ error: 'User ID is required' }), {
         status: 400,
@@ -85,11 +85,15 @@ serve(async (req) => {
       }
     }
 
-    // Update role if provided
-    if (role) {
+    // Update role and view-only status if provided
+    if (role || isViewOnly !== undefined) {
+      const updateData: any = {}
+      if (role) updateData.role = role
+      if (isViewOnly !== undefined) updateData.is_view_only = isViewOnly
+
       const { error: roleError } = await supabase
         .from('user_roles')
-        .update({ role })
+        .update(updateData)
         .eq('user_id', userId)
 
       if (roleError) {

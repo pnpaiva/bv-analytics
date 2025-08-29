@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
+import { useUserPermissions } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download } from 'lucide-react';
@@ -49,6 +50,7 @@ export function CampaignCard({
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
   const { data: campaignCreators = [] } = useCampaignCreators(campaign.id);
+  const { canEdit, canDelete } = useUserPermissions();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -314,24 +316,27 @@ export function CampaignCard({
           </div>
           
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditDialogOpen(true)}
-            >
-              <Edit3 className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                >
-                  <Link2 className="h-4 w-4 mr-1" />
-                  {campaign.master_campaign_name ? 'Unlink' : 'Link'}
-                </Button>
-              </AlertDialogTrigger>
+            {canEdit && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditDialogOpen(true)}
+              >
+                <Edit3 className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            )}
+            {canEdit && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Link2 className="h-4 w-4 mr-1" />
+                    {campaign.master_campaign_name ? 'Unlink' : 'Link'}
+                  </Button>
+                </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>{campaign.master_campaign_name ? 'Unlink from Master Campaign' : 'Link to Master Campaign'}</AlertDialogTitle>
@@ -349,48 +354,55 @@ export function CampaignCard({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this campaign? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => deleteCampaign.mutate(campaign.id)}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            )}
+            {canDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this campaign? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteCampaign.mutate(campaign.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
       </CardFooter>
     </Card>
 
-    <EditCampaignDialog
-      campaign={campaign}
-      isOpen={editDialogOpen}
-      onClose={() => setEditDialogOpen(false)}
-      onSave={handleEditSave}
-    />
+    {canEdit && (
+      <EditCampaignDialog
+        campaign={campaign}
+        isOpen={editDialogOpen}
+        onClose={() => setEditDialogOpen(false)}
+        onSave={handleEditSave}
+      />
+    )}
 
-    <MasterCampaignDialog
-      campaign={campaign}
-      isOpen={masterCampaignDialogOpen}
-      onClose={() => setMasterCampaignDialogOpen(false)}
-      onSave={handleMasterCampaignSave}
-    />
+    {canEdit && (
+      <MasterCampaignDialog
+        campaign={campaign}
+        isOpen={masterCampaignDialogOpen}
+        onClose={() => setMasterCampaignDialogOpen(false)}
+        onSave={handleMasterCampaignSave}
+      />
+    )}
   </>
   );
 }

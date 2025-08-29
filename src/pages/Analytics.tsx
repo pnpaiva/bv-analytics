@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { useCampaigns } from '@/hooks/useCampaigns';
 import { useCreators } from '@/hooks/useCreators';
+import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
+import { useAccessibleCampaigns } from '@/hooks/useAccessibleCampaigns';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
@@ -43,20 +44,39 @@ interface PlatformBreakdown {
 }
 
 export default function Analytics() {
-  const { data: campaigns = [], isLoading } = useCampaigns();
+  const { data: campaigns = [], isLoading } = useAccessibleCampaigns();
   const { data: creators = [] } = useCreators();
+  const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const { data: clients = [] } = useClients();
   const { data: masterCampaigns = [] } = useMasterCampaigns();
+  const { data: campaignCreators = [] } = useCampaignCreators();
   
   console.log('Analytics - Campaigns:', campaigns);
   console.log('Analytics - Creators:', creators);
+  console.log('Analytics - Accessible Campaign IDs:', accessibleCampaignIds);
   
-  // Get campaign creators for all campaigns
+  // Get campaign creators for accessible campaigns only
   const campaignCreatorsMap = useMemo(() => {
     const map: { [campaignId: string]: any[] } = {};
     // This will be populated by individual campaign creator queries
     return map;
   }, []);
+  
+  // Filter creators based on accessible campaigns
+  const filteredCreators = useMemo(() => {
+    if (accessibleCampaignIds.length === 0) {
+      // Admin sees all creators
+      return creators;
+    }
+    // Client sees only creators from accessible campaigns
+    const accessibleCreatorIds = new Set();
+    campaignCreators.forEach(cc => {
+      if (accessibleCampaignIds.includes(cc.campaign_id)) {
+        accessibleCreatorIds.add(cc.creator_id);
+      }
+    });
+    return creators.filter(creator => accessibleCreatorIds.has(creator.id));
+  }, [creators, campaignCreators, accessibleCampaignIds]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -78,14 +98,13 @@ export default function Analytics() {
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
     const lookup = new Map<string, string>();
-    creators.forEach(creator => {
+    filteredCreators.forEach(creator => {
       lookup.set(creator.id, creator.name);
     });
     return lookup;
-  }, [creators]);
+  }, [filteredCreators]);
 
-  // Get campaign creators data using the hook
-  const { data: campaignCreators = [] } = useCampaignCreators();
+  // Get campaign creators data using the hook (already defined above)
 
   // Build URL -> creator mapping per campaign
   const normalizeUrl = (url?: string) => {
@@ -125,23 +144,23 @@ export default function Analytics() {
 
   // Helper function to resolve creator for a campaign using campaign_creators
   const resolveCreatorForCampaign = (campaign: Campaign) => {
-    if (!campaignCreators || !creators) {
+    if (!campaignCreators || !filteredCreators) {
       return { id: 'unknown', name: 'Unknown Creator' };
     }
 
-    // Find all creators associated with this campaign
-    const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
-    
-    if (campaignCreatorData.length > 0) {
-      // Use the first creator if multiple (most campaigns have one main creator)
-      const creator = creators.find(c => c.id === campaignCreatorData[0].creator_id);
-      if (creator) {
-        return {
-          id: creator.id,
-          name: creator.name
-        };
+          // Find all creators associated with this campaign
+      const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+      
+      if (campaignCreatorData.length > 0) {
+        // Use the first creator if multiple (most campaigns have one main creator)
+        const creator = filteredCreators.find(c => c.id === campaignCreatorData[0].creator_id);
+        if (creator) {
+          return {
+            id: creator.id,
+            name: creator.name
+          };
+        }
       }
-    }
 
     // Fallback logic using campaign.creator_id if no campaign_creators association
     if (campaign.creator_id && creatorLookup.has(campaign.creator_id)) {
@@ -177,6 +196,10 @@ export default function Analytics() {
   // Filter campaigns based on search and filters
   const filteredCampaigns = useMemo(() => {
     return campaigns.filter(campaign => {
+      // First check if user has access to this campaign
+      const hasAccess = accessibleCampaignIds.length === 0 || accessibleCampaignIds.includes(campaign.id);
+      if (!hasAccess) return false;
+      
       const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            campaign.creators?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            campaign.clients?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -214,7 +237,9 @@ export default function Analytics() {
 
       return matchesSearch && matchesStatus && matchesCreator && matchesClient && matchesMasterCampaign;
     });
-  }, [campaigns, searchTerm, statusFilter, creatorFilters, clientFilters, masterCampaignFilters]);
+  }, [campaigns, accessibleCampaignIds, searchTerm, statusFilter, creatorFilters, clientFilters, masterCampaignFilters]);
+  
+  console.log('Analytics - Filtered Campaigns:', filteredCampaigns);
 
   // Calculate aggregate metrics for selected campaigns
   const aggregateMetrics = useMemo((): AggregateMetrics => {

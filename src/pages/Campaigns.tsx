@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
+import { useUserPermissions } from '@/hooks/useUserRoles';
+import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
+import { useAccessibleCampaigns } from '@/hooks/useAccessibleCampaigns';
 import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
@@ -41,7 +44,15 @@ export default function Campaigns() {
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [showDealValue, setShowDealValue] = useState(true);
   
-  const { data: campaigns = [], isLoading, refetch } = useCampaigns();
+  const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
+  const { canCreate, canEdit, canDelete } = useUserPermissions();
+  const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
+  
+  // Debug logging
+  console.log('Campaigns - canCreate:', canCreate);
+  console.log('Campaigns - canEdit:', canEdit);
+  console.log('Campaigns - accessibleCampaignIds:', accessibleCampaignIds);
+  console.log('Campaigns - campaigns:', campaigns);
 
   const handleViewAnalytics = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
@@ -115,6 +126,11 @@ export default function Campaigns() {
   }, [refetch]);
 
   const filteredCampaigns = campaigns.filter(campaign => {
+    // First check if user has access to this campaign
+    const hasAccess = accessibleCampaignIds.length === 0 || accessibleCampaignIds.includes(campaign.id);
+    if (!hasAccess) return false;
+    
+    // Then check search filter
     const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          campaign.creators?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
@@ -187,7 +203,7 @@ export default function Campaigns() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh All
             </Button>
-            <CreateCampaignDialog />
+
           </div>
         </div>
 
@@ -225,7 +241,7 @@ export default function Campaigns() {
                   : "Try adjusting your search or filter criteria."
                 }
               </p>
-              {campaigns.length === 0 && <CreateCampaignDialog />}
+
             </div>
           </div>
         ) : (

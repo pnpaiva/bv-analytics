@@ -511,6 +511,52 @@ export type Database = {
           },
         ]
       }
+      client_campaign_assignments: {
+        Row: {
+          id: string
+          client_id: string
+          campaign_id: string
+          assigned_by: string
+          assigned_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          campaign_id: string
+          assigned_by: string
+          assigned_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          campaign_id?: string
+          assigned_by?: string
+          assigned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_campaign_assignments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_campaign_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_campaign_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "auth.users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       clients: {
         Row: {
           created_at: string
@@ -873,6 +919,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          is_view_only: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -880,6 +927,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_view_only?: boolean
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
@@ -887,6 +935,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          is_view_only?: boolean
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }

@@ -7,6 +7,7 @@ interface UpdateUserData {
   email?: string;
   password?: string;
   role?: 'admin' | 'client';
+  isViewOnly?: boolean;
 }
 
 export function useDeleteUser() {

@@ -7,10 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Users, Plus, Mail, Calendar, Clock, Shield, Edit, Trash2, MoreVertical } from 'lucide-react';
 import { useCreateUserAccount, useClientAccounts, useIsAdmin } from '@/hooks/useUserRoles';
+import { CampaignAssignmentDialog } from '@/components/campaigns/CampaignAssignmentDialog';
 import { useDeleteUser, useUpdateUser } from '@/hooks/useAdminUserManagement';
 import { AdminSetup } from '@/components/AdminSetup';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Dialog,
   DialogContent,
@@ -55,15 +57,27 @@ export default function AdminDashboard() {
     email: '',
     password: '',
     role: 'client' as AppRole,
+    isViewOnly: false,
   });
   const [editUserData, setEditUserData] = useState({
     email: '',
     password: '',
     role: 'client' as AppRole,
+    isViewOnly: false,
   });
   
   const isAdmin = useIsAdmin();
   const { data: clientAccounts = [], isLoading } = useClientAccounts();
+  
+  const { user } = useAuth();
+  
+  // Debug logging
+  console.log('AdminDashboard Debug:', {
+    isAdmin,
+    user: user?.email,
+    clientAccounts,
+    isLoading
+  });
   const createUserMutation = useCreateUserAccount();
   const deleteUserMutation = useDeleteUser();
   const updateUserMutation = useUpdateUser();
@@ -128,9 +142,10 @@ export default function AdminDashboard() {
         email: newUserData.email,
         password: newUserData.password,
         role: newUserData.role,
+        isViewOnly: newUserData.isViewOnly,
       });
       
-      setNewUserData({ email: '', password: '', role: 'client' });
+      setNewUserData({ email: '', password: '', role: 'client', isViewOnly: false });
       setIsCreateDialogOpen(false);
     } catch (error) {
       // Error is already handled in the mutation
@@ -138,11 +153,25 @@ export default function AdminDashboard() {
   };
 
   const handleEditUser = (user: any) => {
+    console.log('handleEditUser - user object:', user);
     setSelectedUser(user);
+    
+    // Extract the actual user data - handle different data structures
+    const userEmail = user.user?.email || user.email || '';
+    const userRole = user.role || 'client';
+    const userViewOnly = user.is_view_only || false;
+    
+    console.log('handleEditUser - extracted data:', {
+      email: userEmail,
+      role: userRole,
+      isViewOnly: userViewOnly
+    });
+    
     setEditUserData({
-      email: user.user?.email || '',
-      password: '',
-      role: user.role,
+      email: userEmail,
+      password: '', // Always empty for security
+      role: userRole,
+      isViewOnly: userViewOnly,
     });
     setIsEditDialogOpen(true);
   };
@@ -163,7 +192,11 @@ export default function AdminDashboard() {
       if (editUserData.role !== selectedUser.role) {
         updateData.role = editUserData.role;
       }
+      if (editUserData.isViewOnly !== selectedUser.is_view_only) {
+        updateData.isViewOnly = editUserData.isViewOnly;
+      }
 
+      console.log('Updating user with data:', updateData);
       await updateUserMutation.mutateAsync(updateData);
       setIsEditDialogOpen(false);
       setSelectedUser(null);
@@ -272,6 +305,20 @@ export default function AdminDashboard() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {newUserData.role === 'client' && (
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="view-only"
+                        checked={newUserData.isViewOnly}
+                        onChange={(e) => setNewUserData(prev => ({ ...prev, isViewOnly: e.target.checked }))}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <Label htmlFor="view-only" className="text-sm">
+                        View-only mode (read-only access)
+                      </Label>
+                    </div>
+                  )}
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -299,26 +346,43 @@ export default function AdminDashboard() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              {/* Debug info - remove this after testing */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="p-3 bg-gray-100 rounded text-xs">
+                  <strong>Debug:</strong> Current user data: {JSON.stringify(selectedUser, null, 2)}
+                </div>
+              )}
+              
               <div>
                 <Label htmlFor="edit-email">Email Address</Label>
                 <Input
                   id="edit-email"
                   type="email"
-                  placeholder="user@example.com"
+                  placeholder="Enter email address"
                   value={editUserData.email}
                   onChange={(e) => setEditUserData(prev => ({ ...prev, email: e.target.value }))}
                 />
+                {editUserData.email && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Current: {editUserData.email}
+                  </p>
+                )}
               </div>
+              
               <div>
                 <Label htmlFor="edit-password">New Password (leave empty to keep current)</Label>
                 <Input
                   id="edit-password"
                   type="password"
-                  placeholder="New password"
+                  placeholder="Enter new password"
                   value={editUserData.password}
                   onChange={(e) => setEditUserData(prev => ({ ...prev, password: e.target.value }))}
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Password field is intentionally empty for security
+                </p>
               </div>
+              
               <div>
                 <Label htmlFor="edit-role">Role</Label>
                 <Select value={editUserData.role} onValueChange={(value: AppRole) => setEditUserData(prev => ({ ...prev, role: value }))}>
@@ -330,7 +394,32 @@ export default function AdminDashboard() {
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                {editUserData.role && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Current: {editUserData.role.charAt(0).toUpperCase() + editUserData.role.slice(1)}
+                  </p>
+                )}
               </div>
+              
+              {editUserData.role === 'client' && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="edit-view-only"
+                    checked={editUserData.isViewOnly}
+                    onChange={(e) => setEditUserData(prev => ({ ...prev, isViewOnly: e.target.checked }))}
+                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                  />
+                  <Label htmlFor="edit-view-only" className="text-sm">
+                    View-only mode (read-only access)
+                  </Label>
+                  {editUserData.isViewOnly !== undefined && (
+                    <p className="text-xs text-muted-foreground ml-6">
+                      Current: {editUserData.isViewOnly ? 'Enabled' : 'Disabled'}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -556,6 +645,10 @@ export default function AdminDashboard() {
                             Last active: {format(new Date(account.user.last_sign_in_at), 'MMM d, yyyy')}
                           </span>
                         )}
+                        <CampaignAssignmentDialog 
+                          clientId={account.user_id} 
+                          clientEmail={account.user?.email || ''} 
+                        />
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">

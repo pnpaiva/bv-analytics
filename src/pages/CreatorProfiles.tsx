@@ -2,7 +2,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useCreators } from '@/hooks/useCreators';
 import { useUpdateCreator } from '@/hooks/useManageCreators';
 import { useCampaigns } from '@/hooks/useCampaigns';
+import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
+import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +77,20 @@ export default function CreatorProfiles() {
   const { data: creators = [] } = useCreators();
   const { data: campaigns = [] } = useCampaigns();
   const { data: campaignCreators = [] } = useCampaignCreators();
+  const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const updateCreator = useUpdateCreator();
+  const { canEdit } = useUserPermissions();
+  
+  // Debug logging
+  console.log('CreatorProfiles - creators:', creators);
+  console.log('CreatorProfiles - canEdit:', canEdit);
+  console.log('CreatorProfiles - accessibleCampaignIds:', accessibleCampaignIds);
+  
+  // Clients see all creators (same as admin), just without edit permissions
+  const filteredCreators = useMemo(() => {
+    // Both admin and client see all creators
+    return creators;
+  }, [creators]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [editingCreator, setEditingCreator] = useState<string | null>(null);
@@ -102,15 +117,13 @@ export default function CreatorProfiles() {
     if (selectedParam && creators?.some(c => c.id === selectedParam)) {
       setSelectedCreator(selectedParam);
     }
-  }, [creators]);
+  }, [filteredCreators]);
 
-  // Build creator profiles with analytics
+  // Build creator profiles with analytics using the new data structure
   const creatorProfiles = useMemo((): CreatorProfile[] => {
-    return creators.map(creator => {
-      const creatorCampaigns = campaignCreators
-        .filter(cc => cc.creator_id === creator.id)
-        .map(cc => campaigns.find(c => c.id === cc.campaign_id))
-        .filter(Boolean);
+    return filteredCreators.map(creator => {
+      // Use the campaign data directly from the creator object
+      const creatorCampaigns = creator.campaign_creators?.map(cc => cc.campaigns).filter(Boolean) || [];
 
       let totalViews = 0;
       let totalEngagement = 0;
@@ -238,18 +251,18 @@ export default function CreatorProfiles() {
         platform_metrics: (creator as any).platform_metrics || {}
       };
     });
-  }, [creators, campaigns, campaignCreators]);
+  }, [filteredCreators]);
 
-  // Filter creators
-  const filteredCreators = useMemo(() => {
+  // Filter creators by search term
+  const searchFilteredCreators = useMemo(() => {
     return creatorProfiles.filter(creator =>
       creator.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [creatorProfiles, searchTerm]);
 
   const selectedCreatorProfile = useMemo(() => {
-    return filteredCreators.find(creator => creator.id === selectedCreator);
-  }, [filteredCreators, selectedCreator]);
+    return searchFilteredCreators.find(creator => creator.id === selectedCreator);
+  }, [searchFilteredCreators, selectedCreator]);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -899,10 +912,10 @@ export default function CreatorProfiles() {
               </div>
             </div>
 
-            {/* Services & Rates */}
+            {/* Services */}
             <div className="space-y-4 p-6 border-2 border-border rounded-lg bg-card">
               <div className="flex items-center justify-between border-b border-border pb-2">
-                <h3 className="text-lg font-semibold">Services & Rates (USD)</h3>
+                <h3 className="text-lg font-semibold">Services (USD)</h3>
                 <Button variant="outline" size="sm" onClick={addService} className="border-2">
                   <Plus className="h-4 w-4 mr-2" />
                   Add Service
@@ -1048,14 +1061,16 @@ export default function CreatorProfiles() {
           
           {selectedCreatorProfile && (
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setEditingCreator(selectedCreatorProfile.id)}
-                className="flex items-center gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                Edit Profile
-              </Button>
+              {canEdit && (
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingCreator(selectedCreatorProfile.id)}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Profile
+                </Button>
+              )}
               
               <Button
                 onClick={() => generateMediaKit(selectedCreatorProfile.id)}
@@ -1085,11 +1100,11 @@ export default function CreatorProfiles() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Creators ({filteredCreators.length})
+                  Creators ({searchFilteredCreators.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {filteredCreators.map(creator => (
+                {searchFilteredCreators.map(creator => (
                   <div
                     key={creator.id}
                     className={`p-4 rounded-lg border-2 cursor-pointer transition-colors ${
@@ -1247,9 +1262,9 @@ export default function CreatorProfiles() {
                         </div>
                       </div>
 
-                      {/* Services & Rates */}
+                      {/* Services */}
                       <div>
-                        <h3 className="text-lg font-semibold mb-4">Services & Rates</h3>
+                        <h3 className="text-lg font-semibold mb-4">Services</h3>
                         <div className="space-y-3">
                           {selectedCreatorProfile.services.map((service, index) => (
                             <div key={index} className="flex justify-between items-center p-3 border-2 rounded-lg">
@@ -1483,7 +1498,7 @@ export default function CreatorProfiles() {
         </div>
         
         {/* Render EditCreatorDialog */}
-        {selectedCreatorProfile && <EditCreatorDialog creator={selectedCreatorProfile} />}
+        {selectedCreatorProfile && canEdit && <EditCreatorDialog creator={selectedCreatorProfile} />}
       </div>
     </div>
   );

@@ -25,6 +25,8 @@ export function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Debug logging reduced for cleaner console
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -36,16 +38,27 @@ export function Navigation() {
     }
   };
 
-  const navItems = [
+  // Base navigation items for all users
+  const baseNavItems = [
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/campaigns', icon: FileText, label: 'Campaigns' },
-    { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
     { to: '/creator-profiles', icon: UserCircle, label: 'Creator Profiles' },
   ];
 
-  // Add admin dashboard for admin users
-  if (userRole === 'admin') {
-    navItems.push({ to: '/admin', icon: Settings, label: 'Admin Dashboard' });
+  // Admin-specific navigation items
+  const adminNavItems = [
+    { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
+    { to: '/admin', icon: Settings, label: 'Admin Dashboard' },
+  ];
+
+  // Build navigation items based on user role
+  let navItems = [...baseNavItems];
+  
+  // Only show admin items if role is loaded and user is admin
+  if (userRoleQuery.isLoading) {
+    // Show loading state or just base items while loading
+  } else if (userRole === 'admin') {
+    navItems = [...baseNavItems, ...adminNavItems];
   }
 
   const isActive = (path: string) => location.pathname === path;

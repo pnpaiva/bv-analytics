@@ -28,9 +28,16 @@ export interface Campaign {
   analytics_updated_at?: string;
   created_at: string;
   updated_at: string;
-  creators?: {
-    name: string;
-  };
+  campaign_creators?: Array<{
+    creator_id: string;
+    content_urls: Record<string, string[]>;
+    creators: {
+      id: string;
+      name: string;
+      avatar_url?: string;
+      platform_handles?: Record<string, string>;
+    };
+  }>;
   clients?: {
     name: string;
   };
