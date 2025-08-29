@@ -200,6 +200,7 @@ export default function AdminDashboard() {
       await updateUserMutation.mutateAsync(updateData);
       setIsEditDialogOpen(false);
       setSelectedUser(null);
+      setEditUserData({ email: '', password: '', role: 'client', isViewOnly: false });
     } catch (error) {
       // Error is already handled in the mutation
     }
