@@ -201,8 +201,8 @@ export default function Analytics() {
       if (!hasAccess) return false;
       
       const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           campaign.creators?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           campaign.clients?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           resolveCreatorForCampaign(campaign).name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           campaign.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            campaign.master_campaign_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;

@@ -38,6 +38,10 @@ export interface Campaign {
       platform_handles?: Record<string, string>;
     };
   }>;
+  // Optional convenience field for legacy code paths
+  creators?: {
+    name?: string;
+  } | null;
   clients?: {
     name: string;
   };

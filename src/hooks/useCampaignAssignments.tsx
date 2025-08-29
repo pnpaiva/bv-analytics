@@ -48,8 +48,7 @@ export function useAllCampaignAssignments() {
         .from('client_campaign_assignments')
         .select(`
           *,
-          campaign:campaigns(id, brand_name, campaign_date, status),
-          client:profiles(id, email)
+          campaign:campaigns(id, brand_name, campaign_date, status)
         `)
         .order('assigned_at', { ascending: false });
 

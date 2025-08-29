@@ -514,8 +514,8 @@ export default function AdminDashboard() {
             <CardContent>
               <div className="text-2xl font-bold">
                 {clientAccounts.filter(account => {
-                  if (!account.user?.last_sign_in_at) return false;
-                  const lastSignIn = new Date(account.user.last_sign_in_at);
+                  if (!(account as any).user?.last_sign_in_at) return false;
+                  const lastSignIn = new Date((account as any).user.last_sign_in_at);
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
                   return lastSignIn > today;
@@ -554,7 +554,7 @@ export default function AdminDashboard() {
                           <Shield className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <h4 className="font-medium">{account.user?.email}</h4>
+                          <h4 className="font-medium">{(account as any).user?.email}</h4>
                           <p className="text-sm text-muted-foreground">
                             Created {format(new Date(account.created_at), 'MMM d, yyyy')}
                           </p>
@@ -562,9 +562,9 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant="default">Admin</Badge>
-                        {account.user?.last_sign_in_at && (
+                        {(account as any).user?.last_sign_in_at && (
                           <span className="text-sm text-muted-foreground">
-                            Last active: {format(new Date(account.user.last_sign_in_at), 'MMM d, yyyy')}
+                            Last active: {format(new Date((account as any).user.last_sign_in_at), 'MMM d, yyyy')}
                           </span>
                         )}
                         <DropdownMenu>
@@ -632,7 +632,7 @@ export default function AdminDashboard() {
                           <Mail className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <h4 className="font-medium">{account.user?.email}</h4>
+                          <h4 className="font-medium">{(account as any).user?.email}</h4>
                           <p className="text-sm text-muted-foreground">
                             Created {format(new Date(account.created_at), 'MMM d, yyyy')}
                           </p>
@@ -640,14 +640,14 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Badge variant="secondary">Client</Badge>
-                        {account.user?.last_sign_in_at && (
+                        {(account as any).user?.last_sign_in_at && (
                           <span className="text-sm text-muted-foreground">
-                            Last active: {format(new Date(account.user.last_sign_in_at), 'MMM d, yyyy')}
+                            Last active: {format(new Date((account as any).user.last_sign_in_at), 'MMM d, yyyy')}
                           </span>
                         )}
                         <CampaignAssignmentDialog 
                           clientId={account.user_id} 
-                          clientEmail={account.user?.email || ''} 
+                          clientEmail={(account as any).user?.email || ''} 
                         />
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

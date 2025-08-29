@@ -50,12 +50,12 @@ export function useAccessibleCampaigns() {
             // Attach creator data to campaigns
             data.forEach(campaign => {
               const campaignCreators = creatorData?.filter(cd => cd.campaign_id === campaign.id) || [];
-              campaign.campaign_creators = campaignCreators;
+              (campaign as any).campaign_creators = campaignCreators;
               
               console.log(`useAccessibleCampaigns - Admin: Attaching creators to campaign ${campaign.brand_name}:`, {
                 campaignId: campaign.id,
                 foundCreators: campaignCreators,
-                finalCampaignCreators: campaign.campaign_creators
+                finalCampaignCreators: (campaign as any).campaign_creators
               });
             });
           }
@@ -126,12 +126,12 @@ export function useAccessibleCampaigns() {
             // Attach creator data to campaigns
             data.forEach(campaign => {
               const campaignCreators = creatorData?.filter(cd => cd.campaign_id === campaign.id) || [];
-              campaign.campaign_creators = campaignCreators;
+              (campaign as any).campaign_creators = campaignCreators;
               
               console.log(`useAccessibleCampaigns - Attaching creators to campaign ${campaign.brand_name}:`, {
                 campaignId: campaign.id,
                 foundCreators: campaignCreators,
-                finalCampaignCreators: campaign.campaign_creators
+                finalCampaignCreators: (campaign as any).campaign_creators
               });
             });
           }
@@ -155,7 +155,7 @@ export function useAccessibleCampaigns() {
             console.log(`useAccessibleCampaigns - Campaign ${index + 1} creator data:`, {
               id: campaign.id,
               brand_name: campaign.brand_name,
-              campaign_creators: campaign.campaign_creators
+              campaign_creators: (campaign as any).campaign_creators
             });
           });
         } else {

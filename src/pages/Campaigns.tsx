@@ -131,8 +131,7 @@ export default function Campaigns() {
     if (!hasAccess) return false;
     
     // Then check search filter
-    const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         campaign.creators?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 

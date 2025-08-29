@@ -92,8 +92,7 @@ export default function MasterCampaigns() {
       masterCampaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       masterCampaign.campaigns.some(campaign =>
         campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.creators?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        campaign.clients?.name.toLowerCase().includes(searchTerm.toLowerCase())
+        campaign.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
   }, [masterCampaigns, searchTerm]);
@@ -284,10 +283,7 @@ export default function MasterCampaigns() {
                             >
                               <div className="flex items-start justify-between mb-2">
                                 <div>
-                                  <h5 className="font-medium text-sm">{campaign.brand_name}</h5>
-                                  <p className="text-xs text-muted-foreground">
-                                    {campaign.creators?.name}
-                                  </p>
+                          <h5 className="font-medium text-sm">{campaign.brand_name}</h5>
                                 </div>
                                 <Badge variant={
                                   campaign.status === 'completed' ? 'default' :
@@ -366,9 +362,6 @@ export default function MasterCampaigns() {
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <h5 className="font-medium text-sm">{campaign.brand_name}</h5>
-                              <p className="text-xs text-muted-foreground">
-                                {campaign.creators?.name}
-                              </p>
                             </div>
                             <Badge variant={
                               campaign.status === 'completed' ? 'default' :
