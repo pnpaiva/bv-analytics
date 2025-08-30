@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X } from 'lucide-react';
+import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X, Play } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,18 +79,19 @@ export default function CreatorProfiles() {
   const { data: campaignCreators = [] } = useCampaignCreators();
   const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const updateCreator = useUpdateCreator();
-  const { canEdit } = useUserPermissions();
+  const { canEdit, isAdmin } = useUserPermissions();
   
   // Debug logging
   console.log('CreatorProfiles - creators:', creators);
   console.log('CreatorProfiles - canEdit:', canEdit);
+  console.log('CreatorProfiles - isAdmin:', isAdmin);
   console.log('CreatorProfiles - accessibleCampaignIds:', accessibleCampaignIds);
   
-  // Clients see all creators (same as admin), just without edit permissions
+  // Both admin and client see all creators
   const filteredCreators = useMemo(() => {
-    // Both admin and client see all creators
     return creators;
   }, [creators]);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [editingCreator, setEditingCreator] = useState<string | null>(null);
@@ -116,8 +117,11 @@ export default function CreatorProfiles() {
     const selectedParam = urlParams.get('selected');
     if (selectedParam && creators?.some(c => c.id === selectedParam)) {
       setSelectedCreator(selectedParam);
+    } else if (creators?.length > 0 && !selectedCreator) {
+      // Auto-select first creator for clients
+      setSelectedCreator(creators[0].id);
     }
-  }, [filteredCreators]);
+  }, [creators, selectedCreator]);
 
   // Build creator profiles with analytics using the new data structure
   const creatorProfiles = useMemo((): CreatorProfile[] => {
@@ -1048,6 +1052,360 @@ export default function CreatorProfiles() {
     );
   };
 
+  // For clients: show different layout with sidebar and public media kit style
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#4d4dd9]">
+        <Navigation />
+        
+        {/* Header with gradient accent */}
+        <div className="h-2 bg-gradient-to-r from-[#3333cc] via-[#F4D35E] to-[#F95738]"></div>
+        
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            
+            {/* Left Sidebar - Creator Thumbnails */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-8">
+                <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-[#3333cc]">
+                      <Users className="h-5 w-5" />
+                      Creator Profiles
+                    </CardTitle>
+                    <CardDescription>
+                      {searchFilteredCreators.length} creators available
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Search */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search creators..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 border-2"
+                        />
+                      </div>
+
+                      {/* Creator List */}
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {searchFilteredCreators.map((creator) => (
+                          <div
+                            key={creator.id}
+                            className={`p-4 rounded-xl border-2 cursor-pointer transition-all hover:shadow-lg ${
+                              selectedCreator === creator.id
+                                ? 'border-[#3333cc] bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] shadow-lg'
+                                : 'border-gray-200 hover:border-[#3333cc]/50 bg-white/70'
+                            }`}
+                            onClick={() => setSelectedCreator(creator.id)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-12 w-12 border-2 border-white shadow-lg">
+                                <AvatarImage src={creator.avatar_url} alt={creator.name} />
+                                <AvatarFallback className="bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white font-bold">
+                                  {creator.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm truncate text-[#3333cc]">{creator.name}</p>
+                                <p className="text-xs text-gray-600">
+                                  {formatNumber(creator.totalViews)} total views
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Main Content Area - Public Media Kit Style */}
+            <div className="lg:col-span-3">
+              {selectedCreatorProfile ? (
+                <div className="space-y-6">
+                  {/* Creator Header */}
+                  <Card className="overflow-hidden border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#e6e6f7]/50 to-[#ccccf0]/50 opacity-60"></div>
+                      <div className="absolute top-4 right-4">
+                        <div className="w-16 h-16 bg-gradient-to-br from-[#3333cc] to-[#F4D35E] rounded-full opacity-20"></div>
+                      </div>
+                      
+                      <div className="relative p-6">
+                        <div className="flex items-center gap-6">
+                          <Avatar className="h-24 w-24 border-4 border-white shadow-2xl">
+                            <AvatarImage src={selectedCreatorProfile.avatar_url} alt={selectedCreatorProfile.name} />
+                            <AvatarFallback className="bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white text-2xl font-bold">
+                              {selectedCreatorProfile.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h1 className="text-4xl font-bold text-[#3333cc] mb-2">{selectedCreatorProfile.name}</h1>
+                            <p className="text-gray-700 text-lg mb-3">{selectedCreatorProfile.bio}</p>
+                            <div className="flex items-center gap-4 text-sm text-gray-600">
+                              <div className="flex items-center gap-1">
+                                <MapPin className="h-4 w-4" />
+                                <span>{selectedCreatorProfile.location}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+
+                  {/* Platform Tabs */}
+                  <div className="flex gap-2 mb-6">
+                    {[
+                      { key: 'youtube', label: 'YouTube', icon: '📺' },
+                      { key: 'instagram', label: 'Instagram', icon: '📸' },
+                      { key: 'tiktok', label: 'TikTok', icon: '🎵' }
+                    ].map((platform) => (
+                      <Button
+                        key={platform.key}
+                        variant={selectedPlatform === platform.key ? 'default' : 'outline'}
+                        size="lg"
+                        onClick={() => setSelectedPlatform(platform.key as any)}
+                        className={`px-6 py-3 text-sm font-medium border-2 ${
+                          selectedPlatform === platform.key
+                            ? 'bg-[#3333cc] text-white border-[#3333cc] shadow-lg'
+                            : 'bg-white/80 text-[#3333cc] border-gray-300 hover:border-[#3333cc]/50'
+                        }`}
+                      >
+                        <span className="mr-2">{platform.icon}</span>
+                        {platform.label}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Key Metrics */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm overflow-hidden">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#e6e6f7]/30 to-[#ccccf0]/30"></div>
+                      <CardHeader className="relative">
+                        <CardTitle className="flex items-center gap-2 text-[#3333cc]">
+                          <TrendingUp className="h-6 w-6" />
+                          Key Metrics
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="relative">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
+                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
+                              {formatNumber(selectedCreatorProfile.followerCount)}
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">Followers</div>
+                          </div>
+                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
+                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
+                              {selectedCreatorProfile.engagementRate.toFixed(1)}%
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">Avg Engagement</div>
+                          </div>
+                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
+                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
+                              {formatNumber(Math.round(selectedCreatorProfile.totalViews / 30))}+
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">Monthly Reach</div>
+                          </div>
+                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
+                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
+                              {formatNumber(Math.round(selectedCreatorProfile.totalViews / (selectedCreatorProfile.topVideos.length || 1)))}
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">Avg Views per Video</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </div>
+                  </Card>
+
+                  {/* Demographics */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-[#3333cc]">
+                        <Users className="h-6 w-6" />
+                        Audience Demographics
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Gender */}
+                        <div>
+                          <h4 className="font-semibold mb-4 text-[#3333cc]">Gender</h4>
+                          <div className="space-y-3">
+                            {Object.entries(selectedCreatorProfile.demographics[selectedPlatform]?.gender || {}).map(([gender, percentage]) => (
+                              <div key={gender} className="flex items-center justify-between">
+                                <span className="capitalize font-medium">{gender}</span>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-300" 
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm font-bold text-[#3333cc] min-w-[3rem]">{percentage}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Age */}
+                        <div>
+                          <h4 className="font-semibold mb-4 text-[#3333cc]">Age Groups</h4>
+                          <div className="space-y-3">
+                            {Object.entries(selectedCreatorProfile.demographics[selectedPlatform]?.age || {}).map(([age, percentage]) => (
+                              <div key={age} className="flex items-center justify-between">
+                                <span className="font-medium">{age}</span>
+                                <div className="flex items-center gap-3">
+                                  <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-300" 
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-sm font-bold text-[#3333cc] min-w-[3rem]">{percentage}%</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Brand Collaborations */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-[#3333cc]">
+                        <Award className="h-6 w-6" />
+                        Past Collaborations
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {selectedCreatorProfile.brandCollaborations.slice(0, 6).map((brand, index) => (
+                          <Card key={index} className="border-2 border-gray-200 bg-white/80 hover:shadow-lg transition-all">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3 mb-3">
+                                {brand.logoUrl ? (
+                                  <img 
+                                    src={brand.logoUrl} 
+                                    alt={brand.brandName}
+                                    className="h-12 w-12 rounded object-cover border-2 border-gray-200"
+                                  />
+                                ) : (
+                                  <div className="h-12 w-12 rounded bg-gradient-to-br from-[#3333cc] to-[#F4D35E] flex items-center justify-center">
+                                    <Award className="h-6 w-6 text-white" />
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-[#3333cc]">{brand.brandName}</h4>
+                                  <p className="text-sm text-gray-600">
+                                    {new Date(brand.date).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-600">Views:</span>
+                                  <div className="font-bold text-[#3333cc]">{formatNumber(brand.views)}</div>
+                                </div>
+                                <div>
+                                  <span className="text-gray-600">Engagement:</span>
+                                  <div className="font-bold text-[#F95738]">{brand.engagementRate.toFixed(1)}%</div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Top Content */}
+                  {selectedCreatorProfile.topVideos.length > 0 && (
+                    <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-[#3333cc]">
+                          <Play className="h-6 w-6" />
+                          Top Performing Content
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                          {selectedCreatorProfile.topVideos
+                            .filter(video => video.platform.toLowerCase() === selectedPlatform.toLowerCase())
+                            .slice(0, 3)
+                            .map((video, index) => (
+                            <Card key={index} className="border-2 border-gray-200 bg-white/80 hover:shadow-lg transition-all">
+                              <CardContent className="p-4">
+                                <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden border-2 relative">
+                                  {getEmbedUrl(video.url, video.platform) ? (
+                                    <iframe
+                                      src={getEmbedUrl(video.url, video.platform)!}
+                                      title={video.title}
+                                      className="absolute inset-0 w-full h-full"
+                                      style={{ border: 'none' }}
+                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                      allowFullScreen
+                                      loading="lazy"
+                                    />
+                                  ) : video.thumbnail ? (
+                                    <img src={video.thumbnail} alt={video.title} className="absolute inset-0 w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0]">
+                                      <Play className="h-12 w-12 text-[#3333cc]" />
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold text-sm text-[#3333cc] line-clamp-2">{video.title}</h4>
+                                  
+                                  <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div>
+                                      <span className="text-gray-600">Views:</span>
+                                      <div className="font-bold text-[#3333cc]">{formatNumber(video.views)}</div>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-600">Engagement:</span>
+                                      <div className="font-bold text-[#F95738]">{video.engagementRate.toFixed(1)}%</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              ) : (
+                <Card className="h-96 flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                  <CardContent>
+                    <div className="text-center text-gray-600">
+                      <Users className="h-16 w-16 mx-auto mb-4 opacity-50 text-[#3333cc]" />
+                      <p className="text-lg">Select a creator to view their media kit</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // For admins: show original full admin layout
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
