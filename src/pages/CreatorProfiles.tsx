@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X, Play } from 'lucide-react';
+import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X, Play, Youtube, Instagram, Globe, Heart, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -267,6 +267,61 @@ export default function CreatorProfiles() {
   const selectedCreatorProfile = useMemo(() => {
     return searchFilteredCreators.find(creator => creator.id === selectedCreator);
   }, [searchFilteredCreators, selectedCreator]);
+
+  // Helper function to get social media links
+  const getSocialLink = (platform: string, handle: string) => {
+    const platformLower = platform.toLowerCase();
+    // Remove @ prefix if it exists to avoid double @
+    const cleanHandle = handle.startsWith('@') ? handle.slice(1) : handle;
+    
+    switch (platformLower) {
+      case 'youtube':
+        return `https://www.youtube.com/@${cleanHandle}`;
+      case 'instagram':
+        return `https://www.instagram.com/${cleanHandle}`;
+      case 'tiktok':
+        return `https://www.tiktok.com/@${cleanHandle}`;
+      default:
+        return '#';
+    }
+  };
+
+  // Calculate stats for selected platform
+  const selectedPlatformStats = useMemo(() => {
+    if (!selectedCreatorProfile) return { followers: 0, engagement: 0, reach: 0, views: 0 };
+    
+    const platformData = selectedCreatorProfile.platformBreakdown.find(p => 
+      p.platform.toLowerCase() === selectedPlatform.toLowerCase()
+    );
+    
+    // Try to get from stored platform metrics first, then fallback to calculated data
+    const storedMetrics = (selectedCreatorProfile as any).platform_metrics?.[selectedPlatform];
+    
+    return {
+      followers: storedMetrics?.followers || platformData?.followerCount || 0,
+      engagement: storedMetrics?.engagementRate || platformData?.engagementRate || 0,
+      reach: storedMetrics?.reach || platformData?.views || 0,
+      views: storedMetrics?.avgViews || platformData?.views || 0
+    };
+  }, [selectedCreatorProfile, selectedPlatform]);
+
+  const getPlatformIcon = (platform: string) => {
+    const platformLower = platform.toLowerCase();
+    switch (platformLower) {
+      case 'youtube':
+        return <Youtube className="h-5 w-5" />;
+      case 'instagram':
+        return <Instagram className="h-5 w-5" />;
+      case 'tiktok':
+        return (
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+          </svg>
+        );
+      default:
+        return <Globe className="h-5 w-5" />;
+    }
+  };
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -1184,49 +1239,104 @@ export default function CreatorProfiles() {
                     ))}
                   </div>
 
-                  {/* Key Metrics */}
-                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm overflow-hidden">
+                  {/* Creator Bio & Header */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mb-6">
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#e6e6f7]/30 to-[#ccccf0]/30"></div>
-                      <CardHeader className="relative">
-                        <CardTitle className="flex items-center gap-2 text-[#3333cc]">
-                          <TrendingUp className="h-6 w-6" />
-                          Key Metrics
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="relative">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
-                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
-                              {formatNumber(selectedCreatorProfile.followerCount)}
-                            </div>
-                            <div className="text-sm text-gray-600 font-medium">Followers</div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#e6e6f7]/30 to-[#ccccf0]/30 opacity-60"></div>
+                      <CardContent className="relative p-8">
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                          <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-lg flex-shrink-0">
+                            <Avatar className="w-full h-full rounded-2xl">
+                              <AvatarImage 
+                                src={selectedCreatorProfile.avatar_url} 
+                                alt={selectedCreatorProfile.name}
+                                className="object-cover"
+                              />
+                              <AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white">
+                                {selectedCreatorProfile.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
                           </div>
-                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
-                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
-                              {selectedCreatorProfile.engagementRate.toFixed(1)}%
+                          
+                          <div className="flex-1 space-y-4">
+                            <div>
+                              <h1 className="text-3xl font-bold text-[#3333cc] mb-2">{selectedCreatorProfile.name}</h1>
+                              {selectedCreatorProfile.location && (
+                                <p className="text-gray-600 flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  {selectedCreatorProfile.location}
+                                </p>
+                              )}
                             </div>
-                            <div className="text-sm text-gray-600 font-medium">Avg Engagement</div>
-                          </div>
-                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
-                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
-                              {formatNumber(Math.round(selectedCreatorProfile.totalViews / 30))}+
-                            </div>
-                            <div className="text-sm text-gray-600 font-medium">Monthly Reach</div>
-                          </div>
-                          <div className="text-center p-4 bg-white/50 rounded-xl border-2 border-white/60 shadow-sm">
-                            <div className="text-3xl font-bold text-[#3333cc] mb-1">
-                              {formatNumber(Math.round(selectedCreatorProfile.totalViews / (selectedCreatorProfile.topVideos.length || 1)))}
-                            </div>
-                            <div className="text-sm text-gray-600 font-medium">Avg Views per Video</div>
+                            
+                            {selectedCreatorProfile.bio && (
+                              <p className="text-gray-700 leading-relaxed">{selectedCreatorProfile.bio}</p>
+                            )}
+                            
+                            {/* Social Media Handles */}
+                            {selectedCreatorProfile.platform_handles && Object.keys(selectedCreatorProfile.platform_handles).length > 0 && (
+                              <div className="flex flex-wrap gap-3">
+                                {Object.entries(selectedCreatorProfile.platform_handles).map(([platform, handle]) => (
+                                  <a
+                                    key={platform}
+                                    href={getSocialLink(platform, handle)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 px-3 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-gray-200 hover:bg-gray-50 transition-colors"
+                                  >
+                                    {getPlatformIcon(platform)}
+                                    <span className="text-sm font-medium">{handle}</span>
+                                  </a>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </CardContent>
                     </div>
                   </Card>
 
+                  {/* Platform Tabs & Key Metrics */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mb-6">
+                    <CardContent className="p-6">
+                      <div className="flex gap-2 mb-6">
+                        {(['youtube', 'instagram', 'tiktok'] as const).map((platform) => (
+                          <Button
+                            key={platform}
+                            variant={selectedPlatform === platform ? "default" : "outline"}
+                            onClick={() => setSelectedPlatform(platform)}
+                            className="flex items-center gap-2"
+                          >
+                            {getPlatformIcon(platform)}
+                            {platform.charAt(0).toUpperCase() + platform.slice(1)}
+                          </Button>
+                        ))}
+                      </div>
+                      
+                      {/* Platform-specific metrics */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div className="text-center p-4 bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] rounded-xl">
+                          <div className="text-2xl font-bold text-[#3333cc] mb-1">{formatNumber(selectedPlatformStats.followers)}</div>
+                          <div className="text-sm text-gray-600">Followers</div>
+                        </div>
+                        <div className="text-center p-4 bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] rounded-xl">
+                          <div className="text-2xl font-bold text-[#3333cc] mb-1">{selectedPlatformStats.engagement.toFixed(1)}%</div>
+                          <div className="text-sm text-gray-600">Engagement</div>
+                        </div>
+                        <div className="text-center p-4 bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] rounded-xl">
+                          <div className="text-2xl font-bold text-[#3333cc] mb-1">{formatNumber(selectedPlatformStats.reach)}</div>
+                          <div className="text-sm text-gray-600">Reach</div>
+                        </div>
+                        <div className="text-center p-4 bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] rounded-xl">
+                          <div className="text-2xl font-bold text-[#3333cc] mb-1">{formatNumber(selectedPlatformStats.views)}</div>
+                          <div className="text-sm text-gray-600">Avg Views</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   {/* Demographics */}
-                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mb-6">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-[#3333cc]">
                         <Users className="h-6 w-6" />
@@ -1234,54 +1344,34 @@ export default function CreatorProfiles() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Gender */}
-                        <div>
-                          <h4 className="font-semibold mb-4 text-[#3333cc]">Gender</h4>
-                          <div className="space-y-3">
-                            {Object.entries(selectedCreatorProfile.demographics[selectedPlatform]?.gender || {}).map(([gender, percentage]) => (
-                              <div key={gender} className="flex items-center justify-between">
-                                <span className="capitalize font-medium">{gender}</span>
-                                <div className="flex items-center gap-3">
-                                  <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {['gender', 'age', 'location'].map((category) => (
+                          <div key={category}>
+                            <h4 className="font-semibold mb-4 text-[#3333cc] capitalize">{category === 'location' ? 'Top Locations' : category}</h4>
+                            <div className="space-y-3">
+                              {Object.entries(selectedCreatorProfile.demographics[selectedPlatform]?.[category] || {}).map(([key, percentage]) => (
+                                <div key={key} className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-gray-700 capitalize">{key}</span>
+                                    <span className="text-sm font-medium text-[#3333cc]">{percentage}%</span>
+                                  </div>
+                                  <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                                     <div 
-                                      className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-300" 
+                                      className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] transition-all duration-500"
                                       style={{ width: `${percentage}%` }}
                                     />
                                   </div>
-                                  <span className="text-sm font-bold text-[#3333cc] min-w-[3rem]">{percentage}%</span>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-
-                        {/* Age */}
-                        <div>
-                          <h4 className="font-semibold mb-4 text-[#3333cc]">Age Groups</h4>
-                          <div className="space-y-3">
-                            {Object.entries(selectedCreatorProfile.demographics[selectedPlatform]?.age || {}).map(([age, percentage]) => (
-                              <div key={age} className="flex items-center justify-between">
-                                <span className="font-medium">{age}</span>
-                                <div className="flex items-center gap-3">
-                                  <div className="w-32 h-3 bg-gray-200 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full bg-gradient-to-r from-[#3333cc] to-[#F4D35E] rounded-full transition-all duration-300" 
-                                      style={{ width: `${percentage}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-sm font-bold text-[#3333cc] min-w-[3rem]">{percentage}%</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
+                        ))}
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Brand Collaborations */}
-                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                  {/* All Brand Collaborations */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm mb-6">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-[#3333cc]">
                         <Award className="h-6 w-6" />
@@ -1289,104 +1379,94 @@ export default function CreatorProfiles() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {selectedCreatorProfile.brandCollaborations.slice(0, 6).map((brand, index) => (
-                          <Card key={index} className="border-2 border-gray-200 bg-white/80 hover:shadow-lg transition-all">
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-3 mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {selectedCreatorProfile.brandCollaborations.map((brand, index) => (
+                          <div key={index} className="p-6 border border-gray-200 rounded-xl bg-gradient-to-br from-[#e6e6f7]/20 to-[#ccccf0]/20 hover:shadow-lg transition-shadow">
+                            <div className="flex items-center gap-4 mb-4">
+                              <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center overflow-hidden">
                                 {brand.logoUrl ? (
-                                  <img 
-                                    src={brand.logoUrl} 
-                                    alt={brand.brandName}
-                                    className="h-12 w-12 rounded object-cover border-2 border-gray-200"
-                                  />
+                                  <img src={brand.logoUrl} alt={brand.brandName} className="w-8 h-8 object-contain" />
                                 ) : (
-                                  <div className="h-12 w-12 rounded bg-gradient-to-br from-[#3333cc] to-[#F4D35E] flex items-center justify-center">
-                                    <Award className="h-6 w-6 text-white" />
+                                  <div className="w-8 h-8 bg-gradient-to-br from-[#3333cc] to-[#F4D35E] rounded text-white text-sm font-bold flex items-center justify-center">
+                                    {brand.brandName.charAt(0)}
                                   </div>
                                 )}
-                                <div className="flex-1">
-                                  <h4 className="font-semibold text-[#3333cc]">{brand.brandName}</h4>
-                                  <p className="text-sm text-gray-600">
-                                    {new Date(brand.date).toLocaleDateString()}
-                                  </p>
-                                </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-gray-600">Views:</span>
-                                  <div className="font-bold text-[#3333cc]">{formatNumber(brand.views)}</div>
-                                </div>
-                                <div>
-                                  <span className="text-gray-600">Engagement:</span>
-                                  <div className="font-bold text-[#F95738]">{brand.engagementRate.toFixed(1)}%</div>
-                                </div>
+                              <div>
+                                <h4 className="font-bold text-[#3333cc] text-lg">{brand.brandName}</h4>
+                                <p className="text-sm text-gray-600">{new Date(brand.date).toLocaleDateString()}</p>
                               </div>
-                            </CardContent>
-                          </Card>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-[#3333cc]">{formatNumber(brand.views)}</div>
+                                <div className="text-xs text-gray-600 mt-1">Views</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-[#3333cc]">{formatNumber(brand.engagement)}</div>
+                                <div className="text-xs text-gray-600 mt-1">Engagement</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-[#3333cc]">{brand.engagementRate.toFixed(1)}%</div>
+                                <div className="text-xs text-gray-600 mt-1">Rate</div>
+                              </div>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Top Content */}
-                  {selectedCreatorProfile.topVideos.length > 0 && (
-                    <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-[#3333cc]">
-                          <Play className="h-6 w-6" />
-                          Top Performing Content
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                          {selectedCreatorProfile.topVideos
-                            .filter(video => video.platform.toLowerCase() === selectedPlatform.toLowerCase())
-                            .slice(0, 3)
-                            .map((video, index) => (
-                            <Card key={index} className="border-2 border-gray-200 bg-white/80 hover:shadow-lg transition-all">
-                              <CardContent className="p-4">
-                                <div className="aspect-video bg-gray-100 rounded-lg mb-3 overflow-hidden border-2 relative">
-                                  {getEmbedUrl(video.url, video.platform) ? (
-                                    <iframe
-                                      src={getEmbedUrl(video.url, video.platform)!}
-                                      title={video.title}
-                                      className="absolute inset-0 w-full h-full"
-                                      style={{ border: 'none' }}
-                                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                      allowFullScreen
-                                      loading="lazy"
-                                    />
-                                  ) : video.thumbnail ? (
-                                    <img src={video.thumbnail} alt={video.title} className="absolute inset-0 w-full h-full object-cover" />
-                                  ) : (
-                                    <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0]">
-                                      <Play className="h-12 w-12 text-[#3333cc]" />
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <h4 className="font-semibold text-sm text-[#3333cc] line-clamp-2">{video.title}</h4>
-                                  
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div>
-                                      <span className="text-gray-600">Views:</span>
-                                      <div className="font-bold text-[#3333cc]">{formatNumber(video.views)}</div>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-600">Engagement:</span>
-                                      <div className="font-bold text-[#F95738]">{video.engagementRate.toFixed(1)}%</div>
-                                    </div>
+                  {/* Top Content with Full Embeds */}
+                  <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-[#3333cc]">
+                        <Play className="h-6 w-6" />
+                        Top Performing Content
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {selectedCreatorProfile.topVideos
+                          .filter(video => video.platform.toLowerCase() === selectedPlatform.toLowerCase())
+                          .map((video, index) => (
+                            <div key={index} className="space-y-4">
+                              <div className="aspect-video rounded-xl overflow-hidden border-2 border-gray-200 shadow-lg">
+                                {getEmbedUrl(video.url, video.platform) ? (
+                                  <iframe
+                                    src={getEmbedUrl(video.url, video.platform)!}
+                                    title={video.title}
+                                    className="w-full h-full"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] flex items-center justify-center">
+                                    <Play className="h-12 w-12 text-[#3333cc]" />
                                   </div>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-[#3333cc] line-clamp-2">{video.title}</h4>
+                                <div className="flex items-center justify-between text-sm">
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    <Eye className="h-4 w-4" />
+                                    <span className="font-medium">{formatNumber(video.views)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-gray-600">
+                                    <Heart className="h-4 w-4" />
+                                    <span className="font-medium">{formatNumber(video.engagement)}</span>
+                                  </div>
+                                  <span className="font-bold text-[#3333cc]">{video.engagementRate.toFixed(1)}%</span>
                                 </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </div>
                           ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ) : (
                 <Card className="h-96 flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm">
