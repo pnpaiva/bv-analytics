@@ -1320,7 +1320,7 @@ export default function CreatorProfiles() {
                           <div className="text-sm text-gray-600">Followers</div>
                         </div>
                         <div className="text-center p-4 bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] rounded-xl">
-                          <div className="text-2xl font-bold text-[#3333cc] mb-1">{selectedPlatformStats.engagement.toFixed(1)}%</div>
+                          <div className="text-2xl font-bold text-[#3333cc] mb-1">{Number(selectedPlatformStats.engagement || 0).toFixed(1)}%</div>
                           <div className="text-sm text-gray-600">Engagement</div>
                         </div>
                         <div className="text-center p-4 bg-gradient-to-br from-[#e6e6f7] to-[#ccccf0] rounded-xl">
@@ -1407,7 +1407,7 @@ export default function CreatorProfiles() {
                                 <div className="text-xs text-gray-600 mt-1">Engagement</div>
                               </div>
                               <div className="text-center">
-                                <div className="text-xl font-bold text-[#3333cc]">{brand.engagementRate.toFixed(1)}%</div>
+                                <div className="text-xl font-bold text-[#3333cc]">{Number(brand.engagementRate || 0).toFixed(1)}%</div>
                                 <div className="text-xs text-gray-600 mt-1">Rate</div>
                               </div>
                             </div>
@@ -1459,7 +1459,7 @@ export default function CreatorProfiles() {
                                     <Heart className="h-4 w-4" />
                                     <span className="font-medium">{formatNumber(video.engagement)}</span>
                                   </div>
-                                  <span className="font-bold text-[#3333cc]">{video.engagementRate.toFixed(1)}%</span>
+                                  <span className="font-bold text-[#3333cc]">{Number(video.engagementRate || 0).toFixed(1)}%</span>
                                 </div>
                               </div>
                             </div>
@@ -1567,10 +1567,10 @@ export default function CreatorProfiles() {
                             <Eye className="h-3 w-3" />
                             {formatNumber(creator.totalViews)}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3" />
-                            {creator.engagementRate.toFixed(1)}%
-                          </span>
+          <span className="flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" />
+            {Number(creator.engagementRate || 0).toFixed(1)}%
+          </span>
                         </div>
                       </div>
                     </div>
@@ -1772,7 +1772,7 @@ export default function CreatorProfiles() {
                   <Card className="border-2">
                     <CardContent className="p-6 text-center">
                       <div className="text-3xl font-bold text-rose-500 mb-2">
-                        {(selectedCreatorProfile.platform_metrics?.[selectedPlatform]?.engagementRate) || `${selectedCreatorProfile.engagementRate.toFixed(1)}%`}
+                        {(selectedCreatorProfile.platform_metrics?.[selectedPlatform]?.engagementRate) || `${Number(selectedCreatorProfile.engagementRate || 0).toFixed(1)}%`}
                       </div>
                       <div className="text-sm text-muted-foreground">Engagement Rate</div>
                     </CardContent>
@@ -1849,7 +1849,7 @@ export default function CreatorProfiles() {
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Engagement:</span>
-                                <div className="font-semibold text-primary">{brand.engagementRate.toFixed(1)}%</div>
+                                <div className="font-semibold text-primary">{Number(brand.engagementRate || 0).toFixed(1)}%</div>
                               </div>
                             </div>
                           </CardContent>
@@ -1911,7 +1911,7 @@ export default function CreatorProfiles() {
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground">Engagement:</span>
-                                  <div className="font-semibold text-primary">{video.engagementRate.toFixed(1)}%</div>
+                                  <div className="font-semibold text-primary">{Number(video.engagementRate || 0).toFixed(1)}%</div>
                                 </div>
                               </div>
                             </div>
