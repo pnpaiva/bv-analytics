@@ -251,7 +251,7 @@ export default function CreatorProfiles() {
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         topVideos: (creator as any).top_videos || topVideos,
         services: (creator as any).services || services,
-        mediaKitUrl: `${window.location.origin}/m/${slugify(creator.name)}-${creator.id}`,
+        mediaKitUrl: `${window.location.origin}/${slugify(creator.name)}-${creator.id}`,
         platform_metrics: (creator as any).platform_metrics || {}
       };
     });
