@@ -1216,7 +1216,7 @@ export default function CreatorProfiles() {
                             onClick={() => setSelectedCreator(creator.id)}
                           >
                             <div className="flex items-center gap-3">
-                              <Avatar className="h-12 w-12 border-2 border-white shadow-lg">
+                              <Avatar className="h-8 w-8 border-2 border-white shadow-lg">
                                 <AvatarImage src={creator.avatar_url} alt={creator.name} />
                                 <AvatarFallback className="bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white font-bold">
                                   {creator.name.split(' ').map(n => n[0]).join('')}
@@ -1349,7 +1349,7 @@ export default function CreatorProfiles() {
                     onClick={() => setSelectedCreator(creator.id)}
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12 border-2 border-border">
+                      <Avatar className="h-8 w-8 border-2 border-border">
                         <AvatarImage src={creator.avatar_url} />
                         <AvatarFallback className="bg-muted">
                           {creator.name.split(' ').map(n => n[0]).join('')}
