@@ -1353,7 +1353,7 @@ export default function CreatorProfiles() {
                                 <div key={key} className="space-y-2">
                                   <div className="flex justify-between items-center">
                                     <span className="text-gray-700 capitalize">{key}</span>
-                                    <span className="text-sm font-medium text-[#3333cc]">{percentage}%</span>
+                                    <span className="text-sm font-medium text-[#3333cc]">{Number(percentage)}%</span>
                                   </div>
                                   <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
                                     <div 
