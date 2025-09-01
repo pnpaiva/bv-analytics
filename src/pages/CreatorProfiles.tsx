@@ -99,7 +99,12 @@ export default function CreatorProfiles() {
   const [currentCollaborationPage, setCurrentCollaborationPage] = useState(1);
   const collaborationsPerPage = 6;
 
-  // Helper function for creating URL-friendly slugs
+  // External media kit embed state
+  const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
+  const [embedLoading, setEmbedLoading] = useState(false);
+  const [embedError, setEmbedError] = useState<string | null>(null);
+
+  // Helper functions for creating URL-friendly slugs
   const slugify = (text: string) => {
     return text
       .toString()
@@ -111,6 +116,16 @@ export default function CreatorProfiles() {
       .replace(/(^-|-$)+/g, '');
   };
 
+  // Compact slug without dashes (e.g., "Andre Pilli" -> "andrepilli") for external media kit
+  const compactSlug = (text: string) => {
+    return text
+      .toString()
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .trim();
+  };
   // Handle URL query parameter for shared links
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -267,6 +282,49 @@ export default function CreatorProfiles() {
   const selectedCreatorProfile = useMemo(() => {
     return searchFilteredCreators.find(creator => creator.id === selectedCreator);
   }, [searchFilteredCreators, selectedCreator]);
+  // Resolve external public media kit URL for the selected creator
+  useEffect(() => {
+    const resolveUrl = async () => {
+      if (!selectedCreator) {
+        setEmbeddedUrl(null);
+        return;
+      }
+      const creator = creatorProfiles.find(c => c.id === selectedCreator);
+      setEmbedLoading(true);
+      setEmbedError(null);
+      try {
+        const { data } = await supabase
+          .from('public_media_kits')
+          .select('slug')
+          .eq('creator_id', selectedCreator)
+          .eq('published', true)
+          .maybeSingle();
+
+        if (data?.slug) {
+          setEmbeddedUrl(`https://app.beyond-views.com/${data.slug}`);
+        } else {
+          // Try to publish and get slug
+          const { data: slug } = await supabase.rpc('publish_public_media_kit', {
+            p_creator_id: selectedCreator,
+          });
+          if (slug) {
+            setEmbeddedUrl(`https://app.beyond-views.com/${slug}`);
+          } else {
+            const fallback = creator ? compactSlug(creator.name) : null;
+            setEmbeddedUrl(fallback ? `https://app.beyond-views.com/${fallback}` : null);
+          }
+        }
+      } catch (e) {
+        console.error('Error resolving media kit URL', e);
+        const fallback = creator ? compactSlug(creator.name) : null;
+        setEmbeddedUrl(fallback ? `https://app.beyond-views.com/${fallback}` : null);
+        setEmbedError('Could not load the creator profile.');
+      } finally {
+        setEmbedLoading(false);
+      }
+    };
+    resolveUrl();
+  }, [selectedCreator, creatorProfiles]);
 
   // Helper function to get social media links
   const getSocialLink = (platform: string, handle: string) => {
@@ -1184,13 +1242,27 @@ export default function CreatorProfiles() {
             <div className="lg:col-span-3">
               {selectedCreatorProfile ? (
                 <div className="h-full">
-                  <iframe
-                    src={selectedCreatorProfile.mediaKitUrl}
-                    className="w-full h-[calc(100vh-12rem)] border-0 rounded-lg shadow-xl"
-                    title={`${selectedCreatorProfile.name} Media Kit`}
-                    loading="lazy"
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                  />
+                  {embedLoading ? (
+                    <Card className="h-[calc(100vh-12rem)] flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                      <CardContent>Loading media kit…</CardContent>
+                    </Card>
+                  ) : embeddedUrl ? (
+                    <iframe
+                      src={embeddedUrl}
+                      className="w-full h-[calc(100vh-12rem)] border-0 rounded-lg shadow-xl"
+                      title={`${selectedCreatorProfile.name} Media Kit`}
+                      loading="lazy"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    />
+                  ) : (
+                    <Card className="h-[calc(100vh-12rem)] flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                      <CardContent>
+                        <div className="text-center text-gray-600">
+                          <p className="text-lg">{embedError || 'Could not load the creator profile.'}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               ) : (
                 <Card className="h-96 flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm">
