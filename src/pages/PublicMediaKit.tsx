@@ -204,6 +204,7 @@ export default function PublicMediaKit() {
           avatar_url: (mediaKit as any).avatar_url,
           platform_handles: (mediaKit as any).platform_handles || {},
           location: (mediaKit as any).location || 'United States',
+          email: (mediaKit as any).email,
           bio: (mediaKit as any).bio || 'Content Creator',
           totalViews,
           totalEngagement,
