@@ -301,23 +301,23 @@ export default function CreatorProfiles() {
           .maybeSingle();
 
         if (data?.slug) {
-          setEmbeddedUrl(`https://app.beyond-views.com/${data.slug}`);
+          setEmbeddedUrl(`/${data.slug}`);
         } else {
           // Try to publish and get slug
           const { data: slug } = await supabase.rpc('publish_public_media_kit', {
             p_creator_id: selectedCreator,
           });
           if (slug) {
-            setEmbeddedUrl(`https://app.beyond-views.com/${slug}`);
+            setEmbeddedUrl(`/${slug}`);
           } else {
             const fallback = creator ? compactSlug(creator.name) : null;
-            setEmbeddedUrl(fallback ? `https://app.beyond-views.com/${fallback}` : null);
+            setEmbeddedUrl(fallback ? `/${fallback}` : null);
           }
         }
       } catch (e) {
         console.error('Error resolving media kit URL', e);
         const fallback = creator ? compactSlug(creator.name) : null;
-        setEmbeddedUrl(fallback ? `https://app.beyond-views.com/${fallback}` : null);
+        setEmbeddedUrl(fallback ? `/${fallback}` : null);
         setEmbedError('Could not load the creator profile.');
       } finally {
         setEmbedLoading(false);
@@ -1224,9 +1224,6 @@ export default function CreatorProfiles() {
                               </Avatar>
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm truncate text-[#3333cc]">{creator.name}</p>
-                                <p className="text-xs text-gray-600">
-                                  {formatNumber(creator.totalViews)} total views
-                                </p>
                               </div>
                             </div>
                           </div>
