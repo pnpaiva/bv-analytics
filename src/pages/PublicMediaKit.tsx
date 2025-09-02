@@ -429,14 +429,14 @@ export default function PublicMediaKit() {
                   
                   {/* Main photo */}
                   <div className="relative p-6 flex justify-center">
-                    <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-2xl">
                       <Avatar className="w-full h-full rounded-2xl">
                          <AvatarImage 
                            src={creatorProfile?.avatar_url} 
                            alt={creatorProfile?.name}
                            className="object-cover"
                          />
-                         <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white">
+                         <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-[#3333cc] to-[#F4D35E] text-white">
                            {creatorProfile?.name.split(' ').map(n => n[0]).join('')}
                          </AvatarFallback>
                        </Avatar>
