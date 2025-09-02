@@ -1168,7 +1168,7 @@ export default function CreatorProfiles() {
   // For clients: show different layout with sidebar and public media kit style
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-[#4d4dd9]">
+      <div className="min-h-screen bg-background">
         <Navigation />
         
         {/* Header with gradient accent */}
