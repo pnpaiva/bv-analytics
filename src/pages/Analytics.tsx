@@ -680,18 +680,17 @@ export default function Analytics() {
         return;
       }
 
-      const exporter = new PremiumPDFExporter();
-      const exportTitle = options.customTitle || 'Premium Campaign Analytics Report';
+      // Use the new text-based PDF exporter
+      const exporter = new (await import('@/utils/textBasedPdfExporter')).TextBasedPDFExporter();
+      const exportTitle = options.customTitle || 'Campaign Analytics Report';
       
-      await exporter.exportPremiumReport(campaignsToExport, exportTitle, {
+      exporter.exportReport(campaignsToExport, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
-        includeMasterCampaigns: options.includeMasterCampaigns,
-        includeCharts: options.includeCharts,
-        includeLogo: options.includeLogo
+        customTitle: options.customTitle
       });
       
-      toast.success(`Enhanced PDF report exported with ${campaignsToExport.length} campaigns`);
+      toast.success(`Text-based PDF report exported with ${campaignsToExport.length} campaigns`);
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');

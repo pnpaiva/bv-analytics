@@ -513,34 +513,27 @@ export type Database = {
       }
       client_campaign_assignments: {
         Row: {
-          id: string
-          client_id: string
-          campaign_id: string
+          assigned_at: string | null
           assigned_by: string
-          assigned_at: string
+          campaign_id: string
+          client_id: string
+          id: string
         }
         Insert: {
-          id?: string
-          client_id: string
-          campaign_id: string
+          assigned_at?: string | null
           assigned_by: string
-          assigned_at?: string
+          campaign_id: string
+          client_id: string
+          id?: string
         }
         Update: {
-          id?: string
-          client_id?: string
-          campaign_id?: string
+          assigned_at?: string | null
           assigned_by?: string
-          assigned_at?: string
+          campaign_id?: string
+          client_id?: string
+          id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "client_campaign_assignments_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "auth.users"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "client_campaign_assignments_campaign_id_fkey"
             columns: ["campaign_id"]
@@ -549,12 +542,19 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "client_campaign_assignments_assigned_by_fkey"
-            columns: ["assigned_by"]
+            foreignKeyName: "client_campaign_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
             isOneToOne: false
-            referencedRelation: "auth.users"
+            referencedRelation: "dashboard_analytics"
+            referencedColumns: ["campaign_id"]
+          },
+          {
+            foreignKeyName: "client_campaign_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "public_collaborations"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       clients: {
@@ -869,6 +869,39 @@ export type Database = {
         }
         Relationships: []
       }
+      refresh_logs: {
+        Row: {
+          campaign_count: number | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          operation_type: string
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          campaign_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          operation_type: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          campaign_count?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          operation_type?: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       roster_analytics: {
         Row: {
           created_at: string
@@ -1162,6 +1195,15 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_user: {
+        Args: {
+          email: string
+          is_view_only?: boolean
+          password: string
+          role: string
+        }
+        Returns: Json
+      }
       calculate_accurate_daily_metrics: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1177,6 +1219,18 @@ export type Database = {
       calculate_proper_daily_metrics: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      can_user_create_content: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      can_user_delete_content: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      can_user_edit_content: {
+        Args: { _user_id: string }
+        Returns: boolean
       }
       cleanup_expired_cache: {
         Args: Record<PropertyKey, never>
@@ -1323,6 +1377,12 @@ export type Database = {
           views: number
         }[]
       }
+      get_user_accessible_campaigns: {
+        Args: { _user_id: string }
+        Returns: {
+          campaign_id: string
+        }[]
+      }
       get_user_credential_summary: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1377,6 +1437,10 @@ export type Database = {
         Args: { p_creator_id: string; p_slug?: string }
         Returns: string
       }
+      refresh_all_campaigns_nightly: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       refresh_creator_youtube_data: {
         Args: {
           p_creator_roster_id: string
@@ -1405,6 +1469,10 @@ export type Database = {
       slugify_name: {
         Args: { input: string }
         Returns: string
+      }
+      trigger_manual_refresh: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       update_campaign_analytics: {
         Args: {
