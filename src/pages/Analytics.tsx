@@ -464,7 +464,7 @@ export default function Analytics() {
             platformData.forEach((video: any, index: number) => {
               videos.push({
                 id: `${campaign.id}-${platform}-${index}`,
-                title: video.title || `${platform} Video ${index + 1}`,
+                title: video.title || campaign.brand_name,
                 platform: platform.charAt(0).toUpperCase() + platform.slice(1),
                 campaign: campaign.brand_name,
                 creator: (() => {
@@ -1179,10 +1179,15 @@ export default function Analytics() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis 
                         dataKey="title" 
-                        tick={{ fontSize: 10 }}
+                        tick={{ fontSize: 10, cursor: 'pointer' }}
                         angle={-45}
                         textAnchor="end"
                         height={80}
+                        onClick={(data) => {
+                          if (data && data.payload && data.payload.url) {
+                            window.open(data.payload.url, '_blank');
+                          }
+                        }}
                       />
                       <YAxis tickFormatter={(value) => {
                         if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
