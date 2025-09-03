@@ -414,10 +414,21 @@ export default function Analytics() {
         }
       });
 
+      const creatorColors = [
+        'hsl(var(--primary))',
+        'hsl(var(--brand-accent-green))',
+        'hsl(var(--teal))',
+        'hsl(var(--orange))',
+        'hsl(var(--secondary))',
+        'hsl(var(--destructive))',
+        'hsl(var(--muted-foreground))',
+        'hsl(var(--accent))',
+      ];
+      
       return Object.values(creatorViews).map((data, index) => ({
         name: data.creatorName,
         value: data.views,
-        fill: index === 0 ? 'hsl(var(--primary))' : 'hsl(var(--brand-accent-green))'
+        fill: creatorColors[index % creatorColors.length]
       }));
     } else {
       // Group by platform - match bar chart colors
