@@ -18,8 +18,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
-import { PDFExporter } from '@/utils/pdfExporter';
-import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
+import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter, ZAxis } from 'recharts';
@@ -680,17 +679,49 @@ export default function Analytics() {
         return;
       }
 
-      // Use the new text-based PDF exporter
-      const exporter = new (await import('@/utils/textBasedPdfExporter')).TextBasedPDFExporter();
+      // Enrich campaigns with resolved creator names for accurate reporting
+      const enrichedCampaigns = campaignsToExport.map((c) => ({
+        ...c,
+        creators: { name: resolveCreatorForCampaign(c).name },
+      }));
+
+      // Use the enhanced text-first PDF exporter (with optional chart capture from the current view)
+      const exporter = new EnhancedPDFExporter();
       const exportTitle = options.customTitle || 'Campaign Analytics Report';
-      
-      exporter.exportReport(campaignsToExport, exportTitle, {
+
+      // If charts requested, temporarily switch to the Videos tab so charts are visible for capture
+      const prevTab = activeTab;
+      if (options.includeCharts) {
+        setActiveTab('videos');
+        await new Promise((r) => setTimeout(r, 350));
+      }
+
+      await exporter.exportWithCharts(enrichedCampaigns, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
-        customTitle: options.customTitle
+        includeCharts: options.includeCharts,
+        includeLogo: true,
+        getCreatorNameForUrl: (campaignId: string, url: string) => {
+          const cid = getCreatorIdForUrl(campaignId, url);
+          if (!cid) return undefined;
+          return creatorLookup.get(cid) || undefined;
+        },
+        topVideos: filteredVideoAnalytics.slice(0, 10).map(v => ({
+          title: v.title,
+          url: v.url,
+          platform: v.platform,
+          views: v.views,
+          engagement: v.engagement,
+          engagementRate: v.engagementRate,
+        })),
       });
-      
-      toast.success(`Text-based PDF report exported with ${campaignsToExport.length} campaigns`);
+
+      // Restore previous tab
+      if (options.includeCharts) {
+        setActiveTab(prevTab);
+      }
+
+      toast.success(`PDF report exported with ${campaignsToExport.length} campaigns`);
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');
@@ -1184,6 +1215,7 @@ export default function Analytics() {
                   <CardDescription>Videos ranked by view count</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div data-chart="top-videos-chart">
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={filteredVideoAnalytics.slice(0, 10)}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -1211,6 +1243,7 @@ export default function Analytics() {
                       <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
                     </BarChart>
                   </ResponsiveContainer>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -1454,6 +1487,7 @@ export default function Analytics() {
               </div>
             </CardHeader>
               <CardContent>
+                <div data-chart="video-performance-distribution">
                 <ResponsiveContainer width="100%" height={360}>
                   <ScatterChart margin={{ top: 16, right: 16, bottom: 16, left: 16 }}>
                     <CartesianGrid strokeDasharray="3 3" />
@@ -1477,6 +1511,7 @@ export default function Analytics() {
                     ))}
                   </ScatterChart>
                 </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
 
@@ -1487,7 +1522,7 @@ export default function Analytics() {
                 <CardDescription>Detailed breakdown of video performance metrics</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
+                <div className="rounded-md border" data-chart="top-videos-table">
                   <Table>
                     <TableHeader>
                       <TableRow>

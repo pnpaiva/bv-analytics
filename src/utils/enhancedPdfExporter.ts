@@ -9,6 +9,8 @@ export interface ExportOptions {
   includeContentUrls?: boolean;
   includeMasterCampaigns?: boolean;
   includeCharts?: boolean;
+  getCreatorNameForUrl?: (campaignId: string, url: string) => string | undefined;
+  topVideos?: Array<{ title: string; url: string; platform: string; views: number; engagement: number; engagementRate: number }>;
 }
 
 export interface MasterCampaignData {
@@ -95,6 +97,44 @@ export class EnhancedPDFExporter {
     this.currentY += 6;
   }
 
+  private async addBrandLogoIfAny(campaign: Campaign, yTop: number, maxWidthMm: number = 18, maxHeightMm: number = 12) {
+    try {
+      if (!campaign.logo_url) return;
+      const res = await fetch(campaign.logo_url, { mode: 'cors' });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      // Load to get natural aspect ratio
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.crossOrigin = 'anonymous';
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = dataUrl;
+      });
+      const naturalW = img.naturalWidth || 1;
+      const naturalH = img.naturalHeight || 1;
+      const ratio = naturalW / naturalH;
+      let drawW = maxWidthMm;
+      let drawH = drawW / ratio;
+      if (drawH > maxHeightMm) {
+        drawH = maxHeightMm;
+        drawW = drawH * ratio;
+      }
+      // Anchor logo inside the card, top-right within margins
+      const x = this.pageWidth - this.margin - drawW;
+      const y = yTop + 2; // small padding from top of card
+      this.doc.addImage(dataUrl, 'PNG', x, y, drawW, drawH);
+    } catch {
+      // ignore logo failures silently
+    }
+  }
+
   private async addChartFromElement(element: HTMLElement, title: string) {
     try {
       this.checkPageBreak(80);
@@ -167,6 +207,33 @@ export class EnhancedPDFExporter {
           }
         });
       }
+      // Also consider declared content_urls when analytics_data is absent
+      const pushUrls = (urlsMap?: Record<string, string[]>) => {
+        if (!urlsMap) return;
+        Object.entries(urlsMap).forEach(([platform, urls]) => {
+          if (Array.isArray(urls)) {
+            urls.forEach((u) => {
+              if (u && u.trim()) {
+                allPosts.push({
+                  url: u,
+                  views: 0,
+                  engagement: 0,
+                  engagementRate: 0,
+                  platform,
+                  campaignName: campaign.brand_name,
+                });
+              }
+            });
+          }
+        });
+      };
+
+      // Prefer nested campaign_creators content urls if available
+      if (Array.isArray((campaign as any).campaign_creators) && (campaign as any).campaign_creators.length > 0) {
+        (campaign as any).campaign_creators.forEach((cc: any) => pushUrls(cc?.content_urls));
+      } else {
+        pushUrls(campaign.content_urls as any);
+      }
     });
 
     // Find top performing posts
@@ -174,44 +241,48 @@ export class EnhancedPDFExporter {
       .sort((a, b) => b.views - a.views)
       .slice(0, 3);
 
-    // Find best performing campaign
-    const bestCampaign = campaigns.reduce((best, current) => 
-      (current.total_views || 0) > (best.total_views || 0) ? current : best
-    , campaigns[0]);
+    // Replace verbose details with compact metric cards only
+    this.currentY += 6;
 
-    this.addKeyValuePair('Total Views', totalViews.toLocaleString());
-    this.addKeyValuePair('Avg Engagement Rate', `${avgEngagementRate.toFixed(2)}%`);
-    this.currentY += 5;
+    // Summary metric cards (visual, compact)
+    const spacing = 6;
+    const cols = 3;
+    const cardWidth = (this.pageWidth - this.margin * 2 - spacing * (cols - 1));
+    const unitWidth = cardWidth / cols;
+    const cardHeight = 18;
 
-    if (bestCampaign) {
+    const totalContent = allPosts.length;
+    const uniqueCreators = new Set(campaigns.map(c => c.creators?.name).filter(Boolean));
+
+    const metrics = [
+      { title: 'Total Campaigns', value: campaigns.length.toString() },
+      { title: 'Total Views', value: totalViews.toLocaleString() },
+      { title: 'Total Engagement', value: totalEngagement.toLocaleString() },
+      { title: 'Avg Engagement Rate', value: `${avgEngagementRate.toFixed(2)}%` },
+      { title: 'Total Content', value: totalContent.toString() },
+      { title: 'Unique Creators', value: uniqueCreators.size.toString() },
+    ];
+
+    // two rows of 3 -> we'll render first 3, then remaining
+    let startY = this.currentY;
+    this.checkPageBreak(cardHeight + 10);
+    metrics.forEach((m, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = this.margin + col * (unitWidth + spacing);
+      const y = startY + row * (cardHeight + 6);
+      this.doc.setDrawColor(200, 200, 200);
+      this.doc.setLineWidth(0.5);
+      this.doc.roundedRect(x, y, unitWidth, cardHeight, 2, 2, 'S');
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(8);
+      this.doc.text(m.title, x + 3, y + 6);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Best Performing Campaign:', this.margin, this.currentY);
-      this.currentY += 6;
-      this.addKeyValuePair('Campaign', bestCampaign.brand_name, 10);
-      this.addKeyValuePair('Views', (bestCampaign.total_views || 0).toLocaleString(), 10);
-      this.addKeyValuePair('Engagement Rate', `${(bestCampaign.engagement_rate || 0).toFixed(2)}%`, 10);
-      this.currentY += 5;
-    }
+      this.doc.setFontSize(12);
+      this.doc.text(m.value, x + 3, y + 13);
+    });
 
-    if (topPosts.length > 0) {
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Top 3 Performing Posts:', this.margin, this.currentY);
-      this.currentY += 6;
-      
-      topPosts.forEach((post, index) => {
-        const rankText = index === 0 ? '#1' : index === 1 ? '#2' : '#3';
-        this.addKeyValuePair(
-          `${rankText} ${post.platform.toUpperCase()}`, 
-          `${post.views.toLocaleString()} views (${post.engagementRate.toFixed(2)}%)`,
-          10
-        );
-        this.addKeyValuePair('Campaign', post.campaignName, 15);
-        this.addKeyValuePair('URL', post.url.substring(0, 50) + '...', 15);
-        this.currentY += 2;
-      });
-    }
-
-    this.currentY += 10;
+    this.currentY = startY + Math.ceil(metrics.length / cols) * (cardHeight + 6) + 6;
   }
 
   async exportWithCharts(
@@ -231,7 +302,9 @@ export class EnhancedPDFExporter {
         { selector: '[data-chart="platform-performance"]', title: 'Platform Performance' },
         { selector: '[data-chart="view-distribution"]', title: 'View Distribution' },
         { selector: '[data-chart="platform-breakdown"]', title: 'Platform Breakdown' },
-        { selector: '[data-chart="creator-performance"]', title: 'Creator Performance' }
+        { selector: '[data-chart="creator-performance"]', title: 'Creator Performance' },
+        { selector: '[data-chart="top-videos-chart"]', title: 'Top Performing Videos (Chart)' },
+        { selector: '[data-chart="video-performance-distribution"]', title: 'Video Performance Distribution' }
       ];
 
       for (const { selector, title } of chartElements) {
@@ -242,41 +315,45 @@ export class EnhancedPDFExporter {
       }
     }
 
-    // Add summary statistics
-    this.addSectionHeader('Summary Statistics');
-    const totalViews = campaigns.reduce((sum, c) => sum + (c.total_views || 0), 0);
-    const totalEngagement = campaigns.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
-    const avgEngagementRate = campaigns.length > 0 
-      ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / campaigns.length 
-      : 0;
+    // Add clickable list of top videos if provided
+    if (options.topVideos && options.topVideos.length > 0) {
+      this.addSectionHeader('Top Performing Videos (Links)');
+      options.topVideos.slice(0, 10).forEach((v, idx) => {
+        this.checkPageBreak();
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.text(`${idx + 1}. ${v.title} — ${v.platform}`, this.margin, this.currentY);
+        this.currentY += 5;
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.text(`Views: ${v.views.toLocaleString()}  •  Engagement: ${v.engagement.toLocaleString()}  •  Rate: ${v.engagementRate.toFixed(2)}%`, this.margin, this.currentY);
+        this.currentY += 5;
+        this.doc.setTextColor(0, 0, 255);
+        this.doc.text(v.url, this.margin, this.currentY);
+        this.doc.setTextColor(0, 0, 0);
+        this.currentY += 8;
+      });
+    }
 
-    this.addKeyValuePair('Total Campaigns', campaigns.length.toString());
-    this.addKeyValuePair('Total Views', totalViews.toLocaleString());
-    this.addKeyValuePair('Total Engagement', totalEngagement.toLocaleString());
-    this.addKeyValuePair('Average Engagement Rate', `${avgEngagementRate.toFixed(2)}%`);
-    
-    const uniqueCreators = new Set(campaigns.map(c => c.creators?.name).filter(Boolean));
-    const uniqueClients = new Set(campaigns.map(c => c.clients?.name).filter(Boolean));
-    
-    this.addKeyValuePair('Unique Creators', uniqueCreators.size.toString());
-    this.addKeyValuePair('Unique Clients', uniqueClients.size.toString());
-
-    this.currentY += 15;
+    // Remove verbose summary statistics block (now represented via metric cards)
 
     // Add individual campaign details if requested
     if (options.includeAnalytics) {
       this.addSectionHeader('Campaign Details');
-      campaigns.forEach((campaign) => {
-        this.addCampaignCard(campaign, options);
-      });
+      for (const campaign of campaigns) {
+        await this.addCampaignCard(campaign, options);
+      }
     }
 
     const filename = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
     this.doc.save(`${filename}.pdf`);
   }
 
-  private addCampaignCard(campaign: Campaign, options: ExportOptions) {
-    this.checkPageBreak(50);
+  private async addCampaignCard(campaign: Campaign, options: ExportOptions) {
+    // Prevent card from splitting across pages by ensuring minimum space
+    const minCardSpace = 90; // a bit larger to accommodate logos/links
+    if (this.currentY + minCardSpace > this.pageHeight - this.margin) {
+      this.doc.addPage();
+      this.currentY = this.margin;
+    }
     
     // Campaign header with border
     const cardStartY = this.currentY;
@@ -286,6 +363,10 @@ export class EnhancedPDFExporter {
     this.doc.setFontSize(12);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(campaign.brand_name, this.margin, this.currentY);
+    // Try to add brand logo on the right (inside card bounds)
+    if (options.includeLogo) {
+      await this.addBrandLogoIfAny(campaign, cardStartY);
+    }
     this.currentY += 8;
     
     // Basic info
@@ -310,6 +391,40 @@ export class EnhancedPDFExporter {
       this.addKeyValuePair('Total Views', campaign.total_views?.toLocaleString() || '0', 10);
       this.addKeyValuePair('Total Engagement', campaign.total_engagement?.toLocaleString() || '0', 10);
       this.addKeyValuePair('Engagement Rate', `${campaign.engagement_rate?.toFixed(2) || '0'}%`, 10);
+    }
+
+    // Content URLs with per-URL creator annotation
+    if (options.includeContentUrls && campaign.content_urls) {
+      this.currentY += 5;
+      this.doc.setFont('helvetica', 'bold');
+      this.doc.text('Content Links:', this.margin, this.currentY);
+      this.currentY += 6;
+
+      Object.entries(campaign.content_urls).forEach(([platform, urls]) => {
+        if (Array.isArray(urls) && urls.length > 0) {
+          this.doc.setFont('helvetica', 'bold');
+          this.doc.text(`${platform.charAt(0).toUpperCase() + platform.slice(1)}:`, this.margin + 10, this.currentY);
+          this.currentY += 5;
+
+          urls.forEach((url, index) => {
+            if (url && url.trim()) {
+              this.checkPageBreak();
+              const creatorName = options.getCreatorNameForUrl ? (options.getCreatorNameForUrl(campaign.id, url) || '') : '';
+              this.doc.setFont('helvetica', 'normal');
+              this.doc.setTextColor(0, 0, 255);
+              this.doc.text(`${index + 1}. ${url}`, this.margin + 20, this.currentY);
+              this.doc.setTextColor(0, 0, 0);
+              if (creatorName) {
+                this.doc.setFont('helvetica', 'italic');
+                this.doc.text(`Creator: ${creatorName}`, this.margin + 20, this.currentY + 5);
+                this.currentY += 10;
+              } else {
+                this.currentY += 6;
+              }
+            }
+          });
+        }
+      });
     }
 
     // Add card border
