@@ -347,6 +347,10 @@ export default function Campaigns() {
               <AlertDialogTitle>Confirm Refresh All</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to refresh all campaigns? This action will update analytics for all campaigns and will incur higher costs compared to refreshing individual campaigns.
+                <br /><br />
+                <strong>Resource Usage Estimate:</strong> This operation may use significant Apify processing resources. The system will automatically stop if it approaches the free tier limit (8GB) to prevent failures.
+                <br /><br />
+                <strong>Recommendation:</strong> For better reliability, consider refreshing campaigns in smaller batches, especially if you have many campaigns with Instagram or TikTok content.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -68,16 +68,37 @@ Deno.serve(async (req) => {
 
         const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-        const withRetry = async <T>(fn: () => Promise<T>, attempts = 3, baseDelay = 1200): Promise<T> => {
+        // Resource usage tracking for Apify free tier limits
+        let estimatedResourceUsage = 0;
+        const APIFY_FREE_TIER_LIMIT = 8 * 1024 * 1024 * 1024; // 8GB in bytes
+        const RESOURCE_SAFETY_MARGIN = 0.8; // Stop at 80% of limit
+        const SAFE_LIMIT = APIFY_FREE_TIER_LIMIT * RESOURCE_SAFETY_MARGIN;
+        
+        // Estimated resource usage per platform (in bytes)
+        const PLATFORM_RESOURCE_ESTIMATES = {
+          youtube: 50 * 1024 * 1024,    // ~50MB per YouTube URL
+          instagram: 200 * 1024 * 1024, // ~200MB per Instagram URL  
+          tiktok: 150 * 1024 * 1024     // ~150MB per TikTok URL
+        };
+
+        const withRetry = async <T>(fn: () => Promise<T>, attempts = 3, baseDelay = 2000): Promise<T> => {
           let lastErr: any;
           for (let i = 0; i < attempts; i++) {
             try {
               return await fn();
             } catch (err) {
               lastErr = err;
-              // Exponential backoff with jitter
-              const jitter = Math.floor(Math.random() * 300);
-              await sleep(baseDelay * Math.pow(2, i) + jitter);
+              // Check if error is related to resource limits
+              const errorMsg = String(err).toLowerCase();
+              if (errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('resource')) {
+                console.warn('Resource limit detected, stopping processing');
+                throw new Error('Apify resource limit reached. Please try again later or process campaigns in smaller batches.');
+              }
+              // Exponential backoff with jitter - INCREASED DELAYS
+              const jitter = Math.floor(Math.random() * 500);
+              const delay = baseDelay * Math.pow(2, i) + jitter;
+              console.log(`Retry attempt ${i + 1}/${attempts} failed, waiting ${delay}ms before retry...`);
+              await sleep(delay);
             }
           }
           throw lastErr;
@@ -172,18 +193,52 @@ Deno.serve(async (req) => {
 
           console.log(`Processing ${campaigns.length} campaigns`);
           
-          const campaignResults: Array<{id: string, name: string, status: 'success' | 'failed', error?: string}> = [];
+          // Pre-calculate resource usage for all campaigns to determine optimal batching
+          const campaignResourceEstimates = campaigns.map(campaign => {
+            const urls = collectUrls(campaign);
+            const estimatedUsage = urls.reduce((total, { platform }) => {
+              return total + (PLATFORM_RESOURCE_ESTIMATES[platform] || 100 * 1024 * 1024);
+            }, 0);
+            return { campaign, urls, estimatedUsage };
+          });
+
+          // Sort campaigns by resource usage (smallest first) for better resource management
+          campaignResourceEstimates.sort((a, b) => a.estimatedUsage - b.estimatedUsage);
           
-          for (let i = 0; i < campaigns.length; i++) {
-            const campaign = campaigns[i];
+          const campaignResults: Array<{id: string, name: string, status: 'success' | 'failed', error?: string}> = [];
+          let resourceLimitReached = false;
+          
+          for (let i = 0; i < campaignResourceEstimates.length; i++) {
+            const { campaign, urls, estimatedUsage } = campaignResourceEstimates[i];
+            
+            // Check if processing this campaign would exceed resource limits
+            if (estimatedResourceUsage + estimatedUsage > SAFE_LIMIT) {
+              console.warn(`Resource limit would be exceeded by campaign ${campaign.brand_name}. Stopping processing.`);
+              resourceLimitReached = true;
+              
+              // Mark remaining campaigns as skipped
+              for (let j = i; j < campaignResourceEstimates.length; j++) {
+                const remainingCampaign = campaignResourceEstimates[j].campaign;
+                campaignResults.push({
+                  id: remainingCampaign.id,
+                  name: remainingCampaign.brand_name,
+                  status: 'failed',
+                  error: 'Skipped due to resource limits'
+                });
+              }
+              break;
+            }
+            
             console.log(`Starting campaign ${i + 1}/${campaigns.length}: ${campaign.brand_name} (${campaign.id})`);
+            console.log(`Estimated resource usage: ${Math.round(estimatedUsage / 1024 / 1024)}MB`);
+            console.log(`Total resource usage so far: ${Math.round(estimatedResourceUsage / 1024 / 1024)}MB`);
             
             const progress: ProgressUpdate = {
               campaignId: campaign.id,
               campaignName: campaign.brand_name,
               status: 'processing',
               processedUrls: 0,
-              totalUrls: 0,
+              totalUrls: urls.length,
             };
 
             // Ensure DB status reflects processing
@@ -191,8 +246,6 @@ Deno.serve(async (req) => {
 
             // Send initial processing status immediately
             send(progress);
-            const urls = collectUrls(campaign);
-            progress.totalUrls = urls.length;
             console.log(`Campaign ${campaign.brand_name} has ${urls.length} URLs to process`);
             send(progress);
 
@@ -224,12 +277,24 @@ Deno.serve(async (req) => {
             let totalEngagement = 0;
             const platformResults: Record<string, any[]> = {};
 
-            // Sequential processing with retries and per-platform pacing
-            const perPlatformDelay: Record<string, number> = { youtube: 900, instagram: 1400, tiktok: 1400 };
+            // Sequential processing with retries and per-platform pacing - INCREASED DELAYS
+            const perPlatformDelay: Record<string, number> = { youtube: 2000, instagram: 3000, tiktok: 3000 };
 
             for (let urlIndex = 0; urlIndex < urls.length; urlIndex++) {
               const { url, platform } = urls[urlIndex];
+              const urlResourceEstimate = PLATFORM_RESOURCE_ESTIMATES[platform] || 100 * 1024 * 1024;
+              
+              // Check if processing this URL would exceed resource limits
+              if (estimatedResourceUsage + urlResourceEstimate > SAFE_LIMIT) {
+                console.warn(`Resource limit would be exceeded by URL ${url}. Skipping remaining URLs.`);
+                resourceLimitReached = true;
+                campaignSuccess = false;
+                campaignError = 'Processing stopped due to resource limits';
+                break;
+              }
+              
               console.log(`Processing URL ${urlIndex + 1}/${urls.length} for ${campaign.brand_name}: ${url}`);
+              console.log(`URL resource estimate: ${Math.round(urlResourceEstimate / 1024 / 1024)}MB`);
               
               try {
                 const res = await withRetry(async () => {
@@ -237,18 +302,35 @@ Deno.serve(async (req) => {
                   if (r.error) throw new Error(r.error.message || 'invoke error');
                   if (!r.data) throw new Error('empty response');
                   return r.data as { views?: number; engagement?: number; [k: string]: unknown };
-                }, 3, 1200);
+                }, 3, 2000);
 
+                // Update resource usage estimate after successful processing
+                estimatedResourceUsage += urlResourceEstimate;
+                
                 totalViews += res.views || 0;
                 totalEngagement += res.engagement || 0;
                 if (!platformResults[platform]) platformResults[platform] = [];
                 platformResults[platform].push({ url, ...res });
+                
+                console.log(`Successfully processed ${platform} URL. Total resource usage: ${Math.round(estimatedResourceUsage / 1024 / 1024)}MB`);
               } catch (err) {
                 console.error(`Final failure processing ${platform} URL ${url}:`, err);
+                
+                // Still count resource usage even for failed attempts
+                estimatedResourceUsage += urlResourceEstimate;
+                
                 if (!platformResults[platform]) platformResults[platform] = [];
                 platformResults[platform].push({ url, error: String(err && (err as any).message || err) });
                 campaignSuccess = false;
                 campaignError = `Failed processing ${platform} URL: ${String(err && (err as any).message || err)}`;
+                
+                // Check if error is related to resource limits
+                const errorMsg = String(err).toLowerCase();
+                if (errorMsg.includes('quota') || errorMsg.includes('limit') || errorMsg.includes('resource')) {
+                  console.warn('Resource limit detected during URL processing');
+                  resourceLimitReached = true;
+                  break;
+                }
               }
 
               // Update progress after each URL
@@ -305,6 +387,18 @@ Deno.serve(async (req) => {
                 error: campaignError
               });
             }
+            
+            // Add delay between campaigns to avoid overwhelming APIs
+            if (i < campaignResourceEstimates.length - 1) {
+              console.log(`Waiting 5 seconds before processing next campaign...`);
+              await sleep(5000);
+            }
+            
+            // If we hit resource limits, break out of the campaign loop
+            if (resourceLimitReached) {
+              console.warn('Resource limit reached, stopping campaign processing');
+              break;
+            }
           }
 
           // Log completion summary
@@ -321,13 +415,23 @@ Deno.serve(async (req) => {
             });
           }
 
-          console.log('All campaigns processed, sending completion signal');
+          const successCount = campaignResults.filter(r => r.status === 'success').length;
+          const failedCount = campaignResults.filter(r => r.status === 'failed').length;
+          const skippedCount = campaignResults.filter(r => r.error?.includes('resource limits')).length;
+          
+          console.log(`Processing completed. Success: ${successCount}, Failed: ${failedCount}, Skipped: ${skippedCount}`);
+          console.log(`Total resource usage: ${Math.round(estimatedResourceUsage / 1024 / 1024)}MB`);
+          
+          // Send completion signal with resource usage info
           send({ 
             type: 'complete', 
             summary: {
               total: campaigns.length,
-              successful: campaignResults.filter(r => r.status === 'success').length,
-              failed: campaignResults.filter(r => r.status === 'failed').length,
+              successful: successCount,
+              failed: failedCount,
+              skipped: skippedCount,
+              resourceUsageMB: Math.round(estimatedResourceUsage / 1024 / 1024),
+              resourceLimitReached: resourceLimitReached,
               results: campaignResults
             }
           });

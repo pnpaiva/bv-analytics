@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
 
     const results: Array<{ campaignId: string; success: boolean; error?: string }> = [];
 
-    // Process campaigns in smaller batches to avoid overwhelming APIs
-    const batchSize = 3;
+    // Process campaigns in smaller batches to avoid overwhelming APIs - REDUCED BATCH SIZE
+    const batchSize = 1;
     for (let i = 0; i < campaignIds.length; i += batchSize) {
       const batch = campaignIds.slice(i, i + batchSize);
       
@@ -249,9 +249,10 @@ Deno.serve(async (req) => {
       const batchResults = await Promise.all(batchPromises);
       results.push(...batchResults);
 
-      // Add delay between batches to respect API rate limits
+      // Add delay between batches to respect API rate limits - INCREASED DELAY
       if (i + batchSize < campaignIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`Waiting 8 seconds before processing next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 8000));
       }
     }
 
