@@ -264,6 +264,36 @@ export type Database = {
           },
         ]
       }
+      campaign_milestones: {
+        Row: {
+          achieved_at: string
+          campaign_id: string
+          created_at: string
+          email_sent: boolean
+          email_sent_at: string | null
+          id: string
+          milestone_views: number
+        }
+        Insert: {
+          achieved_at?: string
+          campaign_id: string
+          created_at?: string
+          email_sent?: boolean
+          email_sent_at?: string | null
+          id?: string
+          milestone_views: number
+        }
+        Update: {
+          achieved_at?: string
+          campaign_id?: string
+          created_at?: string
+          email_sent?: boolean
+          email_sent_at?: string | null
+          id?: string
+          milestone_views?: number
+        }
+        Relationships: []
+      }
       campaign_refresh_logs: {
         Row: {
           campaign_results: Json
@@ -1231,6 +1261,10 @@ export type Database = {
       can_user_edit_content: {
         Args: { _user_id: string }
         Returns: boolean
+      }
+      check_campaign_milestones: {
+        Args: { p_campaign_id: string; p_new_views: number }
+        Returns: undefined
       }
       cleanup_expired_cache: {
         Args: Record<PropertyKey, never>
