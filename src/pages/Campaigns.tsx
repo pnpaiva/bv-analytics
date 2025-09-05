@@ -81,6 +81,25 @@ export default function Campaigns() {
     }
   };
 
+  const handleTestMilestone = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('send-test-milestone', {
+        body: { email: 'pedro@beyond-views.com' }
+      });
+
+      if (error) {
+        console.error('Error sending test milestone email:', error);
+        toast.error('Failed to send test email');
+        return;
+      }
+
+      toast.success('Test milestone email sent to pedro@beyond-views.com!');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Failed to send test email');
+    }
+  }, []);
+
   const handleRefreshAll = async () => {
     setRefreshAllDialogOpen(false);
     
@@ -201,6 +220,9 @@ export default function Campaigns() {
             <Button variant="outline" onClick={() => setRefreshAllDialogOpen(true)}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh All
+            </Button>
+            <Button variant="outline" onClick={handleTestMilestone}>
+              📧 Test Milestone
             </Button>
 
           </div>
