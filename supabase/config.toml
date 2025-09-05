@@ -17,6 +17,3 @@ verify_jwt = false
 
 [functions.send-milestone-celebration]
 verify_jwt = false
-
-[functions.send-test-milestone]
-verify_jwt = false
