@@ -24,43 +24,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
-  const [waitlistCount, setWaitlistCount] = useState(0);
 
-  // Load waitlist count on component mount
-  React.useEffect(() => {
-    const emails = JSON.parse(localStorage.getItem('waitlistEmails') || '[]');
-    setWaitlistCount(emails.length);
-  }, []);
-
-  // Admin function to export waitlist emails (hidden feature)
-  const exportWaitlist = () => {
-    const emails = JSON.parse(localStorage.getItem('waitlistEmails') || '[]');
-    const csvContent = 'data:text/csv;charset=utf-8,' + emails.join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'waitlist_emails.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Add keyboard shortcut for admin (Ctrl+Shift+E)
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
-        exportWaitlist();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,18 +43,34 @@ const Index = () => {
     setIsSubmitting(true);
     
     try {
-      // Store email in localStorage for now (in production, you'd send to your backend)
-      const existingEmails = JSON.parse(localStorage.getItem('waitlistEmails') || '[]');
-      if (existingEmails.includes(email)) {
+      // Check if email already exists in Supabase
+      const { data: existingEmail } = await supabase
+        .from('waitlist')
+        .select('email')
+        .eq('email', email)
+        .single();
+
+      if (existingEmail) {
         toast.info('You\'re already on our waitlist!');
         setEmail('');
         setIsSubmitting(false);
         return;
       }
-      
-      existingEmails.push(email);
-      localStorage.setItem('waitlistEmails', JSON.stringify(existingEmails));
-      setWaitlistCount(existingEmails.length);
+
+      // Insert new email into Supabase waitlist table
+      const { error } = await supabase
+        .from('waitlist')
+        .insert([
+          {
+            email: email,
+            source: 'landing_page',
+            status: 'pending'
+          }
+        ]);
+
+      if (error) {
+        throw error;
+      }
       
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -91,6 +78,7 @@ const Index = () => {
       toast.success('Successfully joined the waitlist! We\'ll notify you when we launch.');
       setEmail('');
     } catch (error) {
+      console.error('Waitlist signup error:', error);
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
