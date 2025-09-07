@@ -192,15 +192,6 @@ export default function Campaigns() {
     });
   }, [campaigns, accessibleCampaignIds, searchTerm, sortField, sortOrder]);
 
-  const filteredCampaigns = campaigns.filter(campaign => {
-    // First check if user has access to this campaign
-    const hasAccess = accessibleCampaignIds.length === 0 || accessibleCampaignIds.includes(campaign.id);
-    if (!hasAccess) return false;
-    
-    // Then check search filter
-    const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
 
   const computedCampaignIds = useMemo(() => {
     if (selectedCampaignIds.length > 0) return [...selectedCampaignIds].sort();
@@ -302,7 +293,7 @@ export default function Campaigns() {
               className="pl-9"
             />
           </div>
-          {filteredCampaigns.filter(c => c.status !== 'draft').length > 0 && (
+          {sortedCampaigns.filter(c => c.status !== 'draft').length > 0 && (
             <Button 
               variant="outline" 
               onClick={handleSelectAll}
