@@ -88,7 +88,7 @@ const Index = () => {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast.success(`Successfully joined the waitlist! You're #${existingEmails.length} on our list.`);
+      toast.success('Successfully joined the waitlist! We\'ll notify you when we launch.');
       setEmail('');
     } catch (error) {
       toast.error('Something went wrong. Please try again.');
@@ -197,16 +197,9 @@ const Index = () => {
           </div>
 
         <div className="container mx-auto text-center max-w-6xl relative z-10">
-          <div className="flex flex-col items-center gap-3 mb-6">
-            <Badge className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-all duration-300">
-              🚀 Coming Soon - Join the Waitlist
-            </Badge>
-            {waitlistCount > 0 && (
-              <p className="text-sm text-muted-foreground">
-                {waitlistCount} people are already on the waitlist
-              </p>
-            )}
-          </div>
+          <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20 transition-all duration-300">
+            🚀 Coming Soon - Join the Waitlist
+          </Badge>
           
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent animate-fade-in leading-tight">
             The Future of Creator Analytics
@@ -482,7 +475,7 @@ const Index = () => {
               </div>
             </div>
             <div className="text-sm text-muted-foreground">
-              © 2024 Beyond Views. All rights reserved.
+              © 2025 Beyond Views. All rights reserved.
             </div>
           </div>
       </div>
