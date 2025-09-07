@@ -11,8 +11,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BarChart3, ExternalLink, Eye, EyeOff } from 'lucide-react';
+import { BarChart3, Eye, EyeOff, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { ContentUrlDropdown } from './ContentUrlDropdown';
+
+export type SortField = 'brand_name' | 'status' | 'total_views' | 'total_engagement' | 'engagement_rate' | 'deal_value' | 'created_at';
+export type SortOrder = 'asc' | 'desc';
 
 interface CampaignTableProps {
   campaigns: Campaign[];
@@ -20,6 +24,9 @@ interface CampaignTableProps {
   selectedCampaignIds: string[];
   onCampaignSelect: (campaignId: string, isSelected: boolean) => void;
   showDealValue: boolean;
+  sortField?: SortField;
+  sortOrder?: SortOrder;
+  onSort: (field: SortField) => void;
 }
 
 export function CampaignTable({
@@ -27,7 +34,10 @@ export function CampaignTable({
   onViewAnalytics,
   selectedCampaignIds,
   onCampaignSelect,
-  showDealValue
+  showDealValue,
+  sortField,
+  sortOrder,
+  onSort
 }: CampaignTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -63,19 +73,42 @@ export function CampaignTable({
     }).format(amount);
   };
 
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4 ml-1" />;
+    }
+    return sortOrder === 'asc' ? 
+      <ArrowUp className="h-4 w-4 ml-1" /> : 
+      <ArrowDown className="h-4 w-4 ml-1" />;
+  };
+
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <TableHead>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onSort(field)}
+        className="h-auto p-0 font-medium hover:bg-transparent"
+      >
+        {children}
+        {getSortIcon(field)}
+      </Button>
+    </TableHead>
+  );
+
   return (
     <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-12"></TableHead>
-            <TableHead>Campaign</TableHead>
+            <SortableHeader field="brand_name">Campaign</SortableHeader>
             <TableHead>Client</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Views</TableHead>
-            <TableHead>Engagement</TableHead>
-            {showDealValue && <TableHead>Deal Value</TableHead>}
-            <TableHead>Created</TableHead>
+            <SortableHeader field="status">Status</SortableHeader>
+            <SortableHeader field="total_views">Views</SortableHeader>
+            <SortableHeader field="total_engagement">Engagement</SortableHeader>
+            {showDealValue && <SortableHeader field="deal_value">Deal Value</SortableHeader>}
+            <SortableHeader field="created_at">Created</SortableHeader>
             <TableHead>Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -145,17 +178,7 @@ export function CampaignTable({
                     <BarChart3 className="h-4 w-4" />
                   </Button>
                   {campaign.content_urls && Object.keys(campaign.content_urls).length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const firstPlatform = Object.keys(campaign.content_urls!)[0];
-                        const firstUrl = campaign.content_urls![firstPlatform][0];
-                        window.open(firstUrl, '_blank');
-                      }}
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </Button>
+                    <ContentUrlDropdown contentUrls={campaign.content_urls} />
                   )}
                 </div>
               </TableCell>

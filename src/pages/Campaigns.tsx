@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
-import { CampaignTable } from '@/components/campaigns/CampaignTable';
+import { CampaignTable, SortField, SortOrder } from '@/components/campaigns/CampaignTable';
 import { CreateCampaignDialog } from '@/components/campaigns/CreateCampaignDialog';
 import { CampaignAnalyticsModal } from '@/components/campaigns/CampaignAnalyticsModal';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,8 @@ export default function Campaigns() {
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [showDealValue, setShowDealValue] = useState(true);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
   const { canCreate, canEdit, canDelete } = useUserPermissions();
@@ -68,7 +70,7 @@ export default function Campaigns() {
         ? `Filtered Campaigns Report` 
         : 'All Campaigns Report');
       
-      await exporter.exportPremiumReport(filteredCampaigns, exportTitle, {
+      await exporter.exportPremiumReport(sortedCampaigns, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
         includeMasterCampaigns: options.includeMasterCampaigns,
@@ -113,7 +115,7 @@ export default function Campaigns() {
   };
 
   const handleSelectAll = () => {
-    const filteredIds = filteredCampaigns.filter(c => c.status !== 'draft').map(c => c.id);
+    const filteredIds = sortedCampaigns.filter(c => c.status !== 'draft').map(c => c.id);
     setSelectedCampaignIds(prev => 
       prev.length === filteredIds.length ? [] : filteredIds
     );
@@ -126,6 +128,69 @@ export default function Campaigns() {
       toast.success('Campaign refresh completed');
     }, 2000);
   }, [refetch]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+
+  const sortedCampaigns = React.useMemo(() => {
+    const filtered = campaigns.filter(campaign => {
+      // First check if user has access to this campaign
+      const hasAccess = accessibleCampaignIds.length === 0 || accessibleCampaignIds.includes(campaign.id);
+      if (!hasAccess) return false;
+      
+      // Then check search filter
+      const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesSearch;
+    });
+
+    return [...filtered].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'brand_name':
+          aValue = a.brand_name.toLowerCase();
+          bValue = b.brand_name.toLowerCase();
+          break;
+        case 'status':
+          aValue = a.status;
+          bValue = b.status;
+          break;
+        case 'total_views':
+          aValue = a.total_views || 0;
+          bValue = b.total_views || 0;
+          break;
+        case 'total_engagement':
+          aValue = a.total_engagement || 0;
+          bValue = b.total_engagement || 0;
+          break;
+        case 'engagement_rate':
+          aValue = a.engagement_rate || 0;
+          bValue = b.engagement_rate || 0;
+          break;
+        case 'deal_value':
+          aValue = a.deal_value || 0;
+          bValue = b.deal_value || 0;
+          break;
+        case 'created_at':
+          aValue = new Date(a.created_at);
+          bValue = new Date(b.created_at);
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [campaigns, accessibleCampaignIds, searchTerm, sortField, sortOrder]);
 
   const filteredCampaigns = campaigns.filter(campaign => {
     // First check if user has access to this campaign
@@ -145,10 +210,10 @@ export default function Campaigns() {
   }, [selectedCampaignIds, campaigns]);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredCampaigns.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedCampaigns.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const paginatedCampaigns = filteredCampaigns.slice(startIndex, endIndex);
+  const paginatedCampaigns = sortedCampaigns.slice(startIndex, endIndex);
 
   // Reset to first page when filters change
   React.useEffect(() => {
@@ -215,7 +280,7 @@ export default function Campaigns() {
                 Refresh Selected ({selectedCampaignIds.length})
               </Button>
             )}
-            <Button variant="outline" onClick={() => setExportDialogOpen(true)} disabled={filteredCampaigns.length === 0}>
+            <Button variant="outline" onClick={() => setExportDialogOpen(true)} disabled={sortedCampaigns.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>
@@ -243,7 +308,7 @@ export default function Campaigns() {
               onClick={handleSelectAll}
               className="whitespace-nowrap"
             >
-              {selectedCampaignIds.length === filteredCampaigns.filter(c => c.status !== 'draft').length 
+              {selectedCampaignIds.length === sortedCampaigns.filter(c => c.status !== 'draft').length 
                 ? 'Deselect All' 
                 : 'Select All'
               }
@@ -251,7 +316,7 @@ export default function Campaigns() {
           )}
         </div>
 
-        {filteredCampaigns.length === 0 ? (
+        {sortedCampaigns.length === 0 ? (
           <div className="text-center py-12">
             <div className="max-w-md mx-auto">
               <h3 className="text-lg font-medium mb-2">No campaigns found</h3>
@@ -287,6 +352,9 @@ export default function Campaigns() {
                 selectedCampaignIds={selectedCampaignIds}
                 onCampaignSelect={handleCampaignSelect}
                 showDealValue={showDealValue}
+                sortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
               />
             )}
             
@@ -294,7 +362,7 @@ export default function Campaigns() {
             {totalPages > 1 && (
               <div className="flex items-center justify-between mt-8">
                 <div className="text-sm text-muted-foreground">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredCampaigns.length)} of {filteredCampaigns.length} campaigns
+                  Showing {startIndex + 1} to {Math.min(endIndex, sortedCampaigns.length)} of {sortedCampaigns.length} campaigns
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
@@ -359,7 +427,7 @@ export default function Campaigns() {
           open={exportDialogOpen}
           onOpenChange={setExportDialogOpen}
           onExport={handleExportPDF}
-          campaignCount={filteredCampaigns.length}
+          campaignCount={sortedCampaigns.length}
           defaultTitle={searchTerm 
             ? `Filtered Campaigns Report` 
             : 'All Campaigns Report'}
