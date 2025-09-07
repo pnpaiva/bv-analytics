@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Navigation } from '@/components/Navigation';
 import { CampaignCard } from '@/components/campaigns/CampaignCard';
+import { CampaignTable } from '@/components/campaigns/CampaignTable';
 import { CreateCampaignDialog } from '@/components/campaigns/CreateCampaignDialog';
 import { CampaignAnalyticsModal } from '@/components/campaigns/CampaignAnalyticsModal';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
 import { useAccessibleCampaigns } from '@/hooks/useAccessibleCampaigns';
 import { supabase } from '@/integrations/supabase/client';
-import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff, Grid3X3, List } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
@@ -43,6 +44,7 @@ export default function Campaigns() {
   const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [showDealValue, setShowDealValue] = useState(true);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   
   const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
   const { canCreate, canEdit, canDelete } = useUserPermissions();
@@ -178,6 +180,25 @@ export default function Campaigns() {
           </div>
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+              >
+                {viewMode === 'cards' ? (
+                  <>
+                    <List className="h-4 w-4 mr-2" />
+                    Table View
+                  </>
+                ) : (
+                  <>
+                    <Grid3X3 className="h-4 w-4 mr-2" />
+                    Card View
+                  </>
+                )}
+              </Button>
+            </div>
+            <div className="flex items-center space-x-2">
               <Switch
                 id="deal-value-toggle"
                 checked={showDealValue}
@@ -245,19 +266,29 @@ export default function Campaigns() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedCampaigns.map((campaign) => (
-                <CampaignCard
-                  key={campaign.id}
-                  campaign={campaign}
-                  onViewAnalytics={handleViewAnalytics}
-                  isSelected={selectedCampaignIds.includes(campaign.id)}
-                  onSelect={(isSelected) => handleCampaignSelect(campaign.id, isSelected)}
-                  showCheckbox={campaign.status !== 'draft'}
-                  showDealValue={showDealValue}
-                />
-              ))}
-            </div>
+            {viewMode === 'cards' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {paginatedCampaigns.map((campaign) => (
+                  <CampaignCard
+                    key={campaign.id}
+                    campaign={campaign}
+                    onViewAnalytics={handleViewAnalytics}
+                    isSelected={selectedCampaignIds.includes(campaign.id)}
+                    onSelect={(isSelected) => handleCampaignSelect(campaign.id, isSelected)}
+                    showCheckbox={campaign.status !== 'draft'}
+                    showDealValue={showDealValue}
+                  />
+                ))}
+              </div>
+            ) : (
+              <CampaignTable
+                campaigns={paginatedCampaigns}
+                onViewAnalytics={handleViewAnalytics}
+                selectedCampaignIds={selectedCampaignIds}
+                onCampaignSelect={handleCampaignSelect}
+                showDealValue={showDealValue}
+              />
+            )}
             
             {/* Pagination */}
             {totalPages > 1 && (
