@@ -304,11 +304,18 @@ Deno.serve(async (req) => {
                   return r.data as { views?: number; engagement?: number; [k: string]: unknown };
                 }, 3, 2000);
 
+                console.log(`Apify response for ${platform} URL ${url}:`, res);
+
                 // Update resource usage estimate after successful processing
                 estimatedResourceUsage += urlResourceEstimate;
                 
-                totalViews += res.views || 0;
-                totalEngagement += res.engagement || 0;
+                const urlViews = res.views || 0;
+                const urlEngagement = res.engagement || 0;
+                
+                totalViews += urlViews;
+                totalEngagement += urlEngagement;
+                
+                console.log(`Added ${urlViews} views and ${urlEngagement} engagement. Running totals: ${totalViews} views, ${totalEngagement} engagement`);
                 if (!platformResults[platform]) platformResults[platform] = [];
                 platformResults[platform].push({ url, ...res });
                 
@@ -343,13 +350,29 @@ Deno.serve(async (req) => {
 
             try {
               const engagementRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
-              await supabase.rpc('update_campaign_analytics', {
+              
+              console.log(`Updating campaign ${campaign.id} with analytics:`, {
+                totalViews,
+                totalEngagement,
+                engagementRate,
+                platformResults
+              });
+              
+              const { error: updateError } = await supabase.rpc('update_campaign_analytics', {
                 p_campaign_id: campaign.id,
-                p_total_views: totalViews,
-                p_total_engagement: totalEngagement,
+                p_total_views: Math.floor(totalViews), // Ensure integer
+                p_total_engagement: Math.floor(totalEngagement), // Ensure integer
                 p_engagement_rate: engagementRate,
                 p_analytics_data: platformResults,
               });
+              
+              if (updateError) {
+                console.error('Error updating campaign analytics:', updateError);
+                campaignSuccess = false;
+                campaignError = `Failed to update analytics: ${updateError.message}`;
+              } else {
+                console.log(`Successfully updated campaign ${campaign.id} analytics`);
+              }
 
               // Collect daily performance data
               try {

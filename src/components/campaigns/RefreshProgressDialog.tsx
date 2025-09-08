@@ -51,7 +51,9 @@ export function RefreshProgressDialog({
   const [grandTotalUrls, setGrandTotalUrls] = useState(0);
   const [streamEnded, setStreamEnded] = useState(false);
   const [summary, setSummary] = useState<RefreshSummary | null>(null);
+  const [isCancelled, setIsCancelled] = useState(false);
   const startedKeyRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!open || campaignIds.length === 0 || isComplete) return;
@@ -68,10 +70,14 @@ export function RefreshProgressDialog({
     // Reset state
     setProgress({});
     setIsComplete(false);
+    setIsCancelled(false);
     setOverallProgress(0);
     setTotalProcessedUrls(0);
     setGrandTotalUrls(0);
     setSummary(null);
+    
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
 
     // Initialize progress for all campaigns
     const initialProgress: Record<string, ProgressUpdate> = {};
@@ -115,6 +121,14 @@ export function RefreshProgressDialog({
       let totalFailed = 0;
 
       for (let i = 0; i < campaignIds.length; i++) {
+        // Check for cancellation
+        if (isCancelled || abortControllerRef.current?.signal.aborted) {
+          console.log('Refresh process cancelled by user');
+          setStreamEnded(true);
+          setIsComplete(true);
+          return;
+        }
+
         const campaignId = campaignIds[i];
         
         // Get campaign name from current progress state
@@ -137,9 +151,10 @@ export function RefreshProgressDialog({
         try {
           console.log(`Processing campaign ${i + 1}/${campaignIds.length}: ${campaignId}`);
           
-          // Call the individual campaign refresh function with delay
-          const { data, error } = await supabase.functions.invoke('refresh-campaign-analytics', {
-            body: { campaignId }
+          // Call the bulk refresh function with a single campaign ID
+          const { data, error } = await supabase.functions.invoke('refresh-campaigns-with-progress', {
+            body: { campaignIds: [campaignId] },
+            signal: abortControllerRef.current?.signal
           });
 
           if (error) {
@@ -205,6 +220,14 @@ export function RefreshProgressDialog({
         }
       }
 
+      // Check for cancellation before setting completion
+      if (isCancelled || abortControllerRef.current?.signal.aborted) {
+        console.log('Refresh process cancelled by user');
+        setStreamEnded(true);
+        setIsComplete(true);
+        return;
+      }
+
       // Set completion summary
       setSummary({
         total: campaignIds.length,
@@ -227,8 +250,12 @@ export function RefreshProgressDialog({
 
     return () => {
       startedKeyRef.current = null;
+      // Cancel any ongoing operations when component unmounts or dialog closes
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, [open, campaignIds, isComplete]);
+  }, [open, campaignIds, isComplete, isCancelled]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -409,6 +436,19 @@ export function RefreshProgressDialog({
         ) : (
           // Show progress when refresh is in progress
           <div className="space-y-6">
+            {/* Apify Resource Limit Warning */}
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <div>
+                  <h4 className="text-sm font-medium text-yellow-800">Apify Starter Subscription</h4>
+                  <p className="text-xs text-yellow-700">
+                    You're using Apify's starter plan with a $200 platform limit. Processing will stop if limits are reached.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Overall Progress */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
@@ -469,13 +509,26 @@ export function RefreshProgressDialog({
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {!isComplete && !isCancelled && (
+                <Button 
+                  onClick={() => {
+                    setIsCancelled(true);
+                    if (abortControllerRef.current) {
+                      abortControllerRef.current.abort();
+                    }
+                  }}
+                  variant="destructive"
+                >
+                  Cancel Refresh
+                </Button>
+              )}
               <Button 
                 onClick={() => onOpenChange(false)}
-                disabled={!isComplete}
-                variant={isComplete ? "default" : "outline"}
+                disabled={!isComplete && !isCancelled}
+                variant={isComplete || isCancelled ? "default" : "outline"}
               >
-                {isComplete ? 'Close' : 'Cancel'}
+                {isComplete ? 'Close' : isCancelled ? 'Close' : 'Cancel'}
               </Button>
             </div>
           </div>

@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
+import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -43,6 +44,7 @@ export function CampaignCard({
   showCheckbox = false,
   showDealValue = true
 }: CampaignCardProps) {
+  
   const [refreshing, setRefreshing] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
@@ -50,7 +52,54 @@ export function CampaignCard({
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
   const { data: campaignCreators = [] } = useCampaignCreators(campaign.id);
+  const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign.id);
   const { canEdit, canDelete } = useUserPermissions();
+
+  // Calculate totals from campaign_url_analytics table using ONLY the most recent data
+  const correctTotals = React.useMemo(() => {
+    if (!urlAnalytics || urlAnalytics.length === 0) {
+      // Fallback to campaign data if no URL analytics data
+      return {
+        totalViews: campaign.total_views || 0,
+        totalEngagement: campaign.total_engagement || 0,
+        engagementRate: campaign.engagement_rate || 0
+      };
+    }
+
+    // Get the most recent data for each unique URL (latest date_recorded)
+    const latestDataByUrl = new Map();
+    
+    urlAnalytics.forEach(entry => {
+      const key = `${entry.content_url}-${entry.platform}`;
+      const existing = latestDataByUrl.get(key);
+      
+      if (!existing || new Date(entry.date_recorded) > new Date(existing.date_recorded)) {
+        latestDataByUrl.set(key, entry);
+      }
+    });
+
+    // Sum up ONLY the latest data for each URL (not all historical data)
+    const totalViews = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.views || 0), 0);
+    const totalEngagement = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.engagement || 0), 0);
+    const engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
+
+    return {
+      totalViews,
+      totalEngagement,
+      engagementRate: Number(engagementRate.toFixed(2))
+    };
+  }, [urlAnalytics, campaign.total_views, campaign.total_engagement, campaign.engagement_rate]);
+
+  // Debug logging
+  console.log('CampaignCard rendered for:', campaign.brand_name, {
+    campaign_totals: {
+      total_views: campaign.total_views,
+      total_engagement: campaign.total_engagement,
+      engagement_rate: campaign.engagement_rate
+    },
+    url_analytics_count: urlAnalytics?.length || 0,
+    calculated_totals: correctTotals
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,15 +120,18 @@ export function CampaignCard({
       // Update status to analyzing first
       await updateStatus.mutateAsync({ id: campaign.id, status: 'analyzing' });
       
-      // Call the refresh analytics edge function
-      const { data, error } = await supabase.functions.invoke('refresh-campaign-analytics', {
-        body: { campaignId: campaign.id },
+      // Use the bulk refresh function with a single campaign ID
+      const { data, error } = await supabase.functions.invoke('refresh-campaigns-with-progress', {
+        body: { campaignIds: [campaign.id] },
       });
 
       if (error) {
         console.error('Error refreshing analytics:', error);
         await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
       } else {
+        console.log('Refresh completed successfully for campaign:', campaign.id);
+        console.log('Refresh response data:', data);
+        
         // Collect daily performance data after refresh
         await supabase.functions.invoke('collect-daily-performance', {
           body: { campaignId: campaign.id },
@@ -90,7 +142,21 @@ export function CampaignCard({
       await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
     } finally {
       // Ensure we refetch campaigns to get the latest status from server
+      console.log('Invalidating queries after refresh...');
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+      });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
+      });
+      
+      // Force refetch all accessible campaigns queries
+      await queryClient.refetchQueries({ 
+        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+      });
+      
+      console.log('Queries invalidated and refetched');
       setRefreshing(false);
     }
   };
@@ -98,11 +164,17 @@ export function CampaignCard({
   const handleEditSave = () => {
     // Refresh the campaigns data to show updated URLs
     queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    queryClient.invalidateQueries({ 
+      predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+    });
   };
 
   const handleMasterCampaignSave = () => {
     // Refresh the campaigns data to show updated master campaign links
     queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+    queryClient.invalidateQueries({ 
+      predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+    });
   };
 
   const handleExportPDF = async () => {
@@ -257,19 +329,19 @@ export function CampaignCard({
           <div className="flex items-center space-x-2">
             <Eye className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {campaign.total_views.toLocaleString()} views
+              {correctTotals.totalViews.toLocaleString()} views
             </span>
           </div>
           <div className="flex items-center space-x-2">
             <Heart className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {campaign.total_engagement.toLocaleString()} engagement
+              {correctTotals.totalEngagement.toLocaleString()} engagement
             </span>
           </div>
         </div>
         
         <div className="text-sm text-muted-foreground">
-          <p>Rate: {campaign.engagement_rate.toFixed(2)}%</p>
+          <p>Rate: {correctTotals.engagementRate.toFixed(2)}%</p>
           <p>Month: {campaign.campaign_month || format(new Date(campaign.campaign_date), 'MMM yyyy')}</p>
           {showDealValue && (campaign.fixed_deal_value || campaign.variable_deal_value) && (
             <p>Deal Value: Fixed ${(campaign.fixed_deal_value || 0).toLocaleString()} + Variable ${(campaign.variable_deal_value || 0).toLocaleString()}</p>

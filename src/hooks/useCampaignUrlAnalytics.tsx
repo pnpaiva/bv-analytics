@@ -1,45 +1,42 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface UrlAnalytics {
-  url: string;
+export interface CampaignUrlAnalytics {
+  id: string;
+  campaign_id: string;
+  content_url: string;
   platform: string;
-  total_views: number;
-  total_engagement: number;
-  avg_engagement_rate: number;
-  latest_date: string;
-  daily_data: Array<{
-    date: string;
-    views: number;
-    engagement: number;
-    engagement_rate: number;
-    likes: number;
-    comments: number;
-    shares: number;
-  }>;
+  date_recorded: string;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  engagement: number;
+  engagement_rate: number;
+  analytics_metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  fetched_at: string;
 }
 
-export const useCampaignUrlAnalytics = (
-  campaignId: string,
-  startDate?: string,
-  endDate?: string
-) => {
+export const useCampaignUrlAnalytics = (campaignId: string) => {
   return useQuery({
-    queryKey: ['campaign-url-analytics', campaignId, startDate, endDate],
+    queryKey: ['campaign-url-analytics', campaignId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_campaign_url_analytics', {
-        p_campaign_id: campaignId,
-        p_start_date: startDate || null,
-        p_end_date: endDate || null
-      });
+      const { data, error } = await supabase
+        .from('campaign_url_analytics')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .order('date_recorded', { ascending: false });
 
       if (error) {
         console.error('Error fetching campaign URL analytics:', error);
         throw error;
       }
 
-      return data as UrlAnalytics[];
+      return data as CampaignUrlAnalytics[];
     },
     enabled: !!campaignId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

@@ -41,7 +41,15 @@ Deno.serve(async (req) => {
       .eq('id', campaignId)
       .single();
 
-    if (campaignError || !campaign) {
+    console.log('Campaign query result:', { campaign, campaignError });
+
+    if (campaignError) {
+      console.error('Campaign query error:', campaignError);
+      throw new Error(`Campaign query failed: ${campaignError.message}`);
+    }
+
+    if (!campaign) {
+      console.error('Campaign not found for ID:', campaignId);
       throw new Error('Campaign not found');
     }
 
@@ -52,8 +60,7 @@ Deno.serve(async (req) => {
       .eq('campaign_id', campaignId);
 
     if (creatorsError) {
-      console.error('Error fetching campaign creators:', creatorsError);
-      throw new Error('Failed to fetch campaign creators');
+      throw new Error(`Failed to fetch campaign creators: ${creatorsError.message}`);
     }
 
     console.log('Campaign creators found:', campaignCreators?.length || 0);
@@ -338,7 +345,10 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Update error:', updateError);
-      throw updateError;
+      return new Response(
+        JSON.stringify({ error: `Failed to update campaign analytics: ${updateError.message}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Set status to completed on success
@@ -366,16 +376,20 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    const { campaignId } = await req.json().catch(() => ({}));
-    if (campaignId) {
-      await supabase.rpc('set_campaign_status', {
-        p_campaign_id: campaignId,
-        p_status: 'error'
-      });
+    try {
+      const { campaignId } = await req.json().catch(() => ({}));
+      if (campaignId) {
+        await supabase.rpc('set_campaign_status', {
+          p_campaign_id: campaignId,
+          p_status: 'error'
+        });
+      }
+    } catch (statusError) {
+      console.error('Failed to update campaign status:', statusError);
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message || String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

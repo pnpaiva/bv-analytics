@@ -73,7 +73,15 @@ Deno.serve(async (req) => {
     });
 
     if (!runResponse.ok) {
-      throw new Error('Failed to start Apify actor');
+      const errorText = await runResponse.text();
+      console.error('Failed to start Apify actor:', errorText);
+      
+      // Check for resource limit errors
+      if (runResponse.status === 402 || errorText.toLowerCase().includes('quota') || errorText.toLowerCase().includes('limit')) {
+        throw new Error('Apify resource limit reached. Please try again later or process campaigns in smaller batches.');
+      }
+      
+      throw new Error(`Failed to start Apify actor: ${runResponse.status} ${errorText}`);
     }
 
     const runData = await runResponse.json();

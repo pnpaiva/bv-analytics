@@ -94,7 +94,19 @@ export default function Campaigns() {
       return;
     }
 
-    // Open the progress dialog instead of running the refresh directly
+    // For Apify starter subscription ($200 limit), process in smaller batches
+    const BATCH_SIZE = 5; // Process 5 campaigns at a time to respect resource limits
+    const campaignBatches = [];
+    
+    for (let i = 0; i < campaignsToRefresh.length; i += BATCH_SIZE) {
+      campaignBatches.push(campaignsToRefresh.slice(i, i + BATCH_SIZE));
+    }
+
+    if (campaignBatches.length > 1) {
+      toast.info(`Processing ${campaignsToRefresh.length} campaigns in ${campaignBatches.length} batches to respect Apify limits`);
+    }
+
+    // Open the progress dialog with the first batch
     setRefreshProgressOpen(true);
   };
 

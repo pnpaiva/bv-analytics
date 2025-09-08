@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,52 @@ interface CampaignAnalyticsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// Generate timeline data from daily_campaign_performance table
+// Generate timeline data from campaign_url_analytics table (most recent data per day)
+const generateTimelineDataFromUrlAnalytics = (urlAnalytics: any[]) => {
+  if (!urlAnalytics || urlAnalytics.length === 0) return [];
+  
+  // Group by date and get the most recent data for each URL on each date
+  const dailyData = new Map();
+  
+  urlAnalytics.forEach(entry => {
+    if (!entry || !entry.date_recorded) return;
+    
+    const date = entry.date_recorded;
+    const key = `${entry.content_url}-${entry.platform}`;
+    
+    if (!dailyData.has(date)) {
+      dailyData.set(date, new Map());
+    }
+    
+    const dayData = dailyData.get(date);
+    const existing = dayData.get(key);
+    
+    // Keep only the most recent entry for each URL on this date
+    if (!existing || new Date(entry.fetched_at || entry.created_at) > new Date(existing.fetched_at || existing.created_at)) {
+      dayData.set(key, entry);
+    }
+  });
+  
+  // Convert to array and calculate totals for each day
+  return Array.from(dailyData.entries())
+    .map(([date, urlData]) => {
+      const entries = Array.from(urlData.values());
+      const totalViews = entries.reduce((sum, entry) => sum + (entry.views || 0), 0);
+      const totalEngagement = entries.reduce((sum, entry) => sum + (entry.engagement || 0), 0);
+      const engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
+      
+      return {
+        date,
+        views: totalViews,
+        engagement: totalEngagement,
+        engagementRate: Number(engagementRate.toFixed(2)),
+        platformBreakdown: {}
+      };
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};
+
+// Generate timeline data from daily_campaign_performance table (fallback)
 const generateTimelineData = (dailyData: any[]) => {
   if (!dailyData || dailyData.length === 0) return [];
   
@@ -104,68 +149,134 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   const { data: timelineData = [] } = useCampaignTimeline(campaign?.id || '', 30);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign?.id || '');
 
+  // Calculate totals from campaign_url_analytics table using ONLY the most recent data (same as campaign card)
+  const correctTotals = useMemo(() => {
+    if (!campaign) {
+      return {
+        totalViews: 0,
+        totalEngagement: 0,
+        engagementRate: 0
+      };
+    }
+    try {
+      if (!urlAnalytics || urlAnalytics.length === 0) {
+        // Fallback to campaign data if no URL analytics data
+        return {
+          totalViews: campaign.total_views || 0,
+          totalEngagement: campaign.total_engagement || 0,
+          engagementRate: campaign.engagement_rate || 0
+        };
+      }
+
+      // Get the most recent data for each unique URL (latest date_recorded)
+      const latestDataByUrl = new Map();
+      
+      urlAnalytics.forEach(entry => {
+        if (!entry || !entry.content_url || !entry.platform) return;
+        
+        const key = `${entry.content_url}-${entry.platform}`;
+        const existing = latestDataByUrl.get(key);
+        
+        if (!existing || new Date(entry.date_recorded) > new Date(existing.date_recorded)) {
+          latestDataByUrl.set(key, entry);
+        }
+      });
+
+      // Sum up ONLY the latest data for each URL (not all historical data)
+      const totalViews = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.views || 0), 0);
+      const totalEngagement = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.engagement || 0), 0);
+      const engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
+
+      return {
+        totalViews,
+        totalEngagement,
+        engagementRate: Number(engagementRate.toFixed(2))
+      };
+    } catch (error) {
+      console.error('Error calculating correctTotals:', error);
+      // Fallback to campaign data on error
+      return {
+        totalViews: campaign.total_views || 0,
+        totalEngagement: campaign.total_engagement || 0,
+        engagementRate: campaign.engagement_rate || 0
+      };
+    }
+  }, [urlAnalytics, campaign?.total_views, campaign?.total_engagement, campaign?.engagement_rate]);
+
+  // Early return after all hooks
   if (!campaign) return null;
 
-  // Extract real platform data from campaign analytics (aggregating all videos)
+  // Debug logging
+  console.log('CampaignAnalyticsModal rendered for:', campaign.brand_name, {
+    urlAnalytics: urlAnalytics?.length || 0,
+    campaign: {
+      total_views: campaign.total_views,
+      total_engagement: campaign.total_engagement,
+      engagement_rate: campaign.engagement_rate
+    }
+  });
+
+  // Extract platform data from campaign_url_analytics table (same as campaign card)
   const getPlatformData = () => {
-    if (!campaign.analytics_data) return [];
-    
-    const platforms = [];
-    const analyticsData = campaign.analytics_data as any;
-    
-    // YouTube - aggregate all videos
-    if (analyticsData.youtube?.length > 0) {
-      const totalViews = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
-      const totalEngagement = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
-      const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    try {
+      if (!urlAnalytics || urlAnalytics.length === 0) return [];
       
-      platforms.push({
-        platform: 'YouTube',
-        views: totalViews,
-        engagement: totalEngagement,
-        rate: avgRate,
-        videoCount: analyticsData.youtube.length,
-        urls: analyticsData.youtube.map((v: any) => v.url)
-      });
-    }
-    
-    // Instagram - aggregate all videos
-    if (analyticsData.instagram?.length > 0) {
-      const totalViews = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
-      const totalEngagement = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
-      const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+      // Get the most recent data for each unique URL (latest date_recorded)
+      const latestDataByUrl = new Map();
       
-      platforms.push({
-        platform: 'Instagram',
-        views: totalViews,
-        engagement: totalEngagement,
-        rate: avgRate,
-        videoCount: analyticsData.instagram.length,
-        urls: analyticsData.instagram.map((v: any) => v.url)
+      urlAnalytics.forEach(entry => {
+        if (!entry || !entry.content_url || !entry.platform) return;
+        
+        const key = `${entry.content_url}-${entry.platform}`;
+        const existing = latestDataByUrl.get(key);
+        
+        if (!existing || new Date(entry.date_recorded) > new Date(existing.date_recorded)) {
+          latestDataByUrl.set(key, entry);
+        }
       });
-    }
-    
-    // TikTok - aggregate all videos
-    if (analyticsData.tiktok?.length > 0) {
-      const totalViews = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
-      const totalEngagement = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
-      const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+
+      // Group by platform and aggregate
+      const platformData = new Map();
       
-      platforms.push({
-        platform: 'TikTok',
-        views: totalViews,
-        engagement: totalEngagement,
-        rate: avgRate,
-        videoCount: analyticsData.tiktok.length,
-        urls: analyticsData.tiktok.map((v: any) => v.url)
+      Array.from(latestDataByUrl.values()).forEach(entry => {
+        if (!entry || !entry.platform) return;
+        
+        const platform = entry.platform.charAt(0).toUpperCase() + entry.platform.slice(1);
+        
+        if (!platformData.has(platform)) {
+          platformData.set(platform, {
+            platform,
+            views: 0,
+            engagement: 0,
+            videoCount: 0,
+            urls: []
+          });
+        }
+        
+        const data = platformData.get(platform);
+        data.views += entry.views || 0;
+        data.engagement += entry.engagement || 0;
+        data.videoCount += 1;
+        data.urls.push(entry.content_url);
       });
+
+      // Calculate engagement rates and return as array
+      return Array.from(platformData.values()).map(data => ({
+        ...data,
+        rate: data.views > 0 ? Number(((data.engagement / data.views) * 100).toFixed(2)) : 0
+      }));
+    } catch (error) {
+      console.error('Error calculating platform data:', error);
+      return [];
     }
-    
-    return platforms;
   };
 
   const platformData = getPlatformData();
-  const finalTimelineData = generateTimelineData(dailyPerformanceData);
+  
+  // Use URL analytics data for timeline if available, otherwise fallback to daily performance data
+  const finalTimelineData = urlAnalytics && urlAnalytics.length > 0 
+    ? generateTimelineDataFromUrlAnalytics(urlAnalytics)
+    : generateTimelineData(dailyPerformanceData);
 
   const handleExport = () => {
     const data = {
@@ -224,7 +335,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                   <Eye className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{campaign.total_views.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{correctTotals.totalViews.toLocaleString()}</div>
                 </CardContent>
               </Card>
 
@@ -234,7 +345,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                   <Heart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{campaign.total_engagement.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{correctTotals.totalEngagement.toLocaleString()}</div>
                 </CardContent>
               </Card>
 
@@ -244,7 +355,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                   <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{campaign.engagement_rate.toFixed(2)}%</div>
+                  <div className="text-2xl font-bold">{correctTotals.engagementRate.toFixed(2)}%</div>
                 </CardContent>
               </Card>
 

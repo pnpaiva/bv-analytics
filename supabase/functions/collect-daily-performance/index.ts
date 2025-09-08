@@ -50,44 +50,32 @@ serve(async (req) => {
       );
     }
 
-    // Get campaign URL analytics for today's data
+    // Use the updated campaign data (from refresh function) for daily performance
     const today = new Date().toISOString().split('T')[0];
     
-    const { data: urlAnalytics, error: analyticsError } = await supabase
-      .from('campaign_url_analytics')
-      .select('*')
-      .eq('campaign_id', campaignId)
-      .eq('date_recorded', today);
-
-    if (analyticsError) {
-      console.error('Error fetching URL analytics:', analyticsError);
-    }
-
-    // Calculate totals from URL analytics or use campaign totals
-    let totalViews = campaign.total_views || 0;
-    let totalEngagement = campaign.total_engagement || 0;
-    let engagementRate = campaign.engagement_rate || 0;
+    const totalViews = campaign.total_views || 0;
+    const totalEngagement = campaign.total_engagement || 0;
+    const engagementRate = campaign.engagement_rate || 0;
+    
+    // Create platform breakdown from analytics_data
     let platformBreakdown = {};
-
-    if (urlAnalytics && urlAnalytics.length > 0) {
-      totalViews = urlAnalytics.reduce((sum, entry) => sum + (entry.views || 0), 0);
-      totalEngagement = urlAnalytics.reduce((sum, entry) => sum + (entry.engagement || 0), 0);
-      engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
-
-      // Create platform breakdown
-      platformBreakdown = urlAnalytics.reduce((breakdown, entry) => {
-        if (!breakdown[entry.platform]) {
-          breakdown[entry.platform] = {
-            views: 0,
-            engagement: 0,
-            urls: 0
+    if (campaign.analytics_data) {
+      const analyticsData = campaign.analytics_data as any;
+      
+      // Process each platform's data
+      Object.keys(analyticsData).forEach(platform => {
+        const platformData = analyticsData[platform];
+        if (Array.isArray(platformData) && platformData.length > 0) {
+          const platformViews = platformData.reduce((sum, item) => sum + (item.views || 0), 0);
+          const platformEngagement = platformData.reduce((sum, item) => sum + (item.engagement || 0), 0);
+          
+          platformBreakdown[platform] = {
+            views: platformViews,
+            engagement: platformEngagement,
+            urls: platformData.length
           };
         }
-        breakdown[entry.platform].views += entry.views || 0;
-        breakdown[entry.platform].engagement += entry.engagement || 0;
-        breakdown[entry.platform].urls += 1;
-        return breakdown;
-      }, {} as any);
+      });
     }
 
     // Upsert daily performance data
