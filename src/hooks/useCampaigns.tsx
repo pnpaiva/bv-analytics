@@ -24,6 +24,7 @@ export interface Campaign {
   master_campaign_logo_url?: string;
   airtable_id?: string;
   content_urls?: Record<string, string[]>;
+  is_master_campaign_template?: boolean;
   analytics_data?: any;
   analytics_updated_at?: string;
   created_at: string;

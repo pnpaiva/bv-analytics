@@ -1,5 +1,6 @@
 import React from 'react';
 import { Campaign } from '@/hooks/useCampaigns';
+import { useMasterCampaignAnalytics } from '@/hooks/useMasterCampaignAnalytics';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -27,6 +28,27 @@ interface CampaignTableProps {
   sortField?: SortField;
   sortOrder?: SortOrder;
   onSort: (field: SortField) => void;
+}
+
+// Hook to get correct analytics for both regular and master campaigns
+function useCampaignAnalytics(campaign: Campaign) {
+  const masterAnalytics = useMasterCampaignAnalytics(
+    campaign.is_master_campaign_template ? campaign.master_campaign_name : null
+  );
+
+  if (campaign.is_master_campaign_template) {
+    return {
+      views: masterAnalytics.totalViews,
+      engagement: masterAnalytics.totalEngagement,
+      rate: masterAnalytics.engagementRate
+    };
+  }
+
+  return {
+    views: campaign.total_views || 0,
+    engagement: campaign.total_engagement || 0,
+    rate: campaign.engagement_rate || 0
+  };
 }
 
 export function CampaignTable({
@@ -113,7 +135,9 @@ export function CampaignTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {campaigns.map((campaign) => (
+          {campaigns.map((campaign) => {
+            const analytics = useCampaignAnalytics(campaign);
+            return (
             <TableRow key={campaign.id}>
               <TableCell>
                 {campaign.status !== 'draft' && (
@@ -143,16 +167,16 @@ export function CampaignTable({
               </TableCell>
               <TableCell>
                 <span className="font-medium">
-                  {formatNumber(campaign.total_views || 0)}
+                  {formatNumber(analytics.views)}
                 </span>
               </TableCell>
               <TableCell>
                 <div className="space-y-1">
                   <div className="text-sm">
-                    <span className="text-muted-foreground">Rate:</span> {(campaign.engagement_rate || 0).toFixed(2)}%
+                    <span className="text-muted-foreground">Rate:</span> {analytics.rate.toFixed(2)}%
                   </div>
                   <div className="text-sm">
-                    <span className="text-muted-foreground">Total:</span> {formatNumber(campaign.total_engagement || 0)}
+                    <span className="text-muted-foreground">Total:</span> {formatNumber(analytics.engagement)}
                   </div>
                 </div>
               </TableCell>
@@ -183,7 +207,8 @@ export function CampaignTable({
                 </div>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </div>
