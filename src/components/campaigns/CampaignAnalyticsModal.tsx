@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Campaign } from '@/hooks/useCampaigns';
-import { useMasterCampaignAnalytics } from '@/hooks/useMasterCampaignAnalytics';
 import { useCampaignTimeline } from '@/hooks/useCampaignTimeline';
 import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
 import { useDailyCampaignPerformance } from '@/hooks/useDailyCampaignPerformance';
@@ -149,9 +148,6 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   const { data: dailyPerformanceData = [] } = useDailyCampaignPerformance(campaign?.id || '', 30);
   const { data: timelineData = [] } = useCampaignTimeline(campaign?.id || '', 30);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign?.id || '');
-  const masterCampaignAnalytics = useMasterCampaignAnalytics(
-    campaign?.is_master_campaign_template ? campaign.master_campaign_name : null
-  );
 
   // Calculate totals from campaign_url_analytics table using ONLY the most recent data (same as campaign card)
   const correctTotals = useMemo(() => {
@@ -162,16 +158,6 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
         engagementRate: 0
       };
     }
-
-    // If this is a master campaign template, use aggregated analytics
-    if (campaign.is_master_campaign_template) {
-      return {
-        totalViews: masterCampaignAnalytics.totalViews,
-        totalEngagement: masterCampaignAnalytics.totalEngagement,
-        engagementRate: masterCampaignAnalytics.engagementRate
-      };
-    }
-    
     try {
       if (!urlAnalytics || urlAnalytics.length === 0) {
         // Fallback to campaign data if no URL analytics data
@@ -215,23 +201,19 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
         engagementRate: campaign.engagement_rate || 0
       };
     }
-  }, [urlAnalytics, campaign?.total_views, campaign?.total_engagement, campaign?.engagement_rate, campaign?.is_master_campaign_template, masterCampaignAnalytics]);
+  }, [urlAnalytics, campaign?.total_views, campaign?.total_engagement, campaign?.engagement_rate]);
 
   // Early return after all hooks
   if (!campaign) return null;
 
   // Debug logging
-  const displayType = campaign.is_master_campaign_template ? 'Master Campaign Template' : 'Regular Campaign';
-  console.log(`CampaignAnalyticsModal rendered for: ${campaign.brand_name} (${displayType})`, {
+  console.log('CampaignAnalyticsModal rendered for:', campaign.brand_name, {
     urlAnalytics: urlAnalytics?.length || 0,
     campaign: {
       total_views: campaign.total_views,
       total_engagement: campaign.total_engagement,
       engagement_rate: campaign.engagement_rate
-    },
-    is_master_template: campaign.is_master_campaign_template,
-    master_analytics: campaign.is_master_campaign_template ? masterCampaignAnalytics : null,
-    calculated_totals: correctTotals
+    }
   });
 
   // Extract platform data from campaign_url_analytics table (same as campaign card)
@@ -321,17 +303,9 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle className="text-2xl">
-                {campaign.is_master_campaign_template 
-                  ? `${campaign.master_campaign_name} - Master Campaign Analytics`
-                  : `${campaign.brand_name} Analytics`
-                }
-              </DialogTitle>
+              <DialogTitle className="text-2xl">{campaign.brand_name} Analytics</DialogTitle>
               <DialogDescription>
-                {campaign.is_master_campaign_template 
-                  ? `Aggregated performance metrics from ${masterCampaignAnalytics.campaignCount} campaigns`
-                  : `Detailed performance metrics for ${campaign.creators?.name || 'Unknown Creator'}`
-                }
+                Detailed performance metrics for {campaign.creators?.name || 'Unknown Creator'}
               </DialogDescription>
             </div>
             <div className="flex items-center space-x-2">

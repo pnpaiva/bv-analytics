@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
-import { useMasterCampaignAnalytics } from '@/hooks/useMasterCampaignAnalytics';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
 import { useUserPermissions } from '@/hooks/useUserRoles';
@@ -55,22 +54,9 @@ export function CampaignCard({
   const { data: campaignCreators = [] } = useCampaignCreators(campaign.id);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign.id);
   const { canEdit, canDelete } = useUserPermissions();
-  const masterCampaignAnalytics = useMasterCampaignAnalytics(
-    campaign.is_master_campaign_template ? campaign.master_campaign_name : null
-  );
 
   // Calculate totals from campaign_url_analytics table using ONLY the most recent data
-  // For master campaign templates, use aggregated analytics from all campaigns in the master campaign
   const correctTotals = React.useMemo(() => {
-    // If this is a master campaign template, use aggregated analytics
-    if (campaign.is_master_campaign_template) {
-      return {
-        totalViews: masterCampaignAnalytics.totalViews,
-        totalEngagement: masterCampaignAnalytics.totalEngagement,
-        engagementRate: masterCampaignAnalytics.engagementRate
-      };
-    }
-
     if (!urlAnalytics || urlAnalytics.length === 0) {
       // Fallback to campaign data if no URL analytics data
       return {
@@ -102,20 +88,17 @@ export function CampaignCard({
       totalEngagement,
       engagementRate: Number(engagementRate.toFixed(2))
     };
-  }, [urlAnalytics, campaign.total_views, campaign.total_engagement, campaign.engagement_rate, campaign.is_master_campaign_template, masterCampaignAnalytics]);
+  }, [urlAnalytics, campaign.total_views, campaign.total_engagement, campaign.engagement_rate]);
 
   // Debug logging
-  const displayType = campaign.is_master_campaign_template ? 'Master Campaign Template' : 'Regular Campaign';
-  console.log(`CampaignCard rendered for: ${campaign.brand_name} (${displayType})`, {
+  console.log('CampaignCard rendered for:', campaign.brand_name, {
     campaign_totals: {
       total_views: campaign.total_views,
       total_engagement: campaign.total_engagement,
       engagement_rate: campaign.engagement_rate
     },
     url_analytics_count: urlAnalytics?.length || 0,
-    calculated_totals: correctTotals,
-    is_master_template: campaign.is_master_campaign_template,
-    master_analytics: campaign.is_master_campaign_template ? masterCampaignAnalytics : null
+    calculated_totals: correctTotals
   });
 
   const getStatusColor = (status: string) => {
