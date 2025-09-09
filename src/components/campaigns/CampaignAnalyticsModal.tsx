@@ -54,9 +54,9 @@ const generateTimelineDataFromUrlAnalytics = (urlAnalytics: any[]) => {
   return Array.from(dailyData.entries())
     .map(([date, urlData]) => {
       const entries = Array.from(urlData.values());
-      const totalViews = entries.reduce((sum, entry) => sum + (entry.views || 0), 0);
-      const totalEngagement = entries.reduce((sum, entry) => sum + (entry.engagement || 0), 0);
-      const engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
+      const totalViews = entries.reduce((sum: number, entry: any) => sum + (Number(entry?.views) || 0), 0);
+      const totalEngagement = entries.reduce((sum: number, entry: any) => sum + (Number(entry?.engagement) || 0), 0);
+      const engagementRate = Number(totalViews) > 0 ? (Number(totalEngagement) / Number(totalViews)) * 100 : 0;
       
       return {
         date,
@@ -92,9 +92,9 @@ const getPlatformDataStatic = (campaign: Campaign) => {
   
   // YouTube - aggregate all videos
   if (analyticsData.youtube?.length > 0) {
-    const totalViews = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
-    const totalEngagement = analyticsData.youtube.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
-    const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    const totalViews = analyticsData.youtube.reduce((sum: number, video: any) => sum + (Number(video?.views) || 0), 0);
+    const totalEngagement = analyticsData.youtube.reduce((sum: number, video: any) => sum + (Number(video?.engagement) || 0), 0);
+    const avgRate = totalViews > 0 ? Number(((Number(totalEngagement) / Number(totalViews)) * 100).toFixed(2)) : 0;
     
     platforms.push({
       platform: 'YouTube',
@@ -108,9 +108,9 @@ const getPlatformDataStatic = (campaign: Campaign) => {
   
   // Instagram - aggregate all videos
   if (analyticsData.instagram?.length > 0) {
-    const totalViews = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
-    const totalEngagement = analyticsData.instagram.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
-    const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    const totalViews = analyticsData.instagram.reduce((sum: number, video: any) => sum + (Number(video?.views) || 0), 0);
+    const totalEngagement = analyticsData.instagram.reduce((sum: number, video: any) => sum + (Number(video?.engagement) || 0), 0);
+    const avgRate = totalViews > 0 ? Number(((Number(totalEngagement) / Number(totalViews)) * 100).toFixed(2)) : 0;
     
     platforms.push({
       platform: 'Instagram',
@@ -124,9 +124,9 @@ const getPlatformDataStatic = (campaign: Campaign) => {
   
   // TikTok - aggregate all videos
   if (analyticsData.tiktok?.length > 0) {
-    const totalViews = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.views || 0), 0);
-    const totalEngagement = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (video.engagement || 0), 0);
-    const avgRate = totalViews > 0 ? Number(((totalEngagement / totalViews) * 100).toFixed(2)) : 0;
+    const totalViews = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (Number(video?.views) || 0), 0);
+    const totalEngagement = analyticsData.tiktok.reduce((sum: number, video: any) => sum + (Number(video?.engagement) || 0), 0);
+    const avgRate = totalViews > 0 ? Number(((Number(totalEngagement) / Number(totalViews)) * 100).toFixed(2)) : 0;
     
     platforms.push({
       platform: 'TikTok',

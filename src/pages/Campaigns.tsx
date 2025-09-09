@@ -13,6 +13,7 @@ import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
 import { useAccessibleCampaigns } from '@/hooks/useAccessibleCampaigns';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff, Grid3X3, List } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
@@ -51,6 +52,7 @@ export default function Campaigns() {
   const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
   const { canCreate, canEdit, canDelete } = useUserPermissions();
   const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
+  const queryClient = useQueryClient();
   
   // Debug logging
   console.log('Campaigns - canCreate:', canCreate);
@@ -133,13 +135,24 @@ export default function Campaigns() {
     );
   };
 
-  const handleRefreshComplete = useCallback(() => {
+  const handleRefreshComplete = useCallback(async () => {
     // Add a delay to ensure backend has fully committed status changes
-    setTimeout(() => {
-      refetch();
-      toast.success('Campaign refresh completed');
-    }, 2000);
-  }, [refetch]);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Invalidate all campaign-related queries to force fresh data
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+      }),
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
+      }),
+      refetch()
+    ]);
+    
+    toast.success('Campaign refresh completed - numbers should now be updated');
+  }, [refetch, queryClient]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {

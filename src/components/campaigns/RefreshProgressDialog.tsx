@@ -153,8 +153,7 @@ export function RefreshProgressDialog({
           
           // Call the bulk refresh function with a single campaign ID
           const { data, error } = await supabase.functions.invoke('refresh-campaigns-with-progress', {
-            body: { campaignIds: [campaignId] },
-            signal: abortControllerRef.current?.signal
+            body: { campaignIds: [campaignId] }
           });
 
           if (error) {

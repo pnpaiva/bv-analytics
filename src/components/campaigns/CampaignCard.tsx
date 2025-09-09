@@ -141,6 +141,9 @@ export function CampaignCard({
       console.error('Error refreshing campaign:', error);
       await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
     } finally {
+      // Wait a moment for database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       // Ensure we refetch campaigns to get the latest status from server
       console.log('Invalidating queries after refresh...');
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
@@ -151,10 +154,16 @@ export function CampaignCard({
         predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
       });
       
-      // Force refetch all accessible campaigns queries
-      await queryClient.refetchQueries({ 
-        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
-      });
+      // Force refetch all campaign-related queries
+      await Promise.all([
+        queryClient.refetchQueries({ 
+          predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+        }),
+        queryClient.refetchQueries({ 
+          predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
+        }),
+        queryClient.refetchQueries({ queryKey: ['campaigns'] })
+      ]);
       
       console.log('Queries invalidated and refetched');
       setRefreshing(false);
