@@ -9,6 +9,7 @@ export interface Creator {
   platform_handles?: Record<string, string>;
   avatar_url?: string;
   user_id: string;
+  niche?: string[];
   campaign_creators?: Array<{
     campaign_id: string;
     content_urls: Record<string, string[]>;

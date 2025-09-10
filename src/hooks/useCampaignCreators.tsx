@@ -11,6 +11,7 @@ export interface CampaignCreator {
   updated_at: string;
   creators?: {
     name: string;
+    niche: string[];
   };
 }
 
@@ -28,7 +29,7 @@ export function useCampaignCreators(campaignId?: string) {
         .from('campaign_creators')
         .select(`
           *,
-          creators (name)
+          creators (name, niche)
         `);
       
       if (campaignId) {

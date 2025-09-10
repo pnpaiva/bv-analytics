@@ -61,7 +61,7 @@ const NICHE_OPTIONS = [
   'Animals & Pets',
   'ASMR & Relaxation',
   'Other'
-];
+].sort();
 
 export function CreatorManagement() {
   const [createOpen, setCreateOpen] = useState(false);
@@ -104,6 +104,7 @@ export function CreatorManagement() {
       name: formData.name,
       avatar_url: formData.avatar_url || undefined,
       platform_handles: Object.keys(platform_handles).length > 0 ? platform_handles : undefined,
+      niche: formData.niche.length > 0 ? formData.niche : undefined,
     });
     
     setCreateOpen(false);
@@ -124,6 +125,7 @@ export function CreatorManagement() {
       name: formData.name,
       avatar_url: formData.avatar_url || undefined,
       platform_handles: Object.keys(platform_handles).length > 0 ? platform_handles : undefined,
+      niche: formData.niche.length > 0 ? formData.niche : undefined,
     });
     
     setEditOpen(false);

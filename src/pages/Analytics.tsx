@@ -52,7 +52,23 @@ export default function Analytics() {
   
   console.log('Analytics - Campaigns:', campaigns);
   console.log('Analytics - Creators:', creators);
+  console.log('Analytics - Campaign Creators:', campaignCreators);
   console.log('Analytics - Accessible Campaign IDs:', accessibleCampaignIds);
+  
+  // Debug creator niches from campaign creators
+  console.log('Analytics - Campaign Creators with niches:', campaignCreators.map(cc => ({
+    campaignId: cc.campaign_id,
+    creatorId: cc.creator_id,
+    creatorName: cc.creators?.name,
+    creatorNiche: cc.creators?.niche
+  })).filter(cc => cc.creatorNiche && cc.creatorNiche.length > 0));
+  
+  // Debug creator niches from creators
+  console.log('Analytics - Creators with niches:', creators.map(c => ({
+    id: c.id,
+    name: c.name,
+    niche: c.niche
+  })).filter(c => c.niche && c.niche.length > 0));
   
   // Get campaign creators for accessible campaigns only
   const campaignCreatorsMap = useMemo(() => {
@@ -74,7 +90,15 @@ export default function Analytics() {
         accessibleCreatorIds.add(cc.creator_id);
       }
     });
-    return creators.filter(creator => accessibleCreatorIds.has(creator.id));
+    const filtered = creators.filter(creator => accessibleCreatorIds.has(creator.id));
+    
+    console.log('Filtered creators for niche filtering:', filtered.map(c => ({
+      id: c.id,
+      name: c.name,
+      niche: c.niche
+    })));
+    
+    return filtered;
   }, [creators, campaignCreators, accessibleCampaignIds]);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,6 +107,7 @@ export default function Analytics() {
   const [clientFilters, setClientFilters] = useState<string[]>([]);
   const [masterCampaignFilters, setMasterCampaignFilters] = useState<string[]>([]);
   const [campaignFilters, setCampaignFilters] = useState<string[]>([]);
+  const [nicheFilters, setNicheFilters] = useState<string[]>([]);
   const [creatorViewMode, setCreatorViewMode] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
@@ -92,6 +117,7 @@ export default function Analytics() {
   const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
   const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
   const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
+  const [bubbleNicheFilter, setBubbleNicheFilter] = useState<string[]>([]);
   const [campaignSearchTerm, setCampaignSearchTerm] = useState('');
 
   // Create a creator lookup map for better performance
@@ -101,6 +127,45 @@ export default function Analytics() {
       lookup.set(creator.id, creator.name);
     });
     return lookup;
+  }, [filteredCreators]);
+
+  // Use the same niche options as in CreatorManagement
+const NICHE_OPTIONS = [
+  'Technology & Digital',
+  'Gaming',
+  'Education & Learning',
+  'Lifestyle & Vlogging',
+  'Health & Fitness',
+  'Food & Cooking',
+  'Business & Finance',
+  'Arts & Creativity',
+  'Entertainment & Commentary',
+  'Music',
+  'Travel & Adventure',
+  'Beauty & Fashion',
+  'Automotive',
+  'Home & Living',
+  'Film, TV & Media',
+  'Science & Curiosity',
+  'Politics & Society',
+  'Animals & Pets',
+  'ASMR & Relaxation',
+  'Other'
+].sort();
+
+  // Get unique niches from filtered creators (for validation)
+  const uniqueNiches = useMemo(() => {
+    const niches = new Set<string>();
+    filteredCreators.forEach(creator => {
+      if (creator.niche && Array.isArray(creator.niche)) {
+        creator.niche.forEach(niche => {
+          if (niche && niche.trim()) {
+            niches.add(niche.trim());
+          }
+        });
+      }
+    });
+    return Array.from(niches).sort();
   }, [filteredCreators]);
 
   // Get campaign creators data using the hook (already defined above)
@@ -233,10 +298,46 @@ export default function Analytics() {
       const matchesClient = clientFilters.length === 0 || (campaign.client_id && clientFilters.includes(campaign.client_id));
       const matchesMasterCampaign = masterCampaignFilters.length === 0 || 
         (campaign.master_campaign_name && masterCampaignFilters.includes(campaign.master_campaign_name));
+      
+      const matchesNiche = nicheFilters.length === 0 || 
+        (() => {
+          // Get creator data for this campaign from campaign_creators
+          const campaignCreatorData = (campaignCreators || [])
+            .filter(cc => cc.campaign_id === campaign.id);
 
-      return matchesSearch && matchesStatus && matchesCreator && matchesClient && matchesMasterCampaign;
+          console.log(`Niche filter check for campaign ${campaign.brand_name}:`, {
+            campaignId: campaign.id,
+            campaignCreatorData: campaignCreatorData.map(cc => ({
+              creatorId: cc.creator_id,
+              creatorName: cc.creators?.name,
+              creatorNiche: cc.creators?.niche,
+              contentUrls: cc.content_urls
+            })),
+            nicheFilters
+          });
+
+          // Check if any creator in this campaign has a matching niche
+          const hasMatchingNiche = campaignCreatorData.some(cc => {
+            const creatorNiche = cc.creators?.niche;
+            const matches = creatorNiche && Array.isArray(creatorNiche) && 
+                   creatorNiche.some(niche => nicheFilters.includes(niche));
+            
+            console.log(`Creator ${cc.creators?.name} (${cc.creator_id}):`, { 
+              niche: creatorNiche, 
+              matches,
+              contentUrls: cc.content_urls
+            });
+            
+            return matches;
+          });
+
+          console.log(`Campaign ${campaign.brand_name} niche match:`, hasMatchingNiche);
+          return hasMatchingNiche;
+        })();
+
+      return matchesSearch && matchesStatus && matchesCreator && matchesClient && matchesMasterCampaign && matchesNiche;
     });
-  }, [campaigns, accessibleCampaignIds, searchTerm, statusFilter, creatorFilters, clientFilters, masterCampaignFilters]);
+  }, [campaigns, accessibleCampaignIds, searchTerm, statusFilter, creatorFilters, clientFilters, masterCampaignFilters, nicheFilters, campaignCreators]);
   
   console.log('Analytics - Filtered Campaigns:', filteredCampaigns);
 
@@ -568,6 +669,26 @@ export default function Analytics() {
       );
     }
     
+    // Apply bubble chart specific niche filter
+    if (bubbleNicheFilter.length > 0) {
+      bubbleVideoData = bubbleVideoData.filter(v => {
+        // Find the campaign for this video
+        const campaign = campaigns.find(c => c.brand_name === v.campaign);
+        if (!campaign) return false;
+        
+        // Get creators associated with this campaign
+        const campaignCreatorData = (campaignCreators || [])
+          .filter(cc => cc.campaign_id === campaign.id);
+        
+        // Check if any creator in this campaign has a matching niche
+        return campaignCreatorData.some(cc => {
+          const creatorNiche = cc.creators?.niche;
+          return creatorNiche && Array.isArray(creatorNiche) && 
+                 creatorNiche.some(niche => bubbleNicheFilter.includes(niche));
+        });
+      });
+    }
+    
     // Apply master campaign filter (keep existing)
     if (masterCampaignFilters.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
@@ -604,7 +725,7 @@ export default function Analytics() {
     });
     
     return groups;
-  }, [videoAnalytics, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, masterCampaignFilters, campaigns, creators]);
+  }, [videoAnalytics, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, bubbleNicheFilter, masterCampaignFilters, campaigns, creators, campaignCreators]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -654,6 +775,18 @@ export default function Analytics() {
 
   const removeCampaignFilter = (campaignId: string) => {
     setCampaignFilters(prev => prev.filter(id => id !== campaignId));
+  };
+
+  const handleNicheFilterChange = (niche: string) => {
+    setNicheFilters(prev => 
+      prev.includes(niche) 
+        ? prev.filter(n => n !== niche)
+        : [...prev, niche]
+    );
+  };
+
+  const removeNicheFilter = (niche: string) => {
+    setNicheFilters(prev => prev.filter(n => n !== niche));
   };
 
   const handleMasterCampaignFilterChange = (masterCampaignName: string) => {
@@ -791,9 +924,10 @@ export default function Analytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+            <div className="space-y-4">
+              {/* Search field - full width */}
               <div className="space-y-2">
-                <Label htmlFor="search">Search</Label>
+                <Label htmlFor="search" className="text-sm font-medium text-foreground">Search</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -801,15 +935,18 @@ export default function Analytics() {
                     placeholder="Search campaigns..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 hover:border-primary/50 focus:border-primary transition-colors cursor-text"
                   />
                 </div>
               </div>
+              
+              {/* Other filters - compact grid */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
 
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <Label htmlFor="status" className="text-xs font-medium text-foreground">Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -822,11 +959,11 @@ export default function Analytics() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="creator">Creators</Label>
+              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <Label htmlFor="creator" className="text-xs font-medium text-foreground">Creators</Label>
                 <div className="space-y-2">
                   <Select onValueChange={handleCreatorFilterChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
                       <SelectValue placeholder="Select creators..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -838,7 +975,7 @@ export default function Analytics() {
                     </SelectContent>
                   </Select>
                   {creatorFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {creatorFilters.map((creatorId) => {
                         const creator = creators.find(c => c.id === creatorId);
                         return creator ? (
@@ -860,11 +997,11 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="client">Clients</Label>
+              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <Label htmlFor="client" className="text-xs font-medium text-foreground">Clients</Label>
                 <div className="space-y-2">
                   <Select onValueChange={handleClientFilterChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
                       <SelectValue placeholder="Select clients..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -876,7 +1013,7 @@ export default function Analytics() {
                     </SelectContent>
                   </Select>
                   {clientFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {clientFilters.map((clientId) => {
                         const client = clients.find(c => c.id === clientId);
                         return client ? (
@@ -898,11 +1035,11 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="masterCampaign">Master Campaigns</Label>
+              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <Label htmlFor="masterCampaign" className="text-xs font-medium text-foreground">Master Campaigns</Label>
                 <div className="space-y-2">
                   <Select onValueChange={handleMasterCampaignFilterChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
                       <SelectValue placeholder="Select master campaigns..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -914,7 +1051,7 @@ export default function Analytics() {
                     </SelectContent>
                   </Select>
                   {masterCampaignFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {masterCampaignFilters.map((masterCampaignName) => (
                         <Badge key={masterCampaignName} variant="secondary" className="text-xs">
                           {masterCampaignName}
@@ -933,11 +1070,11 @@ export default function Analytics() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="campaigns">Campaigns</Label>
+              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <Label htmlFor="campaigns" className="text-xs font-medium text-foreground">Campaigns</Label>
                 <div className="space-y-2">
                   <Select onValueChange={handleCampaignFilterChange}>
-                    <SelectTrigger>
+                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
                       <SelectValue placeholder="Select campaigns..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -949,7 +1086,7 @@ export default function Analytics() {
                     </SelectContent>
                   </Select>
                   {campaignFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {campaignFilters.map((campaignId) => {
                         const campaign = campaigns.find(c => c.id === campaignId);
                         return campaign ? (
@@ -967,6 +1104,40 @@ export default function Analytics() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                <Label htmlFor="niches" className="text-xs font-medium text-foreground">Creator Niches</Label>
+                <div className="space-y-2">
+                  <Select onValueChange={handleNicheFilterChange}>
+                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
+                      <SelectValue placeholder="Select niches..." />
+                    </SelectTrigger>
+                      <SelectContent>
+                        {NICHE_OPTIONS.map((niche) => (
+                          <SelectItem key={niche} value={niche}>
+                            {niche}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                  </Select>
+                  {nicheFilters.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {nicheFilters.map((niche) => (
+                        <Badge key={niche} variant="secondary" className="text-xs">
+                          {niche}
+                          <button 
+                            onClick={() => removeNicheFilter(niche)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               </div>
             </div>
           </CardContent>
@@ -1463,8 +1634,63 @@ export default function Analytics() {
                     </PopoverContent>
                   </Popover>
                   
+                  {/* Niche Multi-Select Filter for Bubble Chart */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-32 justify-between">
+                        {bubbleNicheFilter.length === 0 
+                          ? "All Niches" 
+                          : bubbleNicheFilter.length === 1 
+                          ? bubbleNicheFilter[0]
+                          : `${bubbleNicheFilter.length} Niches`
+                        }
+                        <Search className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48 p-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id="all-niches"
+                            checked={bubbleNicheFilter.length === 0}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setBubbleNicheFilter([]);
+                              }
+                            }}
+                          />
+                          <Label htmlFor="all-niches" className="text-sm font-medium">
+                            All Niches
+                          </Label>
+                        </div>
+                        <Separator />
+                        {NICHE_OPTIONS.map(niche => {
+                          const isSelected = bubbleNicheFilter.includes(niche);
+                          return (
+                            <div key={niche} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`niche-${niche}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setBubbleNicheFilter(prev => [...prev, niche]);
+                                  } else {
+                                    setBubbleNicheFilter(prev => prev.filter(n => n !== niche));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`niche-${niche}`} className="text-sm">
+                                {niche}
+                              </Label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  
                   {/* Clear Filters Button */}
-                  {(bubbleCreatorFilter.length > 0 || bubbleCampaignFilter.length > 0 || bubblePlatformFilter.length > 0) && (
+                  {(bubbleCreatorFilter.length > 0 || bubbleCampaignFilter.length > 0 || bubblePlatformFilter.length > 0 || bubbleNicheFilter.length > 0) && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -1472,6 +1698,7 @@ export default function Analytics() {
                         setBubbleCreatorFilter([]);
                         setBubbleCampaignFilter([]);
                         setBubblePlatformFilter([]);
+                        setBubbleNicheFilter([]);
                       }}
                       className="text-muted-foreground hover:text-foreground"
                     >
