@@ -55,40 +55,24 @@ export function CampaignCard({
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign.id);
   const { canEdit, canDelete } = useUserPermissions();
 
-  // Calculate totals from campaign_url_analytics table using ONLY the most recent data
-  const correctTotals = React.useMemo(() => {
-    if (!urlAnalytics || urlAnalytics.length === 0) {
-      // Fallback to campaign data if no URL analytics data
-      return {
-        totalViews: campaign.total_views || 0,
-        totalEngagement: campaign.total_engagement || 0,
-        engagementRate: campaign.engagement_rate || 0
-      };
-    }
-
-    // Get the most recent data for each unique URL (latest date_recorded)
-    const latestDataByUrl = new Map();
-    
-    urlAnalytics.forEach(entry => {
-      const key = `${entry.content_url}-${entry.platform}`;
-      const existing = latestDataByUrl.get(key);
-      
-      if (!existing || new Date(entry.date_recorded) > new Date(existing.date_recorded)) {
-        latestDataByUrl.set(key, entry);
-      }
+  // Use campaign totals as the single source of truth
+  // URL analytics are only used for individual URL breakdowns, not totals
+  const campaignTotals = React.useMemo(() => {
+    console.log('🔍 CAMPAIGN CARD DEBUG for:', campaign.brand_name, {
+      campaign_id: campaign.id,
+      total_views: campaign.total_views,
+      total_engagement: campaign.total_engagement,
+      engagement_rate: campaign.engagement_rate,
+      urlAnalyticsCount: urlAnalytics?.length || 0,
+      urlAnalyticsData: urlAnalytics?.slice(0, 2) // Show first 2 records for debugging
     });
 
-    // Sum up ONLY the latest data for each URL (not all historical data)
-    const totalViews = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.views || 0), 0);
-    const totalEngagement = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.engagement || 0), 0);
-    const engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
-
     return {
-      totalViews,
-      totalEngagement,
-      engagementRate: Number(engagementRate.toFixed(2))
+      totalViews: campaign.total_views || 0,
+      totalEngagement: campaign.total_engagement || 0,
+      engagementRate: campaign.engagement_rate || 0
     };
-  }, [urlAnalytics, campaign.total_views, campaign.total_engagement, campaign.engagement_rate]);
+  }, [campaign.total_views, campaign.total_engagement, campaign.engagement_rate, urlAnalytics?.length]);
 
   // Debug logging
   console.log('CampaignCard rendered for:', campaign.brand_name, {
@@ -98,7 +82,7 @@ export function CampaignCard({
       engagement_rate: campaign.engagement_rate
     },
     url_analytics_count: urlAnalytics?.length || 0,
-    calculated_totals: correctTotals
+    campaign_totals: campaignTotals
   });
 
   const getStatusColor = (status: string) => {
@@ -141,18 +125,25 @@ export function CampaignCard({
       console.error('Error refreshing campaign:', error);
       await updateStatus.mutateAsync({ id: campaign.id, status: 'error' });
     } finally {
-      // Wait a moment for database operations to complete
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait longer for database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       // Ensure we refetch campaigns to get the latest status from server
       console.log('Invalidating queries after refresh...');
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
-      });
-      queryClient.invalidateQueries({ 
-        predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
-      });
+      
+      // Invalidate all relevant queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
+        queryClient.invalidateQueries({ 
+          predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+        }),
+        queryClient.invalidateQueries({ 
+          predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
+        })
+      ]);
+      
+      // Wait a bit more for invalidation to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Force refetch all campaign-related queries
       await Promise.all([
@@ -338,19 +329,19 @@ export function CampaignCard({
           <div className="flex items-center space-x-2">
             <Eye className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {correctTotals.totalViews.toLocaleString()} views
+              {campaignTotals.totalViews.toLocaleString()} views
             </span>
           </div>
           <div className="flex items-center space-x-2">
             <Heart className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm">
-              {correctTotals.totalEngagement.toLocaleString()} engagement
+              {campaignTotals.totalEngagement.toLocaleString()} engagement
             </span>
           </div>
         </div>
         
         <div className="text-sm text-muted-foreground">
-          <p>Rate: {correctTotals.engagementRate.toFixed(2)}%</p>
+          <p>Rate: {campaignTotals.engagementRate.toFixed(2)}%</p>
           <p>Month: {campaign.campaign_month || format(new Date(campaign.campaign_date), 'MMM yyyy')}</p>
           {showDealValue && (campaign.fixed_deal_value || campaign.variable_deal_value) && (
             <p>Deal Value: Fixed ${(campaign.fixed_deal_value || 0).toLocaleString()} + Variable ${(campaign.variable_deal_value || 0).toLocaleString()}</p>

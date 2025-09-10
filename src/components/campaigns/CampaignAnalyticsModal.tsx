@@ -149,8 +149,9 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   const { data: timelineData = [] } = useCampaignTimeline(campaign?.id || '', 30);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign?.id || '');
 
-  // Calculate totals from campaign_url_analytics table using ONLY the most recent data (same as campaign card)
-  const correctTotals = useMemo(() => {
+  // Use campaign totals as the single source of truth
+  // URL analytics are only used for individual URL breakdowns, not totals
+  const campaignTotals = useMemo(() => {
     if (!campaign) {
       return {
         totalViews: 0,
@@ -158,50 +159,13 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
         engagementRate: 0
       };
     }
-    try {
-      if (!urlAnalytics || urlAnalytics.length === 0) {
-        // Fallback to campaign data if no URL analytics data
-        return {
-          totalViews: campaign.total_views || 0,
-          totalEngagement: campaign.total_engagement || 0,
-          engagementRate: campaign.engagement_rate || 0
-        };
-      }
 
-      // Get the most recent data for each unique URL (latest date_recorded)
-      const latestDataByUrl = new Map();
-      
-      urlAnalytics.forEach(entry => {
-        if (!entry || !entry.content_url || !entry.platform) return;
-        
-        const key = `${entry.content_url}-${entry.platform}`;
-        const existing = latestDataByUrl.get(key);
-        
-        if (!existing || new Date(entry.date_recorded) > new Date(existing.date_recorded)) {
-          latestDataByUrl.set(key, entry);
-        }
-      });
-
-      // Sum up ONLY the latest data for each URL (not all historical data)
-      const totalViews = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.views || 0), 0);
-      const totalEngagement = Array.from(latestDataByUrl.values()).reduce((sum, entry) => sum + (entry.engagement || 0), 0);
-      const engagementRate = totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0;
-
-      return {
-        totalViews,
-        totalEngagement,
-        engagementRate: Number(engagementRate.toFixed(2))
-      };
-    } catch (error) {
-      console.error('Error calculating correctTotals:', error);
-      // Fallback to campaign data on error
-      return {
-        totalViews: campaign.total_views || 0,
-        totalEngagement: campaign.total_engagement || 0,
-        engagementRate: campaign.engagement_rate || 0
-      };
-    }
-  }, [urlAnalytics, campaign?.total_views, campaign?.total_engagement, campaign?.engagement_rate]);
+    return {
+      totalViews: campaign.total_views || 0,
+      totalEngagement: campaign.total_engagement || 0,
+      engagementRate: campaign.engagement_rate || 0
+    };
+  }, [campaign]);
 
   // Early return after all hooks
   if (!campaign) return null;
@@ -335,7 +299,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                   <Eye className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{correctTotals.totalViews.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{campaignTotals.totalViews.toLocaleString()}</div>
                 </CardContent>
               </Card>
 
@@ -345,7 +309,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                   <Heart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{correctTotals.totalEngagement.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{campaignTotals.totalEngagement.toLocaleString()}</div>
                 </CardContent>
               </Card>
 
@@ -355,7 +319,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                   <MessageCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{correctTotals.engagementRate.toFixed(2)}%</div>
+                  <div className="text-2xl font-bold">{campaignTotals.engagementRate.toFixed(2)}%</div>
                 </CardContent>
               </Card>
 

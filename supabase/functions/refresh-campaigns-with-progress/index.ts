@@ -1,4 +1,4 @@
-
+t
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
           tiktok: 150 * 1024 * 1024     // ~150MB per TikTok URL
         };
 
-        const withRetry = async <T>(fn: () => Promise<T>, attempts = 3, baseDelay = 2000): Promise<T> => {
+        const withRetry = async <T>(fn: () => Promise<T>, attempts = 3, baseDelay = 5000): Promise<T> => {
           let lastErr: any;
           for (let i = 0; i < attempts; i++) {
             try {
@@ -277,8 +277,8 @@ Deno.serve(async (req) => {
             let totalEngagement = 0;
             const platformResults: Record<string, any[]> = {};
 
-            // Sequential processing with retries and per-platform pacing - INCREASED DELAYS
-            const perPlatformDelay: Record<string, number> = { youtube: 2000, instagram: 3000, tiktok: 3000 };
+            // Sequential processing with retries and per-platform pacing - SLOWED DOWN TO AVOID LIMITS
+            const perPlatformDelay: Record<string, number> = { youtube: 5000, instagram: 8000, tiktok: 8000 };
 
             for (let urlIndex = 0; urlIndex < urls.length; urlIndex++) {
               const { url, platform } = urls[urlIndex];
@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
                   if (r.error) throw new Error(r.error.message || 'invoke error');
                   if (!r.data) throw new Error('empty response');
                   return r.data as { views?: number; engagement?: number; [k: string]: unknown };
-                }, 3, 2000);
+                }, 3, 8000);
 
                 console.log(`Apify response for ${platform} URL ${url}:`, res);
 
@@ -372,6 +372,100 @@ Deno.serve(async (req) => {
                 campaignError = `Failed to update analytics: ${updateError.message}`;
               } else {
                 console.log(`Successfully updated campaign ${campaign.id} analytics`);
+                
+                // Also populate campaign_url_analytics table with individual URL data
+                if (urls.length > 0) {
+                  console.log(`Attempting to insert ${urls.length} URL analytics records for campaign ${campaign.id}`);
+                  
+                  // First, let's try a direct insert to test RLS
+                  const urlAnalyticsData = urls.map(({ url, platform }) => {
+                    // Get platform data - since platform functions return data for the URL they were called with,
+                    // we can directly use the platform results (there should only be one result per platform)
+                    const platformData = platformResults[platform]?.[0] || {};
+                    // Fix data structure mismatch - platform functions return 'rate' but we need 'engagement_rate'
+                    const engagementRate = platformData.rate || platformData.engagement_rate || 0;
+                    
+                    return {
+                      campaign_id: campaign.id,
+                      content_url: url,
+                      platform: platform,
+                      date_recorded: new Date().toISOString().split('T')[0],
+                      views: platformData.views || 0,
+                      likes: platformData.likes || 0,
+                      comments: platformData.comments || 0,
+                      shares: platformData.shares || 0,
+                      engagement: platformData.engagement || 0,
+                      engagement_rate: engagementRate,
+                      analytics_metadata: platformData.analytics_metadata || {},
+                      fetched_at: new Date().toISOString()
+                    };
+                  });
+
+                  console.log('URL analytics data to insert:', urlAnalyticsData);
+                  console.log('Data summary:', {
+                    totalRecords: urlAnalyticsData.length,
+                    totalViews: urlAnalyticsData.reduce((sum, entry) => sum + (entry.views || 0), 0),
+                    totalEngagement: urlAnalyticsData.reduce((sum, entry) => sum + (entry.engagement || 0), 0),
+                    platforms: [...new Set(urlAnalyticsData.map(entry => entry.platform))]
+                  });
+
+                  // Try direct insert first
+                  const { data: insertData, error: insertError } = await supabase
+                    .from('campaign_url_analytics')
+                    .insert(urlAnalyticsData)
+                    .select();
+
+                  if (insertError) {
+                    console.error('Direct insert failed, trying upsert function:', insertError);
+                    
+                    // Fallback to upsert function
+                    for (let i = 0; i < urls.length; i++) {
+                      const { url, platform } = urls[i];
+                      // Get platform data - since platform functions return data for the URL they were called with,
+                      // we can directly use the platform results (there should only be one result per platform)
+                      const platformData = platformResults[platform]?.[0] || {};
+                    
+                    // Fix data structure mismatch - platform functions return 'rate' but we need 'engagement_rate'
+                    const engagementRate = platformData.rate || platformData.engagement_rate || 0;
+                    
+                    console.log(`Inserting URL analytics for ${url}:`, {
+                      campaign_id: campaign.id,
+                      platform: platform,
+                      views: platformData.views || 0,
+                      engagement: platformData.engagement || 0,
+                      engagement_rate: engagementRate
+                    });
+
+                    const { error: urlAnalyticsError } = await supabase.rpc('upsert_campaign_url_analytics', {
+                      p_campaign_id: campaign.id,
+                      p_content_url: url,
+                      p_platform: platform,
+                      p_date_recorded: new Date().toISOString().split('T')[0],
+                      p_views: platformData.views || 0,
+                      p_likes: platformData.likes || 0,
+                      p_comments: platformData.comments || 0,
+                      p_shares: platformData.shares || 0,
+                      p_engagement: platformData.engagement || 0,
+                      p_engagement_rate: engagementRate,
+                      p_analytics_metadata: platformData.analytics_metadata || {}
+                    });
+
+                      if (urlAnalyticsError) {
+                        console.error(`Error inserting URL analytics for ${url}:`, urlAnalyticsError);
+                      } else {
+                        console.log(`Successfully inserted URL analytics for ${url}`);
+                      }
+                    }
+                  } else {
+                    console.log(`Successfully inserted ${insertData?.length || 0} URL analytics records directly`);
+                    console.log('Inserted data summary:', {
+                      totalRecords: insertData?.length || 0,
+                      totalViews: insertData?.reduce((sum, entry) => sum + (entry.views || 0), 0) || 0,
+                      totalEngagement: insertData?.reduce((sum, entry) => sum + (entry.engagement || 0), 0) || 0,
+                      platforms: [...new Set(insertData?.map(entry => entry.platform) || [])]
+                    });
+                  }
+                }
               }
 
               // Collect daily performance data
@@ -413,8 +507,8 @@ Deno.serve(async (req) => {
             
             // Add delay between campaigns to avoid overwhelming APIs
             if (i < campaignResourceEstimates.length - 1) {
-              console.log(`Waiting 5 seconds before processing next campaign...`);
-              await sleep(5000);
+              console.log(`Waiting 10 seconds before processing next campaign...`);
+              await sleep(10000);
             }
             
             // If we hit resource limits, break out of the campaign loop
