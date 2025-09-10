@@ -119,6 +119,7 @@ export default function Analytics() {
   const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
   const [bubbleNicheFilter, setBubbleNicheFilter] = useState<string[]>([]);
   const [campaignSearchTerm, setCampaignSearchTerm] = useState('');
+  const [showFilters, setShowFilters] = useState(true);
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -915,233 +916,202 @@ const NICHE_OPTIONS = [
           </div>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Search field - full width */}
-              <div className="space-y-2">
-                <Label htmlFor="search" className="text-sm font-medium text-foreground">Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search campaigns..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 hover:border-primary/50 focus:border-primary transition-colors cursor-text"
-                  />
-                </div>
-              </div>
-              
-              {/* Other filters - compact grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-
-              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                <Label htmlFor="status" className="text-xs font-medium text-foreground">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="analyzing">Analyzing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="error">Error</SelectItem>
-                  </SelectContent>
-                </Select>
+        {/* Compact Filters */}
+        {showFilters && (
+          <div className="mb-6 p-4 bg-gray-50/30 rounded-lg border border-gray-200">
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Search Input */}
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search Campaigns"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 h-9 bg-white border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
               </div>
 
-              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                <Label htmlFor="creator" className="text-xs font-medium text-foreground">Creators</Label>
-                <div className="space-y-2">
-                  <Select onValueChange={handleCreatorFilterChange}>
-                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
-                      <SelectValue placeholder="Select creators..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {creators.map((creator) => (
-                        <SelectItem key={creator.id} value={creator.id}>
-                          {creator.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {creatorFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {creatorFilters.map((creatorId) => {
-                        const creator = creators.find(c => c.id === creatorId);
-                        return creator ? (
-                          <Badge key={creatorId} variant="secondary" className="text-xs">
-                            {creator.name}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 ml-1"
-                              onClick={() => removeCreatorFilter(creatorId)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Creators Filter */}
+              <Select onValueChange={handleCreatorFilterChange}>
+                <SelectTrigger className="w-32 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                  <SelectValue placeholder="Creators" />
+                </SelectTrigger>
+                <SelectContent>
+                  {creators.map((creator) => (
+                    <SelectItem key={creator.id} value={creator.id}>
+                      {creator.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                <Label htmlFor="client" className="text-xs font-medium text-foreground">Clients</Label>
-                <div className="space-y-2">
-                  <Select onValueChange={handleClientFilterChange}>
-                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
-                      <SelectValue placeholder="Select clients..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((client) => (
-                        <SelectItem key={client.id} value={client.id}>
-                          {client.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {clientFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {clientFilters.map((clientId) => {
-                        const client = clients.find(c => c.id === clientId);
-                        return client ? (
-                          <Badge key={clientId} variant="secondary" className="text-xs">
-                            {client.name}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-auto p-0 ml-1"
-                              onClick={() => removeClientFilter(clientId)}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Clients Filter */}
+              <Select onValueChange={handleClientFilterChange}>
+                <SelectTrigger className="w-32 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                  <SelectValue placeholder="Clients" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map((client) => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                <Label htmlFor="masterCampaign" className="text-xs font-medium text-foreground">Master Campaigns</Label>
-                <div className="space-y-2">
-                  <Select onValueChange={handleMasterCampaignFilterChange}>
-                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
-                      <SelectValue placeholder="Select master campaigns..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {masterCampaigns.map((masterCampaign) => (
-                        <SelectItem key={masterCampaign.name} value={masterCampaign.name}>
-                          {masterCampaign.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {masterCampaignFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {masterCampaignFilters.map((masterCampaignName) => (
-                        <Badge key={masterCampaignName} variant="secondary" className="text-xs">
-                          {masterCampaignName}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-auto p-0 ml-1"
-                            onClick={() => removeMasterCampaignFilter(masterCampaignName)}
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Campaigns Filter */}
+              <Select onValueChange={handleCampaignFilterChange}>
+                <SelectTrigger className="w-36 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                  <SelectValue placeholder="Campaigns" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredCampaigns
+                    .sort((a, b) => a.brand_name.localeCompare(b.brand_name))
+                    .map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id}>
+                        {campaign.brand_name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
 
-              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                <Label htmlFor="campaigns" className="text-xs font-medium text-foreground">Campaigns</Label>
-                <div className="space-y-2">
-                  <Select onValueChange={handleCampaignFilterChange}>
-                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
-                      <SelectValue placeholder="Select campaigns..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCampaigns.map((campaign) => (
-                        <SelectItem key={campaign.id} value={campaign.id}>
-                          {campaign.brand_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {campaignFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {campaignFilters.map((campaignId) => {
-                        const campaign = campaigns.find(c => c.id === campaignId);
-                        return campaign ? (
-                          <Badge key={campaignId} variant="secondary" className="text-xs">
-                            {campaign.brand_name}
-                            <button 
-                              onClick={() => removeCampaignFilter(campaignId)}
-                              className="ml-1 hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ) : null;
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
+              {/* Master Campaigns Filter */}
+              <Select onValueChange={handleMasterCampaignFilterChange}>
+                <SelectTrigger className="w-36 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                  <SelectValue placeholder="Master Campaigns" />
+                </SelectTrigger>
+                <SelectContent>
+                  {masterCampaigns.map((masterCampaign) => (
+                    <SelectItem key={masterCampaign.name} value={masterCampaign.name}>
+                      {masterCampaign.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <div className="space-y-1 p-2 border border-gray-200 rounded bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                <Label htmlFor="niches" className="text-xs font-medium text-foreground">Creator Niches</Label>
-                <div className="space-y-2">
-                  <Select onValueChange={handleNicheFilterChange}>
-                    <SelectTrigger className="hover:border-primary/50 focus:border-primary transition-colors cursor-pointer bg-white">
-                      <SelectValue placeholder="Select niches..." />
-                    </SelectTrigger>
-                      <SelectContent>
-                        {NICHE_OPTIONS.map((niche) => (
-                          <SelectItem key={niche} value={niche}>
-                            {niche}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                  </Select>
-                  {nicheFilters.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {nicheFilters.map((niche) => (
-                        <Badge key={niche} variant="secondary" className="text-xs">
-                          {niche}
-                          <button 
-                            onClick={() => removeNicheFilter(niche)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              </div>
+              {/* Niches Filter */}
+              <Select onValueChange={handleNicheFilterChange}>
+                <SelectTrigger className="w-32 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                  <SelectValue placeholder="Niches" />
+                </SelectTrigger>
+                <SelectContent>
+                  {NICHE_OPTIONS.map((niche) => (
+                    <SelectItem key={niche} value={niche}>
+                      {niche}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Hide Filters Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowFilters(false)}
+                className="h-9 px-3 bg-gray-100 border-gray-300 hover:bg-gray-200"
+              >
+                <Filter className="h-4 w-4 mr-1" />
+                Hide filters
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Active Filter Tags */}
+            {(creatorFilters.length > 0 || clientFilters.length > 0 || campaignFilters.length > 0 || masterCampaignFilters.length > 0 || nicheFilters.length > 0) && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <div className="flex flex-wrap gap-2">
+                  {creatorFilters.map((creatorId) => {
+                    const creator = creators.find(c => c.id === creatorId);
+                    return creator ? (
+                      <Badge key={creatorId} variant="secondary" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                        Creator: {creator.name}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 ml-1 hover:bg-blue-200"
+                          onClick={() => removeCreatorFilter(creatorId)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ) : null;
+                  })}
+                  {clientFilters.map((clientId) => {
+                    const client = clients.find(c => c.id === clientId);
+                    return client ? (
+                      <Badge key={clientId} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                        Client: {client.name}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 ml-1 hover:bg-green-200"
+                          onClick={() => removeClientFilter(clientId)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ) : null;
+                  })}
+                  {campaignFilters.map((campaignId) => {
+                    const campaign = campaigns.find(c => c.id === campaignId);
+                    return campaign ? (
+                      <Badge key={campaignId} variant="secondary" className="text-xs bg-indigo-100 text-indigo-800 border-indigo-200">
+                        Campaign: {campaign.brand_name}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto p-0 ml-1 hover:bg-indigo-200"
+                          onClick={() => removeCampaignFilter(campaignId)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </Badge>
+                    ) : null;
+                  })}
+                  {masterCampaignFilters.map((masterCampaignName) => (
+                    <Badge key={masterCampaignName} variant="secondary" className="text-xs bg-purple-100 text-purple-800 border-purple-200">
+                      Master: {masterCampaignName}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 ml-1 hover:bg-purple-200"
+                        onClick={() => removeMasterCampaignFilter(masterCampaignName)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                  {nicheFilters.map((niche) => (
+                    <Badge key={niche} variant="secondary" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                      Niche: {niche}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto p-0 ml-1 hover:bg-orange-200"
+                        onClick={() => removeNicheFilter(niche)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Show Filters Button (when hidden) */}
+        {!showFilters && (
+          <div className="mb-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(true)}
+              className="h-9 px-3 bg-gray-100 border-gray-300 hover:bg-gray-200"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Show filters
+            </Button>
+          </div>
+        )}
 
         {/* Aggregate Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
