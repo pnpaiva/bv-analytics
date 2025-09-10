@@ -13,7 +13,10 @@ import Analytics from "./pages/Analytics";
 import MasterCampaigns from "./pages/MasterCampaigns";
 import CreatorProfiles from "./pages/CreatorProfiles";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminBlog from "./pages/AdminBlog";
 import Profile from "./pages/Profile";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import PublicMediaKit from "./pages/PublicMediaKit";
 import NotFound from "./pages/NotFound";
 
@@ -28,6 +31,8 @@ const App = () => (
         <Routes>
           {/* Public routes - accessible without authentication */}
           <Route path="/" element={<Index />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
           
           {/* Public media kit routes - accessible to anyone with the link */}
           <Route path="/:slug" element={<PublicMediaKit />} />
@@ -74,6 +79,16 @@ const App = () => (
               <AuthProvider>
                 <AdminProtectedRoute>
                   <AdminDashboard />
+                </AdminProtectedRoute>
+              </AuthProvider>
+            } 
+          />
+          <Route 
+            path="/admin/blog" 
+            element={
+              <AuthProvider>
+                <AdminProtectedRoute>
+                  <AdminBlog />
                 </AdminProtectedRoute>
               </AuthProvider>
             } 

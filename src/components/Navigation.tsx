@@ -49,6 +49,7 @@ export function Navigation() {
   const adminNavItems = [
     { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
     { to: '/admin', icon: Settings, label: 'Admin Dashboard' },
+    { to: '/admin/blog', icon: FileText, label: 'Blog Management' },
   ];
 
   // Build navigation items based on user role

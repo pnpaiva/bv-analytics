@@ -208,6 +208,57 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_posts: {
+        Row: {
+          author_id: string
+          banner_image_url: string | null
+          content: string
+          created_at: string
+          excerpt: string | null
+          id: string
+          meta_description: string | null
+          meta_keywords: string | null
+          meta_title: string | null
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          banner_image_url?: string | null
+          content: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          banner_image_url?: string | null
+          content?: string
+          created_at?: string
+          excerpt?: string | null
+          id?: string
+          meta_description?: string | null
+          meta_keywords?: string | null
+          meta_title?: string | null
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       campaign_creators: {
         Row: {
           campaign_id: string
@@ -1004,6 +1055,36 @@ export type Database = {
         }
         Relationships: []
       }
+      waitlist: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          metadata: Json | null
+          source: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          metadata?: Json | null
+          source?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       youtube_analytics: {
         Row: {
           channel_handle: string | null
@@ -1263,7 +1344,7 @@ export type Database = {
         Returns: boolean
       }
       check_campaign_milestones: {
-        Args: { p_campaign_id: string; p_new_views: number }
+        Args: { p_campaign_id: string; p_new_views?: number }
         Returns: undefined
       }
       cleanup_expired_cache: {
@@ -1297,6 +1378,10 @@ export type Database = {
           p_total_views: number
         }
         Returns: undefined
+      }
+      generate_blog_slug: {
+        Args: { title_text: string }
+        Returns: string
       }
       get_campaign_timeline: {
         Args: { p_campaign_id: string; p_days_back?: number }
