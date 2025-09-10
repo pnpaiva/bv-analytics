@@ -92,24 +92,56 @@ export function RefreshProgressDialog({
     });
     setProgress(initialProgress);
 
-    // Prefill campaign names for a better UX
+    // Prefill campaign names and URL counts for better UX
     (async () => {
       try {
         const { data } = await supabase
           .from('campaigns')
-          .select('id, brand_name')
+          .select(`
+            id, 
+            brand_name,
+            campaign_creators (
+              content_urls
+            )
+          `)
           .in('id', campaignIds);
+        
         if (data) {
           setProgress(prev => {
             const next = { ...prev };
             data.forEach((c: any) => {
-              if (next[c.id]) next[c.id].campaignName = c.brand_name;
+              if (next[c.id]) {
+                next[c.id].campaignName = c.brand_name;
+                
+                // Count total URLs for this campaign
+                let totalUrls = 0;
+                if (c.campaign_creators) {
+                  c.campaign_creators.forEach((creator: any) => {
+                    const urls = creator?.content_urls as Record<string, unknown> | null;
+                    if (urls && typeof urls === 'object') {
+                      // Count YouTube URLs
+                      const yt = Array.isArray((urls as any).youtube) ? (urls as any).youtube : [];
+                      totalUrls += yt.filter((url: any) => url && typeof url === 'string' && url.trim()).length;
+                      
+                      // Count Instagram URLs
+                      const ig = Array.isArray((urls as any).instagram) ? (urls as any).instagram : [];
+                      totalUrls += ig.filter((url: any) => url && typeof url === 'string' && url.trim()).length;
+                      
+                      // Count TikTok URLs
+                      const tt = Array.isArray((urls as any).tiktok) ? (urls as any).tiktok : [];
+                      totalUrls += tt.filter((url: any) => url && typeof url === 'string' && url.trim()).length;
+                    }
+                  });
+                }
+                
+                next[c.id].totalUrls = totalUrls;
+              }
             });
             return next;
           });
         }
       } catch (e) {
-        console.warn('Could not prefill campaign names', e);
+        console.warn('Could not prefill campaign names and URL counts', e);
       }
     })();
 
@@ -180,8 +212,8 @@ export function RefreshProgressDialog({
               [campaignId]: {
                 ...prev[campaignId],
                 status: 'completed',
-                processedUrls: 1,
-                totalUrls: 1
+                processedUrls: prev[campaignId]?.totalUrls || 0,
+                totalUrls: prev[campaignId]?.totalUrls || 0
               }
             }));
             results.push({
@@ -294,9 +326,8 @@ export function RefreshProgressDialog({
     setGrandTotalUrls(urlsTotal);
     setTotalProcessedUrls(urlsDone);
     
-    const ratioUrls = urlsTotal > 0 ? Math.round((urlsDone / urlsTotal) * 100) : 0;
     const ratioCamps = Math.round((completedCount / totalC) * 100);
-    setOverallProgress(urlsTotal > 0 ? ratioUrls : ratioCamps);
+    setOverallProgress(ratioCamps);
 
     // Mark complete when all campaigns are done OR when stream ended and we have some completed campaigns
     if ((completedCount === totalC) || (streamEnded && completedCount > 0 && completedCount === Object.keys(progress).length)) {
@@ -435,18 +466,6 @@ export function RefreshProgressDialog({
         ) : (
           // Show progress when refresh is in progress
           <div className="space-y-6">
-            {/* Apify Resource Limit Warning */}
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <div>
-                  <h4 className="text-sm font-medium text-yellow-800">Apify Starter Subscription</h4>
-                  <p className="text-xs text-yellow-700">
-                    You're using Apify's starter plan with a $200 platform limit. Processing will stop if limits are reached.
-                  </p>
-                </div>
-              </div>
-            </div>
 
             {/* Overall Progress */}
             <div className="space-y-2">

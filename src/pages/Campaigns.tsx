@@ -41,9 +41,10 @@ export default function Campaigns() {
   const [refreshAllDialogOpen, setRefreshAllDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [showDealValue, setShowDealValue] = useState(true);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [sortField, setSortField] = useState<SortField>('created_at');
@@ -88,6 +89,11 @@ export default function Campaigns() {
   };
 
   const handleRefreshAll = async () => {
+    if (isRefreshing) {
+      toast.warning('Refresh already in progress. Please wait for it to complete.');
+      return;
+    }
+
     setRefreshAllDialogOpen(false);
     
     const campaignsToRefresh = campaigns.filter(c => c.status !== 'draft');
@@ -108,15 +114,23 @@ export default function Campaigns() {
       toast.info(`Processing ${campaignsToRefresh.length} campaigns in ${campaignBatches.length} batches to respect Apify limits`);
     }
 
-    // Open the progress dialog with the first batch
+    // Set refreshing state and open progress dialog
+    setIsRefreshing(true);
     setRefreshProgressOpen(true);
   };
 
   const handleRefreshSelected = () => {
+    if (isRefreshing) {
+      toast.warning('Refresh already in progress. Please wait for it to complete.');
+      return;
+    }
+
     if (selectedCampaignIds.length === 0) {
       toast.error('No campaigns selected');
       return;
     }
+    
+    setIsRefreshing(true);
     setRefreshProgressOpen(true);
   };
 
@@ -136,23 +150,23 @@ export default function Campaigns() {
   };
 
   const handleRefreshComplete = useCallback(async () => {
-    // Add a delay to ensure backend has fully committed status changes
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    console.log('Starting refresh completion process...');
     
-    // Invalidate all campaign-related queries to force fresh data
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
-      queryClient.invalidateQueries({ 
-        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
-      }),
-      queryClient.invalidateQueries({ 
-        predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
-      }),
-      refetch()
-    ]);
+    // Reset refreshing state first
+    setIsRefreshing(false);
     
+    // Gentle invalidation - only invalidate specific queries, don't refetch everything
+    queryClient.invalidateQueries({ queryKey: ['accessible-campaigns'] });
+    queryClient.invalidateQueries({ 
+      predicate: (query) => query.queryKey[0] === 'campaign-url-analytics'
+    });
+    
+    // Wait a moment for invalidation to take effect
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Refresh completion process finished');
     toast.success('Campaign refresh completed - numbers should now be updated');
-  }, [refetch, queryClient]);
+  }, [queryClient]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -291,18 +305,30 @@ export default function Campaigns() {
               <span className="text-sm text-muted-foreground">Deal Value</span>
             </div>
             {selectedCampaignIds.length > 0 && (
-              <Button variant="outline" onClick={handleRefreshSelected}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Selected ({selectedCampaignIds.length})
+              <Button 
+                variant="outline" 
+                onClick={handleRefreshSelected}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : `Refresh Selected (${selectedCampaignIds.length})`}
               </Button>
             )}
-            <Button variant="outline" onClick={() => setExportDialogOpen(true)} disabled={sortedCampaigns.length === 0}>
+            <Button 
+              variant="outline" 
+              onClick={() => setExportDialogOpen(true)} 
+              disabled={sortedCampaigns.length === 0 || isRefreshing}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export PDF
             </Button>
-            <Button variant="outline" onClick={() => setRefreshAllDialogOpen(true)}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh All
+            <Button 
+              variant="outline" 
+              onClick={() => setRefreshAllDialogOpen(true)}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh All'}
             </Button>
 
           </div>
@@ -318,18 +344,41 @@ export default function Campaigns() {
               className="pl-9"
             />
           </div>
-          {sortedCampaigns.filter(c => c.status !== 'draft').length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={handleSelectAll}
-              className="whitespace-nowrap"
-            >
-              {selectedCampaignIds.length === sortedCampaigns.filter(c => c.status !== 'draft').length 
-                ? 'Deselect All' 
-                : 'Select All'
-              }
-            </Button>
-          )}
+          <div className="flex items-center space-x-4">
+            {sortedCampaigns.filter(c => c.status !== 'draft').length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={handleSelectAll}
+                className="whitespace-nowrap"
+              >
+                {selectedCampaignIds.length === sortedCampaigns.filter(c => c.status !== 'draft').length 
+                  ? 'Deselect All' 
+                  : 'Select All'
+                }
+              </Button>
+            )}
+            {viewMode === 'table' && (
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="items-per-page" className="text-sm text-muted-foreground">
+                  Show:
+                </Label>
+                <select
+                  id="items-per-page"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1); // Reset to first page when changing items per page
+                  }}
+                  className="px-2 py-1 border border-gray-300 rounded text-sm"
+                >
+                  <option value={12}>12</option>
+                  <option value={24}>24</option>
+                  <option value={48}>48</option>
+                </select>
+                <span className="text-sm text-muted-foreground">per page</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {sortedCampaigns.length === 0 ? (
@@ -451,7 +500,12 @@ export default function Campaigns() {
 
         <RefreshProgressDialog
           open={refreshProgressOpen}
-          onOpenChange={setRefreshProgressOpen}
+          onOpenChange={(open) => {
+            setRefreshProgressOpen(open);
+            if (!open) {
+              setIsRefreshing(false);
+            }
+          }}
           campaignIds={computedCampaignIds}
           onComplete={handleRefreshComplete}
         />
