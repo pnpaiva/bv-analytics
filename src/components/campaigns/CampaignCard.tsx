@@ -76,13 +76,13 @@ export function CampaignCard({
 
   // Debug logging
   console.log('CampaignCard rendered for:', campaign.brand_name, {
-    campaign_totals: {
+    campaign_data: {
       total_views: campaign.total_views,
       total_engagement: campaign.total_engagement,
       engagement_rate: campaign.engagement_rate
     },
     url_analytics_count: urlAnalytics?.length || 0,
-    campaign_totals: campaignTotals
+    calculated_totals: campaignTotals
   });
 
   const getStatusColor = (status: string) => {
