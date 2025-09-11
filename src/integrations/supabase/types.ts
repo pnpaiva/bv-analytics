@@ -342,7 +342,10 @@ export type Database = {
           fixed_deal_value: number | null
           id: string
           logo_url: string | null
+          master_campaign_end_date: string | null
           master_campaign_logo_url: string | null
+          master_campaign_name: string | null
+          master_campaign_start_date: string | null
           old_creator_id: string | null
           status: string
           total_engagement: number | null
@@ -368,7 +371,10 @@ export type Database = {
           fixed_deal_value?: number | null
           id?: string
           logo_url?: string | null
+          master_campaign_end_date?: string | null
           master_campaign_logo_url?: string | null
+          master_campaign_name?: string | null
+          master_campaign_start_date?: string | null
           old_creator_id?: string | null
           status?: string
           total_engagement?: number | null
@@ -394,7 +400,10 @@ export type Database = {
           fixed_deal_value?: number | null
           id?: string
           logo_url?: string | null
+          master_campaign_end_date?: string | null
           master_campaign_logo_url?: string | null
+          master_campaign_name?: string | null
+          master_campaign_start_date?: string | null
           old_creator_id?: string | null
           status?: string
           total_engagement?: number | null
@@ -793,9 +802,33 @@ export type Database = {
           url: string
         }[]
       }
+      get_creator_collaborations: {
+        Args: { p_creator_id: string }
+        Returns: {
+          brand_name: string
+          campaign_date: string
+          campaign_id: string
+        }[]
+      }
+      get_user_profile: {
+        Args: { user_id: string }
+        Returns: {
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+        }[]
+      }
       is_admin_user: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      publish_public_media_kit: {
+        Args: { p_creator_id: string; p_user_id: string }
+        Returns: {
+          slug: string
+        }[]
       }
       unaccent: {
         Args: { "": string }
@@ -830,6 +863,10 @@ export type Database = {
           p_total_engagement?: number
           p_total_views?: number
         }
+        Returns: undefined
+      }
+      upsert_user_profile: {
+        Args: { p_bio?: string; p_display_name?: string; p_id: string }
         Returns: undefined
       }
     }
