@@ -473,13 +473,6 @@ const Index = () => {
           </div>
       </div>
       </footer>
-
-      {/* Temporary Admin Setup Section */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-background border rounded-lg shadow-lg p-4 max-w-sm">
-          <CreateAdminAccount />
-        </div>
-      </div>
     </div>
   );
 };
