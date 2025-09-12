@@ -70,36 +70,23 @@ export function useCreateMasterCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Get the first creator for this user to use as a placeholder
-      const { data: creators, error: creatorsError } = await supabase
-        .from('creators')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
-
-      if (creatorsError) throw creatorsError;
-      
-      if (!creators || creators.length === 0) {
-        throw new Error('You must create at least one creator before creating a master campaign');
-      }
-
       const { data: campaign, error } = await supabase
         .from('campaigns')
-        .insert([{
-          brand_name: 'Master Campaign Template',
-          creator_id: creators[0].id, // Use actual creator ID
-          user_id: user.id,
-          campaign_date: new Date().toISOString().split('T')[0],
-          master_campaign_name: data.name,
-          master_campaign_start_date: data.start_date,
-          master_campaign_end_date: data.end_date,
-          master_campaign_logo_url: data.logo_url,
-          is_master_campaign_template: true,
-          status: 'draft',
-          total_views: 0,
-          total_engagement: 0,
-          engagement_rate: 0,
-        }])
+        .insert([
+          {
+            brand_name: 'Master Campaign Template',
+            user_id: user.id,
+            campaign_date: new Date().toISOString().split('T')[0],
+            master_campaign_name: data.name,
+            master_campaign_start_date: data.start_date,
+            master_campaign_end_date: data.end_date,
+            master_campaign_logo_url: data.logo_url,
+            status: 'draft',
+            total_views: 0,
+            total_engagement: 0,
+            engagement_rate: 0,
+          },
+        ])
         .select()
         .single();
 
