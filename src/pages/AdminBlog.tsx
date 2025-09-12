@@ -69,6 +69,24 @@ export default function AdminBlog() {
 
   return (
     <div className="container mx-auto py-8 space-y-6">
+      {/* Blog Menu */}
+      <div className="bg-card border rounded-lg p-4 mb-6">
+        <div className="flex items-center justify-center gap-6">
+          <Button variant="ghost" className="text-primary">
+            All Posts
+          </Button>
+          <Button variant="ghost">
+            Published
+          </Button>
+          <Button variant="ghost">
+            Drafts
+          </Button>
+          <Button variant="ghost">
+            Analytics
+          </Button>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Blog Management</h1>

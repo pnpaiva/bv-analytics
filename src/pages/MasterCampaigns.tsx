@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download, Settings, UserPlus, Building } from 'lucide-react';
+import { Link2, Eye, Users, TrendingUp, Calendar, Search, Download, Settings, UserPlus, Building, Building2 } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
 import { PremiumPDFExporter, MasterCampaignData } from '@/utils/premiumPdfExporter';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { MasterCampaignManagement } from '@/components/campaigns/MasterCampaignManagement';
 import { CreatorManagement } from '@/components/campaigns/CreatorManagement';
 import { ClientManagement } from '@/components/campaigns/ClientManagement';
+import { AgencyManagement } from '@/components/campaigns/AgencyManagement';
 
 interface MasterCampaign {
   name: string;
@@ -178,7 +179,7 @@ export default function MasterCampaigns() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Campaign Overview</TabsTrigger>
             <TabsTrigger value="master-campaigns">
               <Settings className="w-4 h-4 mr-2" />
@@ -191,6 +192,10 @@ export default function MasterCampaigns() {
             <TabsTrigger value="clients">
               <Building className="w-4 h-4 mr-2" />
               Clients
+            </TabsTrigger>
+            <TabsTrigger value="agencies">
+              <Building2 className="w-4 h-4 mr-2" />
+              Agencies
             </TabsTrigger>
           </TabsList>
 
@@ -400,6 +405,11 @@ export default function MasterCampaigns() {
           <TabsContent value="clients">
             <ClientManagement />
           </TabsContent>
+
+          <TabsContent value="agencies">
+            <AgencyManagement />
+          </TabsContent>
+
         </Tabs>
       </div>
     </div>

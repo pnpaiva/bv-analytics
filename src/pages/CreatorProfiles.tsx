@@ -304,8 +304,12 @@ export default function CreatorProfiles() {
           setEmbeddedUrl(`/${data.slug}`);
         } else {
           // Try to publish and get slug
-          const { data: slug } = await supabase.rpc('publish_public_media_kit', {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('User not authenticated');
+          
+          const { data: slug } = await (supabase as any).rpc('publish_public_media_kit', {
             p_creator_id: selectedCreator,
+            p_user_id: user.id
           });
           if (slug) {
             setEmbeddedUrl(`/${slug}`);
@@ -445,8 +449,12 @@ export default function CreatorProfiles() {
 
     try {
       // Publish the media kit to get the proper slug
-      const { data: slug, error } = await supabase.rpc('publish_public_media_kit', {
-        p_creator_id: creatorId
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data: slug, error } = await (supabase as any).rpc('publish_public_media_kit', {
+        p_creator_id: creatorId,
+        p_user_id: user.id
       });
 
       if (error) throw error;

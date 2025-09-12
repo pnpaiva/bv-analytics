@@ -18,8 +18,7 @@ export function useProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await supabase
-        .rpc('get_user_profile', { user_id: user.id });
+      const { data, error } = await (supabase as any).rpc('get_user_profile', { user_id: user.id });
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -39,12 +38,11 @@ export function useUpdateProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await supabase
-        .rpc('upsert_user_profile', {
-          profile_id: user.id,
-          display_name_param: display_name,
-          bio_param: bio
-        });
+      const { error } = await (supabase as any).rpc('upsert_user_profile', {
+        p_id: user.id,
+        p_display_name: display_name,
+        p_bio: bio
+      });
 
       if (error) throw error;
     },

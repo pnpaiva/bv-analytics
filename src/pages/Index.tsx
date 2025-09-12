@@ -474,13 +474,6 @@ const Index = () => {
       </div>
       </footer>
 
-      {/* Emergency Admin Setup */}
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-background border-2 border-destructive rounded-lg shadow-lg p-4 max-w-sm">
-          <div className="text-sm text-destructive font-medium mb-2">Database Recovery</div>
-          <CreateAdminAccount />
-        </div>
-      </div>
     </div>
   );
 };
