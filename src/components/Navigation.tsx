@@ -43,6 +43,7 @@ export function Navigation() {
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/campaigns', icon: FileText, label: 'Campaigns' },
     { to: '/creator-profiles', icon: UserCircle, label: 'Creator Profiles' },
+    { to: '/blog', icon: FileText, label: 'Blog' },
   ];
 
   // Admin-specific navigation items

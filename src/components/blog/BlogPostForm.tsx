@@ -9,7 +9,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RichTextEditor } from './RichTextEditor';
 import { BlogPost } from '@/hooks/useBlogPosts';
-import { Eye, Save, Send, Image as ImageIcon } from 'lucide-react';
+import { Eye, Save, Send } from 'lucide-react';
+import { ImageUpload } from '@/components/ui/image-upload';
 
 interface BlogPostFormProps {
   initialData?: Partial<BlogPost>;
@@ -138,25 +139,15 @@ export function BlogPostForm({ initialData, onSave, onCancel, isLoading }: BlogP
               </div>
 
               <div>
-                <Label htmlFor="banner_image">Banner Image URL</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="banner_image"
-                    value={formData.banner_image_url}
-                    onChange={(e) => handleChange('banner_image_url', e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <Button variant="outline" size="icon">
-                    <ImageIcon className="h-4 w-4" />
-                  </Button>
-                </div>
-                {formData.banner_image_url && (
-                  <img
-                    src={formData.banner_image_url}
-                    alt="Banner preview"
-                    className="mt-2 w-full h-48 object-cover rounded border"
-                  />
-                )}
+                <Label htmlFor="banner_image">Banner Image</Label>
+                <ImageUpload
+                  value={formData.banner_image_url || ''}
+                  onValueChange={(url) => handleChange('banner_image_url', url)}
+                  label="Upload Banner Image"
+                  placeholder="Upload an image for your blog post banner"
+                  bucketName="blog-images"
+                  maxSize={5 * 1024 * 1024} // 5MB
+                />
               </div>
             </CardContent>
           </Card>
