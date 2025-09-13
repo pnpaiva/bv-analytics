@@ -19,6 +19,7 @@ import { useBlogPosts, useDeleteBlogPost, BlogPost } from '@/hooks/useBlogPosts'
 import { BlogPostFormWrapper } from '@/components/blog/BlogPostFormWrapper';
 import { Plus, Search, Edit, Trash2, Eye, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
+import { Navigation } from '@/components/Navigation';
 
 export default function AdminBlog() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,16 +60,21 @@ export default function AdminBlog() {
 
   if (showForm) {
     return (
-      <BlogPostFormWrapper
-        initialData={editingPost || undefined}
-        onSave={handleFormSave}
-        onCancel={handleFormCancel}
-      />
+      <>
+        <Navigation />
+        <BlogPostFormWrapper
+          initialData={editingPost || undefined}
+          onSave={handleFormSave}
+          onCancel={handleFormCancel}
+        />
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <>
+      <Navigation />
+      <div className="container mx-auto py-8 space-y-6">
       {/* Blog Menu */}
       <div className="bg-card border rounded-lg p-4 mb-6">
         <div className="flex items-center justify-center gap-6">
@@ -220,6 +226,7 @@ export default function AdminBlog() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

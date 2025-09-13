@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { usePublishedBlogPosts } from '@/hooks/useBlogPosts';
 import { Calendar, Clock, ArrowRight, BookOpen, TrendingUp, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { Navigation } from '@/components/Navigation';
 
 export default function Blog() {
   const { data: blogPosts = [], isLoading } = usePublishedBlogPosts();
@@ -24,7 +25,9 @@ export default function Blog() {
   const otherPosts = blogPosts.slice(1);
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="relative py-20 px-4 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-secondary/5"></div>
@@ -187,6 +190,7 @@ export default function Blog() {
           )}
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }
