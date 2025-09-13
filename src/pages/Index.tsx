@@ -19,19 +19,24 @@ import {
   BarChart4,
   FileText,
   Clock,
-  Play
+  Play,
+  BookOpen,
+  Calendar
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateAdminAccount } from '@/components/CreateAdminAccount';
+import { usePublishedBlogPosts } from '@/hooks/useBlogPosts';
+import { format } from 'date-fns';
 
 const Index = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState(null);
+  const { data: blogPosts = [] } = usePublishedBlogPosts();
 
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {

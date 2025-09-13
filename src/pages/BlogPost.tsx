@@ -5,6 +5,8 @@ import { useBlogPost } from '@/hooks/useBlogPosts';
 import { Calendar, Clock, ArrowLeft, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { BlogCTA } from '@/components/blog/BlogCTA';
+import { Navigation } from '@/components/Navigation';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -131,7 +133,9 @@ export default function BlogPost() {
   const readingTime = Math.ceil(post.content.replace(/<[^>]*>/g, '').split(' ').length / 200);
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="py-8 px-4 border-b">
         <div className="container mx-auto">
@@ -195,6 +199,9 @@ export default function BlogPost() {
               color: 'hsl(var(--foreground))',
             }}
           />
+          
+          {/* CTA Section */}
+          <BlogCTA />
         </div>
       </article>
 
@@ -243,6 +250,7 @@ export default function BlogPost() {
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 }
