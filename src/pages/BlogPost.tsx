@@ -6,7 +6,7 @@ import { Calendar, Clock, ArrowLeft, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { BlogCTA } from '@/components/blog/BlogCTA';
-import { Navigation } from '@/components/Navigation';
+import { PublicNavigation } from '@/components/PublicNavigation';
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -134,7 +134,7 @@ export default function BlogPost() {
 
   return (
     <>
-      <Navigation />
+      <PublicNavigation />
       <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="py-8 px-4 border-b">
