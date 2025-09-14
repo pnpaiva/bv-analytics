@@ -421,8 +421,79 @@ const Index = () => {
         </div>
       )}
 
+      {/* Blog Section */}
+      <section className="relative py-20 px-4 bg-gradient-to-br from-background to-muted/30 overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-10 w-64 h-64 bg-primary rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 right-10 w-48 h-48 bg-secondary rounded-full blur-3xl"></div>
+        </div>
 
+        <div className="container mx-auto max-w-6xl relative z-10">
+          <div className="text-center mb-12 px-4">
+            <Badge className="mb-6 bg-primary/10 text-primary border-primary/20">
+              <BookOpen className="w-4 h-4 mr-2" />
+              Latest Insights
+            </Badge>
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+              Stay Ahead with Industry Insights
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Discover the latest trends, strategies, and insights to elevate your creator marketing game
+            </p>
+          </div>
 
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {blogPosts.slice(0, 3).map((post) => (
+              <Card key={post.id} className="group overflow-hidden border-primary/10 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:scale-105">
+                <div className="aspect-video bg-gradient-to-br from-primary/10 to-secondary/10 relative overflow-hidden">
+                  {post.banner_image_url ? (
+                    <img 
+                      src={post.banner_image_url} 
+                      alt={post.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <FileText className="w-12 h-12 text-primary/40" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </div>
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <Calendar className="w-4 h-4" />
+                    {format(new Date(post.published_at || post.created_at), 'MMM dd, yyyy')}
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                    {post.title}
+                  </h3>
+                  {post.excerpt && (
+                    <p className="text-muted-foreground text-sm line-clamp-3 mb-4">
+                      {post.excerpt}
+                    </p>
+                  )}
+                  <Link
+                    to={`/blog/${post.slug}`}
+                    className="inline-flex items-center text-primary hover:text-primary/80 font-medium text-sm group/link"
+                  >
+                    Read More
+                    <ArrowRight className="ml-1 w-4 h-4 group-hover/link:translate-x-1 transition-transform" />
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link to="/blog">
+              <Button variant="outline" size="lg" className="group">
+                View All Articles
+                <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* Final CTA Section */}
       <section className="py-16 sm:py-20 px-4 bg-slate-50">
