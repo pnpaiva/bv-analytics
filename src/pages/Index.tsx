@@ -175,12 +175,22 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Analytics Platform</p>
               </div>
             </div>
-            <Button 
-              onClick={() => navigate('/auth')}
-              className="bg-primary hover:bg-primary/90"
-            >
-              Log In to Platform
-            </Button>
+            <div className="flex items-center gap-3">
+              <Link to="/blog">
+                <Button 
+                  variant="outline"
+                  className="border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  Blog
+                </Button>
+              </Link>
+              <Button 
+                onClick={() => navigate('/auth')}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Log In to Platform
+              </Button>
+            </div>
           </div>
         </div>
       </nav>
