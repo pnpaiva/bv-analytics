@@ -191,22 +191,30 @@ export function CreateCampaignDialog() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="master_campaign_name">Master Campaign</Label>
-                <Select
+              <Label htmlFor="master_campaign_name">Master Campaign (Optional)</Label>
+              <Select
                 value={formData.master_campaign_name}
                 onValueChange={(value) => {
-                  const selectedMaster = masterCampaigns.find((mc: any) => mc.name === value);
-                  setFormData({ 
-                    ...formData, 
-                    master_campaign_name: value,
-                    logo_url: selectedMaster?.logo_url || formData.logo_url
-                  });
+                  if (value === "none") {
+                    setFormData({ 
+                      ...formData, 
+                      master_campaign_name: ""
+                    });
+                  } else {
+                    const selectedMaster = masterCampaigns.find((mc: any) => mc.name === value);
+                    setFormData({ 
+                      ...formData, 
+                      master_campaign_name: value,
+                      logo_url: selectedMaster?.logo_url || formData.logo_url
+                    });
+                  }
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select master campaign (optional)" />
+                  <SelectValue placeholder="Create as standalone campaign" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No master campaign</SelectItem>
                   {masterCampaigns.map((masterCampaign: any) => (
                     <SelectItem key={masterCampaign.name} value={masterCampaign.name}>
                       {masterCampaign.name}
