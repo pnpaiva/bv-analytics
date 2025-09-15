@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, FileText, Users, Building, LogOut, User, Settings, UserCircle } from 'lucide-react';
+import { BarChart3, FileText, Users, Building, LogOut, User, Settings, UserCircle, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,8 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuLabel 
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useUserRole } from '@/hooks/useUserRoles';
@@ -45,22 +46,12 @@ export function Navigation() {
     { to: '/creator-profiles', icon: UserCircle, label: 'Creator Profiles' },
   ];
 
-  // Admin-specific navigation items
-  const adminNavItems = [
+  // Admin-specific navigation items for dropdown
+  const adminMenuItems = [
     { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
     { to: '/admin', icon: Settings, label: 'Admin Dashboard' },
     { to: '/admin/blog', icon: FileText, label: 'Blog Management' },
   ];
-
-  // Build navigation items based on user role
-  let navItems = [...baseNavItems];
-  
-  // Only show admin items if role is loaded and user is admin
-  if (userRoleQuery.isLoading) {
-    // Show loading state or just base items while loading
-  } else if (userRole === 'admin') {
-    navItems = [...baseNavItems, ...adminNavItems];
-  }
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -88,7 +79,7 @@ export function Navigation() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-2">
-            {navItems.map((item) => {
+            {baseNavItems.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink
@@ -107,6 +98,44 @@ export function Navigation() {
                 </NavLink>
               );
             })}
+            
+            {/* Admin Menu Dropdown */}
+            {userRole === 'admin' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost"
+                    className="flex items-center space-x-2 px-4 py-2.5 rounded-lg font-subheading text-sm transition-brand text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  >
+                    <Settings className="w-4 h-4" strokeWidth={2} />
+                    <span>Admin</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Admin Tools
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {adminMenuItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.to;
+                    return (
+                      <DropdownMenuItem 
+                        key={item.to}
+                        onClick={() => navigate(item.to)}
+                        className={`flex items-center space-x-3 cursor-pointer ${
+                          isActive ? 'bg-primary/10 text-primary' : ''
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* User Menu */}
@@ -141,6 +170,17 @@ export function Navigation() {
                 align="end" 
                 className="w-56 bg-popover border border-border shadow-lg"
               >
+                <DropdownMenuLabel className="px-2 py-1.5">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {profile?.display_name || user?.email}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground capitalize">
+                      {userRole}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => navigate('/profile')}
                   className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50"
