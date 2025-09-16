@@ -23,6 +23,7 @@ export type Database = {
           id: string
           name: string
           notes: string | null
+          organization_id: string
           updated_at: string
           user_id: string
           website: string | null
@@ -35,6 +36,7 @@ export type Database = {
           id?: string
           name: string
           notes?: string | null
+          organization_id: string
           updated_at?: string
           user_id: string
           website?: string | null
@@ -47,11 +49,20 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          organization_id?: string
           updated_at?: string
           user_id?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agencies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       analytics_data: {
         Row: {
@@ -386,6 +397,7 @@ export type Database = {
           master_campaign_name: string | null
           master_campaign_start_date: string | null
           old_creator_id: string | null
+          organization_id: string
           status: string
           total_engagement: number | null
           total_views: number | null
@@ -415,6 +427,7 @@ export type Database = {
           master_campaign_name?: string | null
           master_campaign_start_date?: string | null
           old_creator_id?: string | null
+          organization_id: string
           status?: string
           total_engagement?: number | null
           total_views?: number | null
@@ -444,6 +457,7 @@ export type Database = {
           master_campaign_name?: string | null
           master_campaign_start_date?: string | null
           old_creator_id?: string | null
+          organization_id?: string
           status?: string
           total_engagement?: number | null
           total_views?: number | null
@@ -464,6 +478,13 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -507,6 +528,7 @@ export type Database = {
           email: string | null
           id: string
           name: string
+          organization_id: string
           phone: string | null
           updated_at: string
           user_id: string
@@ -517,6 +539,7 @@ export type Database = {
           email?: string | null
           id?: string
           name: string
+          organization_id: string
           phone?: string | null
           updated_at?: string
           user_id: string
@@ -527,11 +550,20 @@ export type Database = {
           email?: string | null
           id?: string
           name?: string
+          organization_id?: string
           phone?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       creators: {
         Row: {
@@ -544,6 +576,7 @@ export type Database = {
           location: string | null
           name: string
           niche: string[] | null
+          organization_id: string
           phone: string | null
           platform_handles: Json | null
           platform_metrics: Json | null
@@ -562,6 +595,7 @@ export type Database = {
           location?: string | null
           name: string
           niche?: string[] | null
+          organization_id: string
           phone?: string | null
           platform_handles?: Json | null
           platform_metrics?: Json | null
@@ -580,6 +614,7 @@ export type Database = {
           location?: string | null
           name?: string
           niche?: string[] | null
+          organization_id?: string
           phone?: string | null
           platform_handles?: Json | null
           platform_metrics?: Json | null
@@ -588,7 +623,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "creators_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_campaign_performance: {
         Row: {
@@ -879,6 +922,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_organization: {
+        Args: { org_id: string; user_id: string }
+        Returns: boolean
+      }
       generate_blog_slug: {
         Args: { title_text: string }
         Returns: string
@@ -917,6 +964,10 @@ export type Database = {
           campaign_id: string
         }[]
       }
+      get_user_organization: {
+        Args: { user_id: string }
+        Returns: string
+      }
       get_user_profile: {
         Args: { user_id: string }
         Returns: {
@@ -927,7 +978,19 @@ export type Database = {
           updated_at: string
         }[]
       }
+      has_organization_role: {
+        Args: {
+          check_role: Database["public"]["Enums"]["app_role"]
+          org_id: string
+          user_id: string
+        }
+        Returns: boolean
+      }
       is_admin_user: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
+      is_master_admin: {
         Args: { user_id: string }
         Returns: boolean
       }
