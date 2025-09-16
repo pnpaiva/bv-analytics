@@ -70,12 +70,24 @@ export function useCreateMasterCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (orgError && orgError.code !== 'PGRST116') throw orgError;
+
+      const organizationId = userOrg?.organization_id || 'default-org-id'; // Fallback
+
       const { data: campaign, error } = await supabase
         .from('campaigns')
         .insert([
           {
             brand_name: 'Master Campaign Template',
             user_id: user.id,
+            organization_id: organizationId,
             campaign_date: new Date().toISOString().split('T')[0],
             master_campaign_name: data.name,
             master_campaign_start_date: data.start_date,

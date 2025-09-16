@@ -96,6 +96,17 @@ export function useCreateCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (orgError && orgError.code !== 'PGRST116') throw orgError;
+
+      const organizationId = userOrg?.organization_id || 'default-org-id'; // Fallback
+
       const { creators, ...campaignData } = data;
       
       const { data: campaign, error } = await supabase
@@ -103,6 +114,7 @@ export function useCreateCampaign() {
         .insert({
           ...campaignData,
           user_id: user.id,
+          organization_id: organizationId,
           status: 'draft',
           total_views: 0,
           total_engagement: 0,

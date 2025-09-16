@@ -19,11 +19,23 @@ export function useCreateClient() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (orgError && orgError.code !== 'PGRST116') throw orgError;
+
+      const organizationId = userOrg?.organization_id || 'default-org-id'; // Fallback
+
       const { data: client, error } = await supabase
         .from('clients')
         .insert([{
           ...data,
           user_id: user.id,
+          organization_id: organizationId,
         }])
         .select()
         .single();

@@ -9,8 +9,9 @@ const corsHeaders = {
 interface CreateUserRequest {
   email: string
   password: string
-  role: 'admin' | 'client'
+  role: 'admin' | 'client' | 'master_admin' | 'local_admin' | 'local_client'
   isViewOnly?: boolean
+  organizationId?: string
 }
 
 serve(async (req) => {
@@ -47,14 +48,24 @@ serve(async (req) => {
       })
     }
 
-    // Check if user is admin
+    // Check if user has admin privileges (legacy or organization-based)
     const { data: userRole } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single()
 
-    if (!userRole || userRole.role !== 'admin') {
+    const { data: orgMember } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    const hasAdminAccess = 
+      (userRole && userRole.role === 'admin') ||
+      (orgMember && ['master_admin', 'local_admin'].includes(orgMember.role))
+
+    if (!hasAdminAccess) {
       return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -62,7 +73,7 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, role, isViewOnly }: CreateUserRequest = await req.json()
+    const { email, password, role, isViewOnly, organizationId }: CreateUserRequest = await req.json()
     
     if (!email || !password || !role) {
       return new Response(JSON.stringify({ error: 'Email, password, and role are required' }), {
@@ -71,8 +82,17 @@ serve(async (req) => {
       })
     }
 
-    if (!['admin', 'client'].includes(role)) {
-      return new Response(JSON.stringify({ error: 'Invalid role. Must be "admin" or "client"' }), {
+    const validRoles = ['admin', 'client', 'master_admin', 'local_admin', 'local_client']
+    if (!validRoles.includes(role)) {
+      return new Response(JSON.stringify({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Organization roles require an organizationId
+    if (['master_admin', 'local_admin', 'local_client'].includes(role) && !organizationId) {
+      return new Response(JSON.stringify({ error: 'Organization ID is required for organization-based roles' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -127,23 +147,45 @@ serve(async (req) => {
       // Don't fail the entire operation if profile creation fails
     }
 
-    // Assign the role
-    const { error: roleError } = await adminClient
-      .from('user_roles')
-      .insert({
-        user_id: authData.user.id,
-        role,
-        is_view_only: isViewOnly || false,
-        created_by: user.id,
-        created_at: new Date().toISOString(),
-      })
+    // Assign the role based on type
+    if (['master_admin', 'local_admin', 'local_client'].includes(role)) {
+      // Use organization_members for new role system
+      const { error: orgMemberError } = await adminClient
+        .from('organization_members')
+        .insert({
+          user_id: authData.user.id,
+          organization_id: organizationId!,
+          role,
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+        })
 
-    if (roleError) {
-      console.error('Error creating role:', roleError)
-      return new Response(JSON.stringify({ error: `Failed to assign role: ${roleError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      if (orgMemberError) {
+        console.error('Error creating organization member:', orgMemberError)
+        return new Response(JSON.stringify({ error: `Failed to assign organization role: ${orgMemberError.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    } else {
+      // Use user_roles for legacy roles
+      const { error: roleError } = await adminClient
+        .from('user_roles')
+        .insert({
+          user_id: authData.user.id,
+          role,
+          is_view_only: isViewOnly || false,
+          created_by: user.id,
+          created_at: new Date().toISOString(),
+        })
+
+      if (roleError) {
+        console.error('Error creating role:', roleError)
+        return new Response(JSON.stringify({ error: `Failed to assign role: ${roleError.message}` }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     console.log('Role assigned successfully')

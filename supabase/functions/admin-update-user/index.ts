@@ -40,14 +40,24 @@ serve(async (req) => {
       })
     }
 
-    // Check if user is admin
+    // Check if user has admin privileges (legacy or organization-based)
     const { data: userRole } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .single()
 
-    if (!userRole || userRole.role !== 'admin') {
+    const { data: orgMember } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
+
+    const hasAdminAccess = 
+      (userRole && userRole.role === 'admin') ||
+      (orgMember && ['master_admin', 'local_admin'].includes(orgMember.role))
+
+    if (!hasAdminAccess) {
       return new Response(JSON.stringify({ error: 'Admin access required' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -87,21 +97,48 @@ serve(async (req) => {
 
     // Update role and view-only status if provided
     if (role || isViewOnly !== undefined) {
-      const updateData: any = {}
-      if (role) updateData.role = role
-      if (isViewOnly !== undefined) updateData.is_view_only = isViewOnly
-
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .update(updateData)
+      // Check if user has organization membership or legacy role
+      const { data: targetOrgMember } = await adminClient
+        .from('organization_members')
+        .select('*')
         .eq('user_id', userId)
+        .single()
 
-      if (roleError) {
-        console.error('Update role error:', roleError)
-        return new Response(JSON.stringify({ error: roleError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+      if (targetOrgMember && ['master_admin', 'local_admin', 'local_client'].includes(role)) {
+        // Update organization membership
+        const updateData: any = {}
+        if (role) updateData.role = role
+
+        const { error: orgRoleError } = await adminClient
+          .from('organization_members')
+          .update(updateData)
+          .eq('user_id', userId)
+
+        if (orgRoleError) {
+          console.error('Update organization role error:', orgRoleError)
+          return new Response(JSON.stringify({ error: orgRoleError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+      } else {
+        // Update legacy user role
+        const updateData: any = {}
+        if (role) updateData.role = role
+        if (isViewOnly !== undefined) updateData.is_view_only = isViewOnly
+
+        const { error: roleError } = await adminClient
+          .from('user_roles')
+          .update(updateData)
+          .eq('user_id', userId)
+
+        if (roleError) {
+          console.error('Update role error:', roleError)
+          return new Response(JSON.stringify({ error: roleError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
       }
     }
 

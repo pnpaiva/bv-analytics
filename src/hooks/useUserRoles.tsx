@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-export type AppRole = 'admin' | 'client';
+export type AppRole = 'admin' | 'client' | 'master_admin' | 'local_admin' | 'local_client';
 
 export interface UserRole {
   id: string;
@@ -12,12 +12,33 @@ export interface UserRole {
   is_view_only?: boolean; // New field for view-only mode
   created_at: string;
   created_by?: string;
+  organization_id?: string; // For organization-based roles
+  organization?: Organization; // For populated organization data
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  settings?: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  role: AppRole;
+  permissions?: any;
+  created_by?: string;
+  created_at: string;
+  updated_at: string;
+  organization?: Organization;
 }
 
 export function useUserRole() {
   const { user } = useAuth();
-  
-  // Debug logging reduced for cleaner console
   
   return useQuery({
     queryKey: ['user-role', user?.id],
@@ -29,29 +50,61 @@ export function useUserRole() {
         userEmail: user.email
       });
       
-      const { data, error } = await supabase
+      // First check for legacy user_roles (for backwards compatibility)
+      const { data: legacyRole, error: legacyError } = await supabase
         .from('user_roles')
         .select('*')
         .eq('user_id', user.id)
         .single();
       
-      console.log('useUserRole result:', { data, error });
-      
-      if (error) {
-        console.error('useUserRole error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        if (error.code !== 'PGRST116') {
-          throw error;
-        }
+      if (legacyRole && !legacyError) {
+      console.log('useUserRole legacy role found:', legacyRole);
+        return legacyRole as UserRole;
       }
       
-      console.log('useUserRole returning:', data);
-      return data;
+      // Check organization membership for new role system
+      const { data: orgMembership, error: orgError } = await supabase
+        .from('organization_members')
+        .select(`
+          *,
+          organization:organizations(*)
+        `)
+        .eq('user_id', user.id)
+        .single();
+      
+      console.log('useUserRole org membership:', { orgMembership, orgError });
+      
+      if (orgError) {
+        console.error('useUserRole error details:', {
+          code: orgError.code,
+          message: orgError.message,
+          details: orgError.details,
+          hint: orgError.hint
+        });
+        
+        if (orgError.code !== 'PGRST116') {
+          throw orgError;
+        }
+        return null;
+      }
+      
+        // Transform organization membership to legacy format for compatibility
+        if (orgMembership) {
+          const transformedRole: UserRole = {
+            id: orgMembership.id,
+            user_id: orgMembership.user_id,
+            role: orgMembership.role,
+            is_view_only: false, // Organization roles don't have view-only mode
+            created_at: orgMembership.created_at,
+            created_by: orgMembership.created_by,
+            organization_id: orgMembership.organization_id,
+            organization: orgMembership.organization
+          };
+          console.log('useUserRole returning transformed role:', transformedRole);
+          return transformedRole;
+        }
+      
+      return null;
     },
     enabled: !!user,
   });
@@ -59,7 +112,7 @@ export function useUserRole() {
 
 export function useIsAdmin() {
   const { data: userRole } = useUserRole();
-  const isAdmin = userRole?.role === 'admin';
+  const isAdmin = userRole?.role === 'admin' || userRole?.role === 'master_admin' || userRole?.role === 'local_admin';
   console.log('useIsAdmin:', { userRole, isAdmin });
   return isAdmin;
 }
@@ -74,39 +127,55 @@ export function useIsViewOnly() {
 export function useUserPermissions() {
   const { data: userRole } = useUserRole();
   
-  // Now that the database migration is applied, use the actual is_view_only field
+  const role = userRole?.role;
   const isViewOnly = userRole?.is_view_only ?? false;
   
   return {
-    isAdmin: userRole?.role === 'admin',
-    isClient: userRole?.role === 'client',
+    isMasterAdmin: role === 'master_admin',
+    isLocalAdmin: role === 'local_admin',
+    isLocalClient: role === 'local_client',
+    isAdmin: role === 'admin' || role === 'master_admin' || role === 'local_admin',
+    isClient: role === 'client' || role === 'local_client',
     isViewOnly,
-    canCreate: userRole?.role === 'admin' || (userRole?.role === 'client' && !isViewOnly),
-    canEdit: userRole?.role === 'admin', // Only admins can edit
-    canDelete: userRole?.role === 'admin',
+    canCreate: role === 'master_admin' || role === 'local_admin' || (role === 'local_client' && !isViewOnly) || (role === 'admin') || (role === 'client' && !isViewOnly),
+    canEdit: role === 'master_admin' || role === 'local_admin' || role === 'admin',
+    canDelete: role === 'master_admin' || role === 'local_admin' || role === 'admin',
+    canManageUsers: role === 'master_admin' || role === 'local_admin' || role === 'admin',
+    canManageOrganizations: role === 'master_admin',
+    organizationId: (userRole as UserRole)?.organization_id,
+    organization: (userRole as UserRole)?.organization,
   };
 }
 
 export function useCreateUserAccount() {
   const queryClient = useQueryClient();
+  const { data: currentUserRole } = useUserRole();
   
   return useMutation({
-    mutationFn: async ({ email, password, role, isViewOnly }: { email: string; password: string; role: AppRole; isViewOnly?: boolean }) => {
+    mutationFn: async ({ email, password, role, isViewOnly, organizationId }: { 
+      email: string; 
+      password: string; 
+      role: AppRole; 
+      isViewOnly?: boolean;
+      organizationId?: string;
+    }) => {
       try {
-        // Try the new admin function first
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           throw new Error('No active session');
         }
 
+        // Use current user's organization if not specified
+        const targetOrgId = organizationId || (currentUserRole as UserRole)?.organization_id;
+
         try {
-          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://hepscjgcjnlofdpoewqx.supabase.co'}/functions/v1/admin-create-user`, {
+          const response = await fetch(`https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/admin-create-user`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${session.access_token}`,
             },
-            body: JSON.stringify({ email, password, role, isViewOnly }),
+            body: JSON.stringify({ email, password, role, isViewOnly, organizationId: targetOrgId }),
           });
 
           if (response.ok) {
@@ -114,10 +183,8 @@ export function useCreateUserAccount() {
             return result.user;
           }
           
-          // If admin function returns an error response, fall back to old method
           console.warn('Admin function returned error, falling back to old method for testing');
         } catch (fetchError) {
-          // If fetch itself fails (network error, function doesn't exist), fall back to old method
           console.warn('Admin function fetch failed, falling back to old method for testing:', fetchError);
         }
         
@@ -133,21 +200,35 @@ export function useCreateUserAccount() {
         });
         
         if (authError) throw authError;
-        
         if (!authData.user) throw new Error('User creation failed');
         
         console.log('User created successfully, now assigning role...');
         
-        // Then assign the role
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role,
-            created_by: (await supabase.auth.getUser()).data.user?.id,
-          });
-        
-        if (roleError) throw roleError;
+        // For new role system, add to organization_members if using new roles
+        if (['master_admin', 'local_admin', 'local_client'].includes(role)) {
+          const { error: orgMemberError } = await supabase
+            .from('organization_members')
+            .insert({
+              user_id: authData.user.id,
+              organization_id: targetOrgId,
+              role,
+              created_by: (await supabase.auth.getUser()).data.user?.id,
+            });
+          
+          if (orgMemberError) throw orgMemberError;
+        } else {
+          // For legacy roles, use user_roles table
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .insert({
+              user_id: authData.user.id,
+              role,
+              is_view_only: isViewOnly,
+              created_by: (await supabase.auth.getUser()).data.user?.id,
+            });
+          
+          if (roleError) throw roleError;
+        }
         
         console.log('Role assigned successfully');
         return { user: authData.user, role };
@@ -159,6 +240,7 @@ export function useCreateUserAccount() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['client-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-members'] });
       toast.success('User account created successfully');
     },
     onError: (error: Error) => {
@@ -169,61 +251,130 @@ export function useCreateUserAccount() {
 }
 
 export function useClientAccounts() {
-  const isAdmin = useIsAdmin();
+  const { canManageUsers } = useUserPermissions();
+  const { data: currentUserRole } = useUserRole();
   
   return useQuery({
     queryKey: ['client-accounts'],
     queryFn: async () => {
-      if (!isAdmin) return [];
+      if (!canManageUsers) return [];
       
-      console.log('useClientAccounts: Fetching user roles...');
+      console.log('useClientAccounts: Fetching accounts...');
       
-      // First, get all user roles
+      // Get legacy user roles
       const { data: userRoles, error: roleError } = await supabase
         .from('user_roles')
         .select('*')
         .order('created_at', { ascending: false });
       
-      console.log('useClientAccounts - user roles:', { userRoles, roleError });
+      // Get organization members (only for current user's organization unless master admin)
+      let orgMembersQuery = supabase
+        .from('organization_members')
+        .select(`
+          *,
+          organization:organizations(*)
+        `);
       
-      if (roleError) throw roleError;
-      
-      // Then, get user details for each role using a separate query
-      if (userRoles && userRoles.length > 0) {
-        const userIds = userRoles.map(role => role.user_id);
-        console.log('useClientAccounts - fetching user details for:', userIds);
-        
-        // Get user details from profiles table instead of auth.users
-        const { data: profiles, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, display_name, created_at')
-          .in('id', userIds);
-        
-        console.log('useClientAccounts - profiles:', { profiles, profileError });
-        
-        if (profileError) {
-          console.error('Error fetching profiles:', profileError);
-        }
-        
-        // Merge the data
-        const accountsWithDetails = userRoles.map(role => {
-          const profile = profiles?.find(p => p.id === role.user_id);
-          return {
-            ...role,
-            user: profile ? {
-              email: role.user_id, // Use user_id as placeholder for now
-              last_sign_in_at: null, // We don't have this in profiles
-              created_at: profile.created_at || role.created_at
-            } : null
-          };
-        });
-        
-        console.log('useClientAccounts - final result:', accountsWithDetails);
-        return accountsWithDetails;
+      // If not master admin, filter by organization
+      if (currentUserRole?.role !== 'master_admin' && (currentUserRole as UserRole)?.organization_id) {
+        orgMembersQuery = orgMembersQuery.eq('organization_id', (currentUserRole as UserRole).organization_id);
       }
       
-      return userRoles || [];
+      const { data: orgMembers, error: orgError } = await orgMembersQuery
+        .order('created_at', { ascending: false });
+      
+      console.log('useClientAccounts - data:', { userRoles, orgMembers, roleError, orgError });
+      
+      if (roleError) throw roleError;
+      if (orgError) throw orgError;
+      
+      // Combine both data sources
+      const allAccounts = [];
+      
+      // Add legacy user roles
+      if (userRoles) {
+        for (const role of userRoles) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, display_name, created_at')
+            .eq('id', role.user_id)
+            .single();
+          
+          allAccounts.push({
+            ...role,
+            source: 'legacy',
+            user: profile ? {
+              email: role.user_id,
+              last_sign_in_at: null,
+              created_at: profile.created_at || role.created_at
+            } : null
+          });
+        }
+      }
+      
+      // Add organization members
+      if (orgMembers) {
+        for (const member of orgMembers) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('id, display_name, created_at')
+            .eq('id', member.user_id)
+            .single();
+          
+          allAccounts.push({
+            id: member.id,
+            user_id: member.user_id,
+            role: member.role,
+            is_view_only: false,
+            created_at: member.created_at,
+            created_by: member.created_by,
+            organization_id: member.organization_id,
+            organization: member.organization,
+            source: 'organization',
+            user: profile ? {
+              email: member.user_id,
+              last_sign_in_at: null,
+              created_at: profile.created_at || member.created_at
+            } : null
+          });
+        }
+      }
+      
+      console.log('useClientAccounts - final result:', allAccounts);
+      return allAccounts;
     },
-    enabled: isAdmin,
+    enabled: canManageUsers,
+  });
+}
+
+// New hook for organization members
+export function useOrganizationMembers() {
+  const { data: currentUserRole } = useUserRole();
+  const { canManageUsers } = useUserPermissions();
+  
+  return useQuery({
+    queryKey: ['organization-members', (currentUserRole as UserRole)?.organization_id],
+    queryFn: async () => {
+      const typedCurrentUserRole = currentUserRole as UserRole;
+      if (!canManageUsers || !typedCurrentUserRole?.organization_id) return [];
+      
+      let query = supabase
+        .from('organization_members')
+        .select(`
+          *,
+          organization:organizations(*)
+        `);
+      
+      // If not master admin, filter by organization
+      if (typedCurrentUserRole.role !== 'master_admin') {
+        query = query.eq('organization_id', typedCurrentUserRole.organization_id);
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: canManageUsers && !!(currentUserRole as UserRole)?.organization_id,
   });
 }
