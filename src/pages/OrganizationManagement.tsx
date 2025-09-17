@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Building2, Users, Settings, Trash2, Edit } from 'lucide-react';
-import { useOrganizations, useCreateOrganization, Organization } from '@/hooks/useOrganizationManagement';
+import { useOrganizations, useCreateOrganization, useUpdateOrganization, Organization } from '@/hooks/useOrganizationManagement';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { 
   Dialog, 
@@ -25,6 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { EditOrganizationDialog } from '@/components/organization/EditOrganizationDialog';
+import { OrganizationUserManagementDialog } from '@/components/organization/OrganizationUserManagementDialog';
 import { toast } from 'sonner';
 
 interface CreateOrgFormData {
@@ -36,8 +38,12 @@ const OrganizationManagement = () => {
   const { isMasterAdmin } = useUserPermissions();
   const { data: organizations = [], isLoading } = useOrganizations();
   const createOrganization = useCreateOrganization();
+  const updateOrganization = useUpdateOrganization();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUserManagementDialogOpen, setIsUserManagementDialogOpen] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<Organization | null>(null);
   const [formData, setFormData] = useState<CreateOrgFormData>({
     name: '',
     slug: ''
@@ -68,6 +74,26 @@ const OrganizationManagement = () => {
     } catch (error) {
       console.error('Error creating organization:', error);
     }
+  };
+
+  const handleEditOrganization = (organization: Organization) => {
+    setSelectedOrganization(organization);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleManageUsers = (organization: Organization) => {
+    setSelectedOrganization(organization);
+    setIsUserManagementDialogOpen(true);
+  };
+
+  const handleUpdateOrganization = async (data: { id: string; name: string; slug: string }) => {
+    await updateOrganization.mutateAsync(data);
+  };
+
+  const handleCloseDialogs = () => {
+    setIsEditDialogOpen(false);
+    setIsUserManagementDialogOpen(false);
+    setSelectedOrganization(null);
   };
 
   if (!isMasterAdmin) {
@@ -213,10 +239,20 @@ const OrganizationManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEditOrganization(org)}
+                            title="Edit Organization"
+                          >
                             <Edit className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleManageUsers(org)}
+                            title="Manage Users"
+                          >
                             <Users className="w-3 h-3" />
                           </Button>
                         </div>
@@ -229,6 +265,21 @@ const OrganizationManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Organization Dialog */}
+      <EditOrganizationDialog
+        organization={selectedOrganization}
+        isOpen={isEditDialogOpen}
+        onClose={handleCloseDialogs}
+        onSave={handleUpdateOrganization}
+      />
+
+      {/* Organization User Management Dialog */}
+      <OrganizationUserManagementDialog
+        organization={selectedOrganization}
+        isOpen={isUserManagementDialogOpen}
+        onClose={handleCloseDialogs}
+      />
     </div>
   );
 };
