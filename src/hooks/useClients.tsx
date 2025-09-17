@@ -12,6 +12,8 @@ export function useClients() {
   return useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
+      // RLS policies handle organization-based filtering automatically
+      // The policies check user's organization and role to determine access
       const { data, error } = await supabase
         .from('clients')
         .select('*')

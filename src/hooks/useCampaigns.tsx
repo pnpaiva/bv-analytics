@@ -70,6 +70,8 @@ export function useCampaigns() {
   return useQuery({
     queryKey: ['campaigns'],
     queryFn: async () => {
+      // RLS policies handle organization-based filtering automatically
+      // The policies check user's organization and role to determine access
       const { data, error } = await supabase
         .from('campaigns')
         .select(`
@@ -135,9 +137,14 @@ export function useCreateCampaign() {
           content_urls: creator.content_urls,
         }));
 
+        const campaignCreatorsDataWithOrg = campaignCreatorsData.map(creator => ({
+          ...creator,
+          organization_id: organizationId,
+        }));
+
         const { error: creatorsError } = await supabase
           .from('campaign_creators')
-          .insert(campaignCreatorsData);
+          .insert(campaignCreatorsDataWithOrg);
 
         if (creatorsError) throw creatorsError;
       }
@@ -160,6 +167,7 @@ export function useDeleteCampaign() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // RLS policies ensure users can only delete campaigns they have access to
       const { error } = await supabase
         .from('campaigns')
         .delete()
@@ -183,6 +191,7 @@ export function useUpdateCampaignStatus() {
 
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      // RLS policies ensure users can only update campaigns they have access to
       const { error } = await supabase
         .from('campaigns')
         .update({ status, updated_at: new Date().toISOString() })
@@ -208,6 +217,7 @@ export function useUpdateCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // RLS policies handle organization-based access control automatically
       const { data, error } = await supabase
         .from('campaigns')
         .update({
@@ -215,7 +225,6 @@ export function useUpdateCampaign() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
-        .eq('user_id', user.id)
         .select()
         .single();
 

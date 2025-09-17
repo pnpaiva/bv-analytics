@@ -20,6 +20,8 @@ export const useDailyCampaignPerformance = (campaignId: string, days: number = 3
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
+      // RLS policies handle organization-based filtering automatically
+      // Users can only access performance data for campaigns in their organization
       const { data, error } = await supabase
         .from('daily_campaign_performance')
         .select('*')

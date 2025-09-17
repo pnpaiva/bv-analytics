@@ -24,6 +24,7 @@ export function useClientCampaignAssignments(clientId: string) {
   return useQuery({
     queryKey: ['client-campaign-assignments', clientId],
     queryFn: async (): Promise<CampaignAssignment[]> => {
+      // RLS policies handle organization-based filtering automatically
       const { data, error } = await supabase
         .from('client_campaign_assignments')
         .select(`
@@ -44,6 +45,7 @@ export function useAllCampaignAssignments() {
   return useQuery({
     queryKey: ['all-campaign-assignments'],
     queryFn: async (): Promise<CampaignAssignment[]> => {
+      // RLS policies handle organization-based filtering automatically
       const { data, error } = await supabase
         .from('client_campaign_assignments')
         .select(`
@@ -66,12 +68,24 @@ export function useAssignCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Get user's organization
+      const { data: userOrg, error: orgError } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (orgError && orgError.code !== 'PGRST116') throw orgError;
+
+      const organizationId = userOrg?.organization_id || 'default-org-id'; // Fallback
+
       const { error } = await supabase
         .from('client_campaign_assignments')
         .insert({
           client_id: clientId,
           campaign_id: campaignId,
           assigned_by: user.id,
+          organization_id: organizationId,
         });
 
       if (error) throw error;
@@ -93,6 +107,7 @@ export function useUnassignCampaign() {
 
   return useMutation({
     mutationFn: async ({ clientId, campaignId }: { clientId: string; campaignId: string }) => {
+      // RLS policies handle organization-based access control automatically
       const { error } = await supabase
         .from('client_campaign_assignments')
         .delete()
@@ -120,27 +135,18 @@ export function useUserAccessibleCampaigns() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Check if user is admin
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single();
+      // RLS policies handle organization-based filtering automatically
+      // Simply fetch all accessible campaigns and return their IDs
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('id');
 
-      if (userRole?.role === 'admin') {
-        // Admins can see all campaigns
-        const { data: campaigns } = await supabase
-          .from('campaigns')
-          .select('id');
-        return campaigns?.map(c => c.id) || [];
-      } else {
-        // Clients can only see assigned campaigns
-        const { data: assignments } = await supabase
-          .from('client_campaign_assignments')
-          .select('campaign_id')
-          .eq('client_id', user.id);
-        return assignments?.map(a => a.campaign_id) || [];
+      if (error) {
+        console.error('Error fetching accessible campaigns:', error);
+        return [];
       }
+
+      return data?.map(item => item.id) || [];
     },
   });
 }

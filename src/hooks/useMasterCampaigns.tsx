@@ -31,6 +31,8 @@ export function useMasterCampaigns() {
   return useQuery({
     queryKey: ['master-campaigns'],
     queryFn: async () => {
+      // RLS policies handle organization-based filtering automatically
+      // The policies check user's organization and role to determine access
       const { data, error } = await supabase
         .from('campaigns')
         .select('master_campaign_name, master_campaign_start_date, master_campaign_end_date, master_campaign_logo_url')
@@ -125,7 +127,7 @@ export function useUpdateMasterCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Update all campaigns with this master campaign name
+      // RLS policies handle organization-based access control automatically
       const { error } = await supabase
         .from('campaigns')
         .update({
@@ -135,8 +137,7 @@ export function useUpdateMasterCampaign() {
           master_campaign_logo_url: data.logo_url,
           updated_at: new Date().toISOString(),
         })
-        .eq('master_campaign_name', data.id) // data.id is the old name
-        .eq('user_id', user.id);
+        .eq('master_campaign_name', data.id); // data.id is the old name
 
       if (error) throw error;
     },
@@ -160,7 +161,7 @@ export function useDeleteMasterCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Remove master campaign association from all campaigns
+      // RLS policies handle organization-based access control automatically
       const { error } = await supabase
         .from('campaigns')
         .update({
@@ -169,8 +170,7 @@ export function useDeleteMasterCampaign() {
           master_campaign_end_date: null,
           updated_at: new Date().toISOString(),
         })
-        .eq('master_campaign_name', masterCampaignName)
-        .eq('user_id', user.id);
+        .eq('master_campaign_name', masterCampaignName);
 
       if (error) throw error;
     },

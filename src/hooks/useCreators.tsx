@@ -38,7 +38,8 @@ export function useCreators() {
     queryFn: async () => {
       console.log('Fetching creators with full campaign data...');
       
-      // First, fetch all creators
+      // RLS policies handle organization-based filtering automatically
+      // The policies check user's organization and role to determine access
       const { data: creators, error: creatorsError } = await supabase
         .from('creators')
         .select('*')
@@ -50,7 +51,7 @@ export function useCreators() {
         throw creatorsError;
       }
 
-      // Then, fetch all campaign_creators relationships
+      // Fetch campaign_creators relationships (also filtered by RLS)
       const { data: campaignCreators, error: ccError } = await supabase
         .from('campaign_creators')
         .select(`

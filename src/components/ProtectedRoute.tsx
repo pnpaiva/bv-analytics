@@ -46,7 +46,9 @@ export function AdminProtectedRoute({ children }: AdminProtectedRouteProps) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (userRole !== 'admin') {
+  // Allow admin, master_admin, and local_admin roles
+  const isAdmin = userRole === 'admin' || userRole === 'master_admin' || userRole === 'local_admin';
+  if (!isAdmin) {
     return <Navigate to="/" replace />;
   }
 
