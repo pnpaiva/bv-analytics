@@ -12,12 +12,14 @@ import Campaigns from "./pages/Campaigns";
 import Analytics from "./pages/Analytics";
 import MasterCampaigns from "./pages/MasterCampaigns";
 import CreatorProfiles from "./pages/CreatorProfiles";
-import AdminDashboard from "./pages/AdminDashboard";
+import RoleBasedDashboard from "./pages/RoleBasedDashboard";
 import AdminBlog from "./pages/AdminBlog";
 import Profile from "./pages/Profile";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import PublicMediaKit from "./pages/PublicMediaKit";
+import OrganizationManagement from "./pages/OrganizationManagement";
+import OrganizationUsers from "./pages/OrganizationUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -78,10 +80,10 @@ const App = () => (
             element={
               <AuthProvider>
                 <AdminProtectedRoute>
-                  <AdminDashboard />
+                  <RoleBasedDashboard />
                 </AdminProtectedRoute>
               </AuthProvider>
-            } 
+            }
           />
           <Route 
             path="/admin/blog" 
@@ -89,6 +91,26 @@ const App = () => (
               <AuthProvider>
                 <AdminProtectedRoute>
                   <AdminBlog />
+                </AdminProtectedRoute>
+              </AuthProvider>
+            } 
+          />
+          <Route 
+            path="/organizations" 
+            element={
+              <AuthProvider>
+                <AdminProtectedRoute>
+                  <OrganizationManagement />
+                </AdminProtectedRoute>
+              </AuthProvider>
+            } 
+          />
+          <Route 
+            path="/organization-users" 
+            element={
+              <AuthProvider>
+                <AdminProtectedRoute>
+                  <OrganizationUsers />
                 </AdminProtectedRoute>
               </AuthProvider>
             } 

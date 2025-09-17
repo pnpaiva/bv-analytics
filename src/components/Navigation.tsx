@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, FileText, Users, Building, LogOut, User, Settings, UserCircle, ChevronDown } from 'lucide-react';
+import { BarChart3, FileText, Users, Building, LogOut, User, Settings, UserCircle, ChevronDown, Building2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,15 +13,15 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel 
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useUserRole } from '@/hooks/useUserRoles';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useUserRole, useUserPermissions } from '@/hooks/useUserRoles';
 import { useProfile } from '@/hooks/useProfileManagement';
-import { AvatarImage } from '@/components/ui/avatar';
 
 export function Navigation() {
   const { user } = useAuth();
   const userRoleQuery = useUserRole();
   const userRole = userRoleQuery.data?.role;
+  const { isMasterAdmin, isLocalAdmin, isLocalClient, canManageUsers, canManageOrganizations, organization } = useUserPermissions();
   const { data: profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,11 +47,30 @@ export function Navigation() {
   ];
 
   // Admin-specific navigation items for dropdown
-  const adminMenuItems = [
-    { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
-    { to: '/admin', icon: Settings, label: 'Admin Dashboard' },
-    { to: '/admin/blog', icon: FileText, label: 'Blog Management' },
-  ];
+  const adminMenuItems = [];
+  
+  if (userRole === 'admin') {
+    // Legacy admin items
+    adminMenuItems.push(
+      { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
+      { to: '/admin', icon: Settings, label: 'Admin Dashboard' },
+      { to: '/admin/blog', icon: FileText, label: 'Blog Management' }
+    );
+  }
+
+  // Organization management items based on role
+  if (isMasterAdmin) {
+    adminMenuItems.push(
+      { to: '/organizations', icon: Building2, label: 'Organization Management' },
+      { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' },
+      { to: '/admin/blog', icon: FileText, label: 'Blog Management' }
+    );
+  } else if (isLocalAdmin) {
+    adminMenuItems.push(
+      { to: '/organization-users', icon: UserPlus, label: 'Manage Users' },
+      { to: '/master-campaigns', icon: Building, label: 'Master Campaigns' }
+    );
+  }
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -99,8 +118,8 @@ export function Navigation() {
               );
             })}
             
-            {/* Admin Menu Dropdown */}
-            {userRole === 'admin' && (
+            {/* Admin Menu Dropdown - Show for all admin roles */}
+            {(userRole === 'admin' || isMasterAdmin || isLocalAdmin) && adminMenuItems.length > 0 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -108,13 +127,13 @@ export function Navigation() {
                     className="flex items-center space-x-2 px-4 py-2.5 rounded-lg font-subheading text-sm transition-brand text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   >
                     <Settings className="w-4 h-4" strokeWidth={2} />
-                    <span>Admin</span>
+                    <span>{isMasterAdmin ? 'Master Admin' : isLocalAdmin ? 'Admin' : 'Admin'}</span>
                     <ChevronDown className="w-3 h-3" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Admin Tools
+                    {isMasterAdmin ? 'Master Admin Tools' : isLocalAdmin ? 'Organization Admin' : 'Admin Tools'}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {adminMenuItems.map((item) => {
@@ -162,7 +181,15 @@ export function Navigation() {
                     <p className="text-sm font-subheading text-foreground">
                       {profile?.display_name || user?.email}
                     </p>
-                    <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span className="capitalize">{userRole}</span>
+                      {organization && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate max-w-24">{organization.name}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -175,9 +202,15 @@ export function Navigation() {
                     <p className="text-sm font-medium leading-none">
                       {profile?.display_name || user?.email}
                     </p>
-                    <p className="text-xs leading-none text-muted-foreground capitalize">
-                      {userRole}
-                    </p>
+                    <div className="flex items-center gap-1 text-xs leading-none text-muted-foreground">
+                      <span className="capitalize">{userRole}</span>
+                      {organization && (
+                        <>
+                          <span>•</span>
+                          <span className="truncate">{organization.name}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

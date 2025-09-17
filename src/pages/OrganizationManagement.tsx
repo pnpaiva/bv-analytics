@@ -1,0 +1,236 @@
+import React, { useState } from 'react';
+import { Navigation } from '@/components/Navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Building2, Users, Settings, Trash2, Edit } from 'lucide-react';
+import { useOrganizations, useCreateOrganization, Organization } from '@/hooks/useOrganizationManagement';
+import { useUserPermissions } from '@/hooks/useUserRoles';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { toast } from 'sonner';
+
+interface CreateOrgFormData {
+  name: string;
+  slug: string;
+}
+
+const OrganizationManagement = () => {
+  const { isMasterAdmin } = useUserPermissions();
+  const { data: organizations = [], isLoading } = useOrganizations();
+  const createOrganization = useCreateOrganization();
+  
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<CreateOrgFormData>({
+    name: '',
+    slug: ''
+  });
+
+  // Auto-generate slug from name
+  const handleNameChange = (name: string) => {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    setFormData({ name, slug });
+  };
+
+  const handleCreateOrganization = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name.trim() || !formData.slug.trim()) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      await createOrganization.mutateAsync({
+        name: formData.name.trim(),
+        slug: formData.slug.trim(),
+      });
+      
+      setIsCreateDialogOpen(false);
+      setFormData({ name: '', slug: '' });
+    } catch (error) {
+      console.error('Error creating organization:', error);
+    }
+  };
+
+  if (!isMasterAdmin) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+            <p className="text-muted-foreground">You don't have permission to access this page.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              Organization Management
+            </h1>
+            <p className="text-muted-foreground">
+              Manage organizations and their administrators
+            </p>
+          </div>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Create Organization
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <form onSubmit={handleCreateOrganization}>
+                <DialogHeader>
+                  <DialogTitle>Create New Organization</DialogTitle>
+                  <DialogDescription>
+                    Create a new organization to manage teams and clients separately.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Organization Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="Enter organization name"
+                      value={formData.name}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="slug">URL Slug</Label>
+                    <Input
+                      id="slug"
+                      placeholder="organization-slug"
+                      value={formData.slug}
+                      onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This will be used in URLs and must be unique
+                    </p>
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsCreateDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createOrganization.isPending}
+                  >
+                    {createOrganization.isPending ? 'Creating...' : 'Create Organization'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Organizations List */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Organizations
+            </CardTitle>
+            <CardDescription>
+              All organizations in the system
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading organizations...</p>
+              </div>
+            ) : organizations.length === 0 ? (
+              <div className="text-center py-8">
+                <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No organizations found</p>
+                <p className="text-sm text-muted-foreground">Create your first organization to get started</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Slug</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[100px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {organizations.map((org) => (
+                    <TableRow key={org.id}>
+                      <TableCell className="font-medium">{org.name}</TableCell>
+                      <TableCell>
+                        <code className="bg-muted px-2 py-1 rounded text-sm">
+                          {org.slug}
+                        </code>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(org.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">Active</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Users className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default OrganizationManagement;
