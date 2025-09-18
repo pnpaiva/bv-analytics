@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, UserPlus } from 'lucide-react';
 import { Organization } from '@/hooks/useOrganizationManagement';
 import { useOrganizationMembers, useCreateOrganizationMember, useDeleteOrganizationMember, useUserEmails } from '@/hooks/useOrganizationManagement';
+import { useUserPermissions } from '@/hooks/useUserRoles';
 import { toast } from 'sonner';
 
 interface OrganizationUserManagementDialogProps {
@@ -44,6 +45,7 @@ export function OrganizationUserManagementDialog({
   const { data: members = [], isLoading, error } = useOrganizationMembers(organization?.id);
   const createMember = useCreateOrganizationMember();
   const deleteMember = useDeleteOrganizationMember();
+  const { isLocalAdmin } = useUserPermissions();
   
   // Get user emails for display
   const userIds = members.map(m => m.user_id);
@@ -85,7 +87,13 @@ export function OrganizationUserManagementDialog({
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: string, memberRole: string) => {
+    // Local admins cannot delete master admins
+    if (isLocalAdmin && memberRole === 'master_admin') {
+      toast.error('You cannot delete master administrators');
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
       return;
     }
@@ -261,8 +269,8 @@ export function OrganizationUserManagementDialog({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleDeleteUser(member.user_id)}
-                        disabled={deleteMember.isPending}
+                        onClick={() => handleDeleteUser(member.user_id, member.role)}
+                        disabled={deleteMember.isPending || (isLocalAdmin && member.role === 'master_admin')}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>

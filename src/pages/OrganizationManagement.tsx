@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Building2, Users, Settings, Trash2, Edit } from 'lucide-react';
-import { useOrganizations, useCreateOrganization, useUpdateOrganization, Organization } from '@/hooks/useOrganizationManagement';
+import { useOrganizations, useCreateOrganization, useUpdateOrganization, useDeleteOrganization, Organization } from '@/hooks/useOrganizationManagement';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { 
   Dialog, 
@@ -39,6 +39,7 @@ const OrganizationManagement = () => {
   const { data: organizations = [], isLoading } = useOrganizations();
   const createOrganization = useCreateOrganization();
   const updateOrganization = useUpdateOrganization();
+  const deleteOrganization = useDeleteOrganization();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -88,6 +89,18 @@ const OrganizationManagement = () => {
 
   const handleUpdateOrganization = async (data: { id: string; name: string; slug: string }) => {
     await updateOrganization.mutateAsync(data);
+  };
+
+  const handleDeleteOrganization = async (organization: Organization) => {
+    if (!confirm(`Are you sure you want to delete "${organization.name}"? This action cannot be undone and will remove all associated data.`)) {
+      return;
+    }
+
+    try {
+      await deleteOrganization.mutateAsync(organization.id);
+    } catch (error) {
+      console.error('Error deleting organization:', error);
+    }
   };
 
   const handleCloseDialogs = () => {
@@ -254,6 +267,14 @@ const OrganizationManagement = () => {
                             title="Manage Users"
                           >
                             <Users className="w-3 h-3" />
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleDeleteOrganization(org)}
+                            title="Delete Organization"
+                          >
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
                       </TableCell>

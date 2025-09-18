@@ -57,7 +57,7 @@ export function useOrganizations() {
 }
 
 export function useOrganizationMembers(organizationId?: string) {
-  const { canManageUsers, isMasterAdmin } = useUserPermissions();
+  const { canManageUsers, isMasterAdmin, isLocalAdmin } = useUserPermissions();
   
   return useQuery({
     queryKey: ['organization-members', organizationId],
@@ -119,6 +119,11 @@ export function useOrganizationMembers(organizationId?: string) {
           updated_at: userRole.created_at,
           is_view_only: userRole.is_view_only
         }));
+      }
+
+      // Filter out master admins for local admins
+      if (isLocalAdmin) {
+        allMembers = allMembers.filter(member => member.role !== 'master_admin');
       }
 
       console.log('Final processed members:', allMembers);
@@ -277,5 +282,27 @@ export function useUserEmails(userIds: string[]) {
       return data.userEmails as Record<string, string>;
     },
     enabled: userIds.length > 0,
+  });
+}
+
+export function useDeleteOrganization() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (organizationId: string) => {
+      const { error } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', organizationId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      toast.success('Organization deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete organization: ${error.message}`);
+    },
   });
 }
