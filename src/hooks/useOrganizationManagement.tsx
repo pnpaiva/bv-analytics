@@ -66,6 +66,25 @@ export function useOrganizationMembers(organizationId?: string) {
       
       console.log('Fetching organization members for:', organizationId, 'isMasterAdmin:', isMasterAdmin, 'canManageUsers:', canManageUsers);
       
+      // First try to get users from user_roles table for backward compatibility
+      const { data: userRoles, error: userRolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          id,
+          user_id,
+          role,
+          is_view_only,
+          created_at,
+          created_by
+        `)
+        .order('created_at', { ascending: false });
+
+      console.log('User roles query result:', { userRoles, userRolesError });
+
+      if (userRolesError) {
+        console.error('User roles query error:', userRolesError);
+      }
+
       // Get organization members
       const { data: orgMembers, error: orgError } = await supabase
         .from('organization_members')
@@ -76,25 +95,37 @@ export function useOrganizationMembers(organizationId?: string) {
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
 
-      console.log('Raw query result:', { orgMembers, orgError });
+      console.log('Organization members query result:', { orgMembers, orgError });
 
       if (orgError) {
         console.error('Organization members query error:', orgError);
-        throw orgError;
       }
 
-      // For now, just show user IDs as display names
-      // The email fetching will be handled by a separate API call in the component
-      const data = orgMembers?.map(member => ({
-        ...member,
-        email: `User ${member.user_id.slice(0, 8)}...` // Temporary display
-      })) || [];
-
-      console.log('Processed organization members:', data);
+      // Combine data - prioritize organization_members but fall back to user_roles
+      let allMembers = [];
       
-      return data as OrganizationMember[];
+      if (orgMembers && orgMembers.length > 0) {
+        allMembers = orgMembers;
+      } else if (userRoles && userRoles.length > 0) {
+        // Convert user_roles to organization member format
+        allMembers = userRoles.map(userRole => ({
+          id: userRole.id,
+          user_id: userRole.user_id,
+          organization_id: organizationId,
+          role: userRole.role,
+          permissions: {},
+          created_by: userRole.created_by,
+          created_at: userRole.created_at,
+          updated_at: userRole.created_at,
+          is_view_only: userRole.is_view_only
+        }));
+      }
+
+      console.log('Final processed members:', allMembers);
+      
+      return allMembers as OrganizationMember[];
     },
-    enabled: !!organizationId, // Temporarily remove permission check for debugging
+    enabled: !!organizationId && (isMasterAdmin || canManageUsers),
   });
 }
 

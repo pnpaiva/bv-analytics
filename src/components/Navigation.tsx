@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { BarChart3, FileText, Users, Building, LogOut, User, Settings, UserCircle, ChevronDown, Building2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { OrganizationSwitcher } from '@/components/OrganizationSwitcher';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { 
@@ -159,6 +160,7 @@ export function Navigation() {
 
           {/* User Menu */}
           <div className="flex items-center space-x-4">
+            {isMasterAdmin && <OrganizationSwitcher />}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 

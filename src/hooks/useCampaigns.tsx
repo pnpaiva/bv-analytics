@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUserPermissions } from './useUserRoles';
+import { useOrganizationContext } from './useOrganizationContext';
 
 export interface Campaign {
   id: string;
@@ -67,18 +69,29 @@ export interface CreateCampaignData {
 }
 
 export function useCampaigns() {
+  const { organization, isMasterAdmin } = useUserPermissions();
+  const { selectedOrganizationId } = useOrganizationContext();
+  
   return useQuery({
-    queryKey: ['campaigns'],
+    queryKey: ['campaigns', selectedOrganizationId || organization?.id],
     queryFn: async () => {
-      // RLS policies handle organization-based filtering automatically
-      // The policies check user's organization and role to determine access
-      const { data, error } = await supabase
+      let query = supabase
         .from('campaigns')
         .select(`
           *,
           clients (name)
         `)
         .order('created_at', { ascending: false });
+
+      // For master admins, filter by selected organization if any
+      if (isMasterAdmin && selectedOrganizationId) {
+        query = query.eq('organization_id', selectedOrganizationId);
+      } else if (organization?.id && !isMasterAdmin) {
+        // For non-master admins, filter by their organization
+        query = query.eq('organization_id', organization.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         toast.error('Failed to fetch campaigns');
@@ -87,6 +100,7 @@ export function useCampaigns() {
 
       return data as Campaign[];
     },
+    enabled: !!organization || isMasterAdmin,
   });
 }
 

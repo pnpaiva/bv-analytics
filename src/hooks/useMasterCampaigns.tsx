@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUserPermissions } from './useUserRoles';
+import { useOrganizationContext } from './useOrganizationContext';
 
 export interface MasterCampaign {
   id: string;
@@ -28,16 +30,27 @@ export interface UpdateMasterCampaignData {
 }
 
 export function useMasterCampaigns() {
+  const { organization, isMasterAdmin } = useUserPermissions();
+  const { selectedOrganizationId } = useOrganizationContext();
+  
   return useQuery({
-    queryKey: ['master-campaigns'],
+    queryKey: ['master-campaigns', selectedOrganizationId || organization?.id],
     queryFn: async () => {
-      // RLS policies handle organization-based filtering automatically
-      // The policies check user's organization and role to determine access
-      const { data, error } = await supabase
+      let query = supabase
         .from('campaigns')
-        .select('master_campaign_name, master_campaign_start_date, master_campaign_end_date, master_campaign_logo_url')
+        .select('master_campaign_name, master_campaign_start_date, master_campaign_end_date, master_campaign_logo_url, organization_id')
         .not('master_campaign_name', 'is', null)
         .order('master_campaign_name');
+
+      // For master admins, filter by selected organization if any
+      if (isMasterAdmin && selectedOrganizationId) {
+        query = query.eq('organization_id', selectedOrganizationId);
+      } else if (organization?.id && !isMasterAdmin) {
+        // For non-master admins, filter by their organization
+        query = query.eq('organization_id', organization.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         toast.error('Failed to fetch master campaigns');
@@ -53,6 +66,7 @@ export function useMasterCampaigns() {
             start_date: item.master_campaign_start_date,
             end_date: item.master_campaign_end_date,
             logo_url: item.master_campaign_logo_url,
+            organization_id: item.organization_id,
           };
         }
         return acc;
@@ -60,6 +74,7 @@ export function useMasterCampaigns() {
 
       return Object.values(grouped);
     },
+    enabled: !!organization || isMasterAdmin,
   });
 }
 

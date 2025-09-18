@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useOrganizations } from '@/hooks/useOrganizationManagement';
 import { useUserPermissions } from '@/hooks/useUserRoles';
+import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { Badge } from '@/components/ui/badge';
 
 interface OrganizationSwitcherProps {
@@ -20,10 +21,14 @@ interface OrganizationSwitcherProps {
 export function OrganizationSwitcher({ onOrganizationChange }: OrganizationSwitcherProps) {
   const { isMasterAdmin, organization } = useUserPermissions();
   const { data: organizations = [] } = useOrganizations();
-  const [currentOrgId, setCurrentOrgId] = useState<string | null>(organization?.id || null);
+  const { selectedOrganizationId, setSelectedOrganizationId } = useOrganizationContext();
+  const [currentOrgId, setCurrentOrgId] = useState<string | null>(
+    selectedOrganizationId || organization?.id || null
+  );
 
   const handleOrgChange = (orgId: string | null) => {
     setCurrentOrgId(orgId);
+    setSelectedOrganizationId(orgId);
     onOrganizationChange?.(orgId);
   };
 

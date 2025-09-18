@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { OrganizationProvider } from "@/hooks/useOrganizationContext";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute, AdminProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
@@ -26,10 +27,11 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+    <OrganizationProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
         <Routes>
           {/* Public routes - accessible without authentication */}
           <Route path="/" element={<Index />} />
@@ -128,6 +130,7 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+    </OrganizationProvider>
   </QueryClientProvider>
 );
 
