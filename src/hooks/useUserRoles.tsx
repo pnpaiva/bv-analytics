@@ -251,7 +251,7 @@ export function useCreateUserAccount() {
 }
 
 export function useClientAccounts() {
-  const { canManageUsers } = useUserPermissions();
+  const { canManageUsers, isLocalAdmin, isMasterAdmin } = useUserPermissions();
   const { data: currentUserRole } = useUserRole();
   
   return useQuery({
@@ -276,7 +276,7 @@ export function useClientAccounts() {
         `);
       
       // If not master admin, filter by organization
-      if (currentUserRole?.role !== 'master_admin' && (currentUserRole as UserRole)?.organization_id) {
+      if (!isMasterAdmin && (currentUserRole as UserRole)?.organization_id) {
         orgMembersQuery = orgMembersQuery.eq('organization_id', (currentUserRole as UserRole).organization_id);
       }
       
@@ -289,7 +289,7 @@ export function useClientAccounts() {
       if (orgError) throw orgError;
       
       // Combine both data sources
-      const allAccounts = [];
+      let allAccounts = [];
       
       // Add legacy user roles
       if (userRoles) {
@@ -337,6 +337,50 @@ export function useClientAccounts() {
               created_at: profile.created_at || member.created_at
             } : null
           });
+        }
+      }
+      
+      // Filter out master admins for local admins
+      if (isLocalAdmin) {
+        allAccounts = allAccounts.filter(account => account.role !== 'master_admin');
+      }
+      
+      // Fetch real email addresses for all users
+      if (allAccounts.length > 0) {
+        const userIds = allAccounts.map(account => account.user_id);
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const response = await fetch('https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/get-user-emails', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ userIds }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const userEmails = data.userEmails as Record<string, string>;
+              
+              // Update accounts with real email addresses
+              allAccounts = allAccounts.map(account => ({
+                ...account,
+                user: account.user ? {
+                  ...account.user,
+                  email: userEmails[account.user_id] || account.user_id
+                } : {
+                  email: userEmails[account.user_id] || account.user_id,
+                  last_sign_in_at: null,
+                  created_at: account.created_at
+                }
+              }));
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user emails:', error);
         }
       }
       
