@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, UserPlus, Users, Trash2, Edit, Eye, EyeOff } from 'lucide-react';
+import { Plus, UserPlus, Users, Trash2, Edit, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useUserPermissions, useCreateUserAccount, useClientAccounts, AppRole } from '@/hooks/useUserRoles';
+import { useDeleteOrganizationMember } from '@/hooks/useOrganizationManagement';
 import { 
   Dialog, 
   DialogContent, 
@@ -16,6 +17,16 @@ import {
   DialogTrigger,
   DialogFooter
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -44,9 +55,12 @@ const OrganizationUsers = () => {
   const { isLocalAdmin, isMasterAdmin, canManageUsers, organization } = useUserPermissions();
   const { data: users = [], isLoading } = useClientAccounts();
   const createUser = useCreateUserAccount();
+  const deleteOrganizationMember = useDeleteOrganizationMember();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const [formData, setFormData] = useState<CreateUserFormData>({
     email: '',
     password: '',
@@ -91,6 +105,35 @@ const OrganizationUsers = () => {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
     setFormData({ ...formData, password });
+  };
+
+  const handleDeleteUser = (user: any) => {
+    // Local admins cannot delete master admins
+    if (isLocalAdmin && user.role === 'master_admin') {
+      toast.error('You cannot delete master administrators');
+      return;
+    }
+    setSelectedUser(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      await deleteOrganizationMember.mutateAsync(selectedUser.user_id);
+      setIsDeleteDialogOpen(false);
+      setSelectedUser(null);
+      toast.success('User deleted successfully');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user');
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    // For now, we'll just show a message that editing is not yet implemented
+    toast.error('User editing is not yet implemented');
   };
 
   const getRoleLabel = (role: string) => {
@@ -329,10 +372,20 @@ const OrganizationUsers = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleEditUser(user)}
+                          >
                             <Edit className="w-3 h-3" />
                           </Button>
-                          <Button size="sm" variant="outline" className="text-destructive">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="text-destructive"
+                            onClick={() => handleDeleteUser(user)}
+                            disabled={isLocalAdmin && user.role === 'master_admin'}
+                          >
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </div>
@@ -344,6 +397,32 @@ const OrganizationUsers = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                Delete User
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete <strong>{selectedUser?.user?.email}</strong>? 
+                This action cannot be undone and will remove the user from the organization.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={confirmDeleteUser}
+                className="bg-destructive hover:bg-destructive/90"
+                disabled={deleteOrganizationMember.isPending}
+              >
+                {deleteOrganizationMember.isPending ? 'Deleting...' : 'Delete User'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
