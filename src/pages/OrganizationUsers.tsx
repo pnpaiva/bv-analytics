@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, UserPlus, Users, Trash2, Edit, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useUserPermissions, useCreateUserAccount, useClientAccounts, AppRole } from '@/hooks/useUserRoles';
 import { useDeleteOrganizationMember } from '@/hooks/useOrganizationManagement';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Dialog, 
   DialogContent, 
@@ -58,8 +59,10 @@ const OrganizationUsers = () => {
   const deleteOrganizationMember = useDeleteOrganizationMember();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [formData, setFormData] = useState<CreateUserFormData>({
     email: '',
@@ -132,8 +135,65 @@ const OrganizationUsers = () => {
   };
 
   const handleEditUser = (user: any) => {
-    // For now, we'll just show a message that editing is not yet implemented
-    toast.error('User editing is not yet implemented');
+    setSelectedUser(user);
+    setFormData({
+      email: user.user?.email || '',
+      password: '',
+      role: user.role,
+      isViewOnly: user.is_view_only || false
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedUser || !formData.email.trim()) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const updateData: any = {
+        userId: selectedUser.user_id,
+        email: formData.email.trim(),
+      };
+
+      // Only include password if it's provided
+      if (formData.password.trim()) {
+        updateData.password = formData.password.trim();
+      }
+
+      const response = await fetch('https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/admin-update-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update user');
+      }
+
+      setIsEditDialogOpen(false);
+      setSelectedUser(null);
+      setFormData({
+        email: '',
+        password: '',
+        role: 'local_client',
+        isViewOnly: false
+      });
+      toast.success('User updated successfully');
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast.error(`Failed to update user: ${error.message}`);
+    }
   };
 
   const getRoleLabel = (role: string) => {
@@ -423,6 +483,79 @@ const OrganizationUsers = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <form onSubmit={handleUpdateUser}>
+              <DialogHeader>
+                <DialogTitle>Edit User</DialogTitle>
+                <DialogDescription>
+                  Update user information for {selectedUser?.user?.email}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email Address</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    placeholder="user@company.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-password">New Password (optional)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Input
+                        id="edit-password"
+                        type={showEditPassword ? 'text' : 'password'}
+                        placeholder="Leave empty to keep current password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                        onClick={() => setShowEditPassword(!showEditPassword)}
+                      >
+                        {showEditPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      </Button>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={generatePassword}
+                    >
+                      Generate
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  Update User
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

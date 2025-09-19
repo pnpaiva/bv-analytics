@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Building2, Users, Settings, Trash2, Edit } from 'lucide-react';
+import { Plus, Building2, Users, Settings, Trash2, Edit, TrendingUp, Eye, DollarSign, Activity } from 'lucide-react';
 import { useOrganizations, useCreateOrganization, useUpdateOrganization, useDeleteOrganization, Organization } from '@/hooks/useOrganizationManagement';
 import { useUserPermissions } from '@/hooks/useUserRoles';
+import { useCampaigns } from '@/hooks/useCampaigns';
+import { useAllOrganizationsAnalytics } from '@/hooks/useOrganizationAnalytics';
 import { 
   Dialog, 
   DialogContent, 
@@ -37,6 +39,7 @@ interface CreateOrgFormData {
 const OrganizationManagement = () => {
   const { isMasterAdmin } = useUserPermissions();
   const { data: organizations = [], isLoading } = useOrganizations();
+  const { data: organizationsAnalytics = {} } = useAllOrganizationsAnalytics();
   const createOrganization = useCreateOrganization();
   const updateOrganization = useUpdateOrganization();
   const deleteOrganization = useDeleteOrganization();
@@ -229,20 +232,64 @@ const OrganizationManagement = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Slug</TableHead>
+                    <TableHead>Analytics</TableHead>
+                    <TableHead>Users</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {organizations.map((org) => (
+                  {organizations.map((org) => {
+                    const analytics = organizationsAnalytics[org.id];
+                    
+                    return (
                     <TableRow key={org.id}>
-                      <TableCell className="font-medium">{org.name}</TableCell>
                       <TableCell>
-                        <code className="bg-muted px-2 py-1 rounded text-sm">
-                          {org.slug}
-                        </code>
+                        <div>
+                          <div className="font-medium">{org.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            <code className="bg-muted px-1 py-0.5 rounded text-xs">
+                              {org.slug}
+                            </code>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {analytics ? (
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-1">
+                              <Activity className="w-3 h-3 text-blue-500" />
+                              <span>{analytics.totalCampaigns} campaigns</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Eye className="w-3 h-3 text-green-500" />
+                              <span>{analytics.totalViews.toLocaleString()} views</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="w-3 h-3 text-purple-500" />
+                              <span>{analytics.avgEngagementRate.toFixed(1)}% eng.</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="w-3 h-3 text-yellow-500" />
+                              <span>${analytics.totalDealValue.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">Loading...</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {analytics ? (
+                          <div className="text-xs">
+                            <div>{analytics.totalUsers} total</div>
+                            <div className="text-muted-foreground">
+                              {analytics.totalCreators} creators • {analytics.totalClients} clients
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">Loading...</div>
+                        )}
                       </TableCell>
                       <TableCell>
                         {new Date(org.created_at).toLocaleDateString()}
@@ -279,7 +326,8 @@ const OrganizationManagement = () => {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
