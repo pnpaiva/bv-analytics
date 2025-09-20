@@ -69,12 +69,15 @@ export interface CreateCampaignData {
 }
 
 export function useCampaigns() {
-  const { organization, isMasterAdmin } = useUserPermissions();
+  const { organization, isMasterAdmin, isLocalClient } = useUserPermissions();
   const { selectedOrganizationId } = useOrganizationContext();
   
   return useQuery({
     queryKey: ['campaigns', selectedOrganizationId || organization?.id],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
       let query = supabase
         .from('campaigns')
         .select(`
@@ -87,8 +90,25 @@ export function useCampaigns() {
       if (isMasterAdmin && selectedOrganizationId) {
         query = query.eq('organization_id', selectedOrganizationId);
       } else if (organization?.id && !isMasterAdmin) {
-        // For non-master admins, filter by their organization
-        query = query.eq('organization_id', organization.id);
+        // For local clients, only show campaigns assigned to them
+        if (isLocalClient) {
+          // First get assigned campaign IDs
+          const { data: assignments } = await supabase
+            .from('client_campaign_assignments')
+            .select('campaign_id')
+            .eq('client_id', user.id);
+          
+          const assignedCampaignIds = assignments?.map(a => a.campaign_id) || [];
+          
+          if (assignedCampaignIds.length === 0) {
+            return []; // No campaigns assigned
+          }
+          
+          query = query.in('id', assignedCampaignIds);
+        } else {
+          // For local admins, filter by their organization
+          query = query.eq('organization_id', organization.id);
+        }
       }
 
       const { data, error } = await query;

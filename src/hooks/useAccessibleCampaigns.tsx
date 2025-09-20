@@ -8,7 +8,7 @@ export function useAccessibleCampaigns() {
   const { isMasterAdmin, isLocalAdmin, isLocalClient, organizationId } = useUserPermissions();
   
   return useQuery({
-    queryKey: ['accessible-campaigns', organizationId],
+    queryKey: ['accessible-campaigns', organizationId, isLocalClient ? 'client-assignments' : null],
     queryFn: async () => {
       console.log('useAccessibleCampaigns - fetching with permissions:', {
         isMasterAdmin,
@@ -17,15 +17,41 @@ export function useAccessibleCampaigns() {
         organizationId
       });
       
-      // RLS policies handle organization-based filtering automatically
-      // The policies use the database functions to check user's organization and role
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+
+      let campaignsQuery = supabase
         .from('campaigns')
         .select(`
           *,
           clients (name)
         `)
         .order('created_at', { ascending: false });
+
+      // For local clients, only show campaigns assigned to them
+      if (isLocalClient) {
+        console.log('Local client detected, fetching assigned campaigns...');
+        
+        // First get assigned campaign IDs
+        const { data: assignments } = await supabase
+          .from('client_campaign_assignments')
+          .select('campaign_id')
+          .eq('client_id', user.id);
+        
+        console.log('Campaign assignments:', assignments);
+        
+        const assignedCampaignIds = assignments?.map(a => a.campaign_id) || [];
+        
+        if (assignedCampaignIds.length === 0) {
+          console.log('No campaigns assigned to this client');
+          return []; // No campaigns assigned
+        }
+        
+        campaignsQuery = campaignsQuery.in('id', assignedCampaignIds);
+      }
+      // For other roles, RLS policies handle filtering automatically
+
+      const { data, error } = await campaignsQuery;
 
       if (error) {
         console.error('useAccessibleCampaigns - fetch error:', error);
