@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, UserPlus, Users, Trash2, Edit, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Plus, UserPlus, Users, Trash2, Edit, Eye, EyeOff, AlertTriangle, Settings } from 'lucide-react';
 import { useUserPermissions, useCreateUserAccount, useClientAccounts, AppRole } from '@/hooks/useUserRoles';
 import { useDeleteOrganizationMember } from '@/hooks/useOrganizationManagement';
+import { CampaignAssignmentDialog } from '@/components/campaigns/CampaignAssignmentDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Dialog, 
@@ -439,6 +440,12 @@ const OrganizationUsers = () => {
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
+                          {isLocalAdmin && user.role === 'local_client' && (
+                            <CampaignAssignmentDialog 
+                              clientId={user.user_id} 
+                              clientEmail={user.user?.email || user.user_id} 
+                            />
+                          )}
                           <Button 
                             size="sm" 
                             variant="outline" 
