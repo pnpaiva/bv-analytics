@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useBlogPost } from '@/hooks/useBlogPosts';
+import { useTrackBlogView } from '@/hooks/useBlogAnalytics';
 import { Calendar, Clock, ArrowLeft, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -11,6 +12,39 @@ import { PublicNavigation } from '@/components/PublicNavigation';
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const { data: post, isLoading, error } = useBlogPost(slug!);
+  const trackView = useTrackBlogView();
+  const [viewTracked, setViewTracked] = useState(false);
+  const [startTime] = useState(Date.now());
+
+  // Track page view when post loads
+  useEffect(() => {
+    if (post && !viewTracked) {
+      const referrer = document.referrer ? new URL(document.referrer).hostname : 'direct';
+      trackView.mutate({
+        blogPostId: post.id,
+        referrerSource: referrer,
+      });
+      setViewTracked(true);
+    }
+  }, [post, viewTracked, trackView]);
+
+  // Track time on page when user leaves
+  useEffect(() => {
+    if (!post) return;
+
+    const handleBeforeUnload = () => {
+      const timeOnPage = Math.floor((Date.now() - startTime) / 1000);
+      if (timeOnPage > 5) { // Only track if user stayed more than 5 seconds
+        trackView.mutate({
+          blogPostId: post.id,
+          timeOnPage,
+        });
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [post, startTime, trackView]);
 
   // Update document title and meta tags
   useEffect(() => {

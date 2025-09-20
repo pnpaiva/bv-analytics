@@ -112,6 +112,13 @@ export type Database = {
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analytics_data_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_with_org"
+            referencedColumns: ["id"]
+          },
         ]
       }
       api_credentials: {
@@ -147,6 +154,48 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_analytics: {
+        Row: {
+          blog_post_id: string
+          bounce_rate: number | null
+          created_at: string
+          date_recorded: string
+          id: string
+          organization_id: string
+          referrer_source: string | null
+          time_on_page: number | null
+          unique_views: number | null
+          updated_at: string
+          views: number | null
+        }
+        Insert: {
+          blog_post_id: string
+          bounce_rate?: number | null
+          created_at?: string
+          date_recorded?: string
+          id?: string
+          organization_id: string
+          referrer_source?: string | null
+          time_on_page?: number | null
+          unique_views?: number | null
+          updated_at?: string
+          views?: number | null
+        }
+        Update: {
+          blog_post_id?: string
+          bounce_rate?: number | null
+          created_at?: string
+          date_recorded?: string
+          id?: string
+          organization_id?: string
+          referrer_source?: string | null
+          time_on_page?: number | null
+          unique_views?: number | null
+          updated_at?: string
+          views?: number | null
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_id: string
@@ -158,6 +207,7 @@ export type Database = {
           meta_description: string | null
           meta_keywords: string | null
           meta_title: string | null
+          organization_id: string
           published_at: string | null
           slug: string
           status: string
@@ -174,6 +224,7 @@ export type Database = {
           meta_description?: string | null
           meta_keywords?: string | null
           meta_title?: string | null
+          organization_id: string
           published_at?: string | null
           slug: string
           status?: string
@@ -190,13 +241,22 @@ export type Database = {
           meta_description?: string | null
           meta_keywords?: string | null
           meta_title?: string | null
+          organization_id?: string
           published_at?: string | null
           slug?: string
           status?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "blog_posts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_creators: {
         Row: {
@@ -205,6 +265,7 @@ export type Database = {
           created_at: string
           creator_id: string
           id: string
+          organization_id: string
           updated_at: string
         }
         Insert: {
@@ -213,6 +274,7 @@ export type Database = {
           created_at?: string
           creator_id: string
           id?: string
+          organization_id: string
           updated_at?: string
         }
         Update: {
@@ -221,9 +283,17 @@ export type Database = {
           created_at?: string
           creator_id?: string
           id?: string
+          organization_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "campaign_creators_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_campaign_creators_campaign"
             columns: ["campaign_id"]
@@ -232,10 +302,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_campaign_creators_campaign"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_with_org"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_campaign_creators_creator"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_campaign_creators_creator"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators_with_org"
             referencedColumns: ["id"]
           },
         ]
@@ -249,6 +333,7 @@ export type Database = {
           email_sent_at: string | null
           id: string
           milestone_views: number
+          organization_id: string
         }
         Insert: {
           achieved_at?: string
@@ -258,6 +343,7 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           milestone_views: number
+          organization_id: string
         }
         Update: {
           achieved_at?: string
@@ -267,8 +353,17 @@ export type Database = {
           email_sent_at?: string | null
           id?: string
           milestone_views?: number
+          organization_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "campaign_milestones_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       campaign_refresh_logs: {
         Row: {
@@ -325,6 +420,7 @@ export type Database = {
           fetched_at: string
           id: string
           likes: number | null
+          organization_id: string
           platform: string
           shares: number | null
           updated_at: string
@@ -342,6 +438,7 @@ export type Database = {
           fetched_at?: string
           id?: string
           likes?: number | null
+          organization_id: string
           platform: string
           shares?: number | null
           updated_at?: string
@@ -359,6 +456,7 @@ export type Database = {
           fetched_at?: string
           id?: string
           likes?: number | null
+          organization_id?: string
           platform?: string
           shares?: number | null
           updated_at?: string
@@ -370,6 +468,20 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_url_analytics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_with_org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_url_analytics_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -474,10 +586,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_org"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "campaigns_creator_id_fkey"
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators_with_org"
             referencedColumns: ["id"]
           },
           {
@@ -496,6 +622,7 @@ export type Database = {
           campaign_id: string
           client_id: string
           id: string
+          organization_id: string
         }
         Insert: {
           assigned_at?: string | null
@@ -503,6 +630,7 @@ export type Database = {
           campaign_id: string
           client_id: string
           id?: string
+          organization_id: string
         }
         Update: {
           assigned_at?: string | null
@@ -510,6 +638,7 @@ export type Database = {
           campaign_id?: string
           client_id?: string
           id?: string
+          organization_id?: string
         }
         Relationships: [
           {
@@ -517,6 +646,20 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_campaign_assignments_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_with_org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_campaign_assignments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -640,6 +783,7 @@ export type Database = {
           date_recorded: string
           engagement_rate: number | null
           id: string
+          organization_id: string
           platform_breakdown: Json | null
           total_engagement: number | null
           total_views: number | null
@@ -651,6 +795,7 @@ export type Database = {
           date_recorded?: string
           engagement_rate?: number | null
           id?: string
+          organization_id: string
           platform_breakdown?: Json | null
           total_engagement?: number | null
           total_views?: number | null
@@ -662,12 +807,21 @@ export type Database = {
           date_recorded?: string
           engagement_rate?: number | null
           id?: string
+          organization_id?: string
           platform_breakdown?: Json | null
           total_engagement?: number | null
           total_views?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_campaign_performance_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       error_logs: {
         Row: {
@@ -764,6 +918,7 @@ export type Database = {
           created_at: string
           display_name: string | null
           id: string
+          organization_id: string
           updated_at: string
         }
         Insert: {
@@ -771,6 +926,7 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id: string
+          organization_id: string
           updated_at?: string
         }
         Update: {
@@ -778,9 +934,18 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           id?: string
+          organization_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       public_media_kits: {
         Row: {
@@ -789,6 +954,7 @@ export type Database = {
           creator_id: string | null
           id: string
           name: string
+          organization_id: string
           platform_handles: Json | null
           published: boolean
           published_at: string | null
@@ -803,6 +969,7 @@ export type Database = {
           creator_id?: string | null
           id?: string
           name: string
+          organization_id: string
           platform_handles?: Json | null
           published?: boolean
           published_at?: string | null
@@ -817,6 +984,7 @@ export type Database = {
           creator_id?: string | null
           id?: string
           name?: string
+          organization_id?: string
           platform_handles?: Json | null
           published?: boolean
           published_at?: string | null
@@ -825,7 +993,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "public_media_kits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refresh_logs: {
         Row: {
@@ -893,6 +1069,7 @@ export type Database = {
           email: string
           id: string
           metadata: Json | null
+          organization_id: string
           source: string | null
           status: string | null
           updated_at: string | null
@@ -902,6 +1079,7 @@ export type Database = {
           email: string
           id?: string
           metadata?: Json | null
+          organization_id: string
           source?: string | null
           status?: string | null
           updated_at?: string | null
@@ -911,17 +1089,156 @@ export type Database = {
           email?: string
           id?: string
           metadata?: Json | null
+          organization_id?: string
           source?: string | null
           status?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "waitlist_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      campaigns_with_org: {
+        Row: {
+          airtable_id: string | null
+          analytics_data: Json | null
+          analytics_updated_at: string | null
+          brand_name: string | null
+          campaign_date: string | null
+          campaign_month: string | null
+          client_id: string | null
+          client_name: string | null
+          content_urls: Json | null
+          created_at: string | null
+          creator_id: string | null
+          deal_value: number | null
+          engagement_rate: number | null
+          fixed_deal_value: number | null
+          id: string | null
+          logo_url: string | null
+          master_campaign_end_date: string | null
+          master_campaign_logo_url: string | null
+          master_campaign_name: string | null
+          master_campaign_start_date: string | null
+          old_creator_id: string | null
+          organization_id: string | null
+          organization_name: string | null
+          organization_slug: string | null
+          status: string | null
+          total_engagement: number | null
+          total_views: number | null
+          updated_at: string | null
+          user_id: string | null
+          variable_deal_value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients_with_org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators_with_org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients_with_org: {
+        Row: {
+          company: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          organization_id: string | null
+          organization_name: string | null
+          organization_slug: string | null
+          phone: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creators_with_org: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          demographics: Json | null
+          email: string | null
+          id: string | null
+          location: string | null
+          name: string | null
+          niche: string[] | null
+          organization_id: string | null
+          organization_name: string | null
+          organization_slug: string | null
+          phone: string | null
+          platform_handles: Json | null
+          platform_metrics: Json | null
+          services: Json | null
+          top_videos: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creators_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      can_access_campaign: {
+        Args: { _campaign_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_access_organization: {
         Args: { org_id: string; user_id: string }
         Returns: boolean
@@ -929,6 +1246,21 @@ export type Database = {
       generate_blog_slug: {
         Args: { title_text: string }
         Returns: string
+      }
+      get_blog_analytics_summary: {
+        Args: {
+          p_end_date?: string
+          p_organization_id: string
+          p_start_date?: string
+        }
+        Returns: {
+          avg_bounce_rate: number
+          avg_time_on_page: number
+          daily_views: Json
+          top_posts: Json
+          total_unique_views: number
+          total_views: number
+        }[]
       }
       get_campaign_timeline: {
         Args: { p_campaign_id: string; p_days_back?: number }
@@ -961,6 +1293,12 @@ export type Database = {
         Returns: {
           brand_name: string
           campaign_date: string
+          campaign_id: string
+        }[]
+      }
+      get_user_accessible_campaigns_org: {
+        Args: { _user_id: string }
+        Returns: {
           campaign_id: string
         }[]
       }
@@ -1007,6 +1345,18 @@ export type Database = {
       unaccent_init: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      upsert_blog_analytics: {
+        Args: {
+          p_blog_post_id: string
+          p_date_recorded?: string
+          p_organization_id?: string
+          p_referrer_source?: string
+          p_time_on_page?: number
+          p_unique_views?: number
+          p_views?: number
+        }
+        Returns: undefined
       }
       upsert_campaign_url_analytics: {
         Args: {
