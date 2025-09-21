@@ -388,6 +388,7 @@ Deno.serve(async (req) => {
                       campaign_id: campaign.id,
                       content_url: url,
                       platform: platform,
+                      organization_id: campaign.organization_id, // Add missing organization_id
                       date_recorded: new Date().toISOString().split('T')[0],
                       views: platformData.views || 0,
                       likes: platformData.likes || 0,
