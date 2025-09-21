@@ -1338,6 +1338,10 @@ export type Database = {
           slug: string
         }[]
       }
+      set_campaign_status: {
+        Args: { p_campaign_id: string; p_status: string }
+        Returns: undefined
+      }
       unaccent: {
         Args: { "": string }
         Returns: string
@@ -1345,6 +1349,16 @@ export type Database = {
       unaccent_init: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      update_campaign_analytics: {
+        Args: {
+          p_analytics_data?: Json
+          p_campaign_id: string
+          p_engagement_rate?: number
+          p_total_engagement?: number
+          p_total_views?: number
+        }
+        Returns: undefined
       }
       upsert_blog_analytics: {
         Args: {
