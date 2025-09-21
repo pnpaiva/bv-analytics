@@ -19,6 +19,7 @@ export interface CreateCampaignCreatorData {
   campaign_id: string;
   creator_id: string;
   content_urls: Record<string, string[]>;
+  organization_id: string;
 }
 
 export function useCampaignCreators(campaignId?: string) {

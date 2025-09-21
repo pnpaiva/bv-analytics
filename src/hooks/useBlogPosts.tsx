@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 
 export interface BlogPost {
   id: string;
@@ -72,9 +73,18 @@ export function useCreateBlogPost() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (blogPost: Omit<BlogPost, 'id' | 'author_id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (blogPost: Omit<BlogPost, 'id' | 'author_id' | 'created_at' | 'updated_at' | 'organization_id'>) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+      
+      // Get user's organization
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profile?.organization_id) throw new Error('User organization not found');
 
       // Generate slug if not provided
       let slug = blogPost.slug;
@@ -92,6 +102,7 @@ export function useCreateBlogPost() {
           ...blogPost,
           slug,
           author_id: user.id,
+          organization_id: profile.organization_id,
           published_at: blogPost.status === 'published' ? new Date().toISOString() : null
         })
         .select()

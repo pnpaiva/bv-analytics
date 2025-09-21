@@ -6,10 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, TrendingUp, Users, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 
 export function BlogCTA() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { selectedOrganizationId } = useOrganizationContext();
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +43,8 @@ export function BlogCTA() {
         .insert({
           email: email,
           source: 'blog_cta',
-          status: 'pending'
+          status: 'pending',
+          organization_id: selectedOrganizationId || '00000000-0000-0000-0000-000000000000'
         });
 
       if (error) {

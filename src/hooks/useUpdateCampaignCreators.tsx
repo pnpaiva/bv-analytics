@@ -22,6 +22,15 @@ export function useUpdateCampaignCreators() {
     mutationFn: async (data: UpdateCampaignCreatorsData) => {
       const { campaign_id, creators } = data;
       
+      // Get campaign's organization_id
+      const { data: campaign } = await supabase
+        .from('campaigns')
+        .select('organization_id')
+        .eq('id', campaign_id)
+        .single();
+      
+      if (!campaign?.organization_id) throw new Error('Campaign organization not found');
+      
       // First, delete all existing campaign creators for this campaign
       const { error: deleteError } = await supabase
         .from('campaign_creators')
@@ -35,6 +44,7 @@ export function useUpdateCampaignCreators() {
         const campaignCreatorsData = creators.map(creator => ({
           campaign_id,
           creator_id: creator.creator_id,
+          organization_id: campaign.organization_id,
           content_urls: {
             youtube: creator.content_urls.youtube.filter(url => url.trim() !== ''),
             instagram: creator.content_urls.instagram.filter(url => url.trim() !== ''),
