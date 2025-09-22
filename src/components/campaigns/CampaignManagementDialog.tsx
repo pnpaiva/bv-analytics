@@ -32,7 +32,7 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
   const updateCreatorProject = useUpdateCampaignCreatorProject();
   const createNote = useCreateProjectNote();
   
-  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
+  const [selectedCreator, setSelectedCreator] = useState<string>('general');
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState<'general' | 'payment' | 'content' | 'contact'>('general');
 
@@ -77,7 +77,7 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
     try {
       await createNote.mutateAsync({
         campaign_id: campaign.id,
-        creator_id: selectedCreator || undefined,
+        creator_id: selectedCreator === 'general' ? undefined : selectedCreator || undefined,
         note_type: noteType,
         content: noteContent,
         created_by: user.id,
@@ -441,12 +441,12 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
                   
                   <div className="space-y-2">
                     <Label>Creator (Optional)</Label>
-                    <Select value={selectedCreator || ''} onValueChange={setSelectedCreator}>
+                    <Select value={selectedCreator || 'general'} onValueChange={setSelectedCreator}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select creator or leave blank for general" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">General note</SelectItem>
+                        <SelectItem value="general">General note</SelectItem>
                         {creators.map(creator => (
                           <SelectItem key={creator.id} value={creator.id}>
                             {creator.creators?.name}
