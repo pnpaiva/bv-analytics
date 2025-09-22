@@ -13,6 +13,7 @@ import Campaigns from "./pages/Campaigns";
 import Analytics from "./pages/Analytics";
 import MasterCampaigns from "./pages/MasterCampaigns";
 import CreatorProfiles from "./pages/CreatorProfiles";
+import ProjectManagement from "./pages/ProjectManagement";
 import RoleBasedDashboard from "./pages/RoleBasedDashboard";
 import AdminBlog from "./pages/AdminBlog";
 import Profile from "./pages/Profile";
@@ -74,6 +75,13 @@ const App = () => (
             <AuthProvider>
               <ProtectedRoute>
                 <CreatorProfiles />
+              </ProtectedRoute>
+            </AuthProvider>
+          } />
+          <Route path="/project-management" element={
+            <AuthProvider>
+              <ProtectedRoute>
+                <ProjectManagement />
               </ProtectedRoute>
             </AuthProvider>
           } />

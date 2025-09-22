@@ -9,10 +9,11 @@ import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
+import { CampaignManagementDialog } from './CampaignManagementDialog';
 import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
 import { toast } from 'sonner';
 import {
@@ -48,6 +49,7 @@ export function CampaignCard({
   const [refreshing, setRefreshing] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
+  const [managementDialogOpen, setManagementDialogOpen] = useState(false);
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
@@ -377,14 +379,22 @@ export function CampaignCard({
               <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPDF}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setManagementDialogOpen(true)}
+              >
+                <Users className="h-4 w-4 mr-1" />
+                Management
+              </Button>
           </div>
           
           <div className="flex items-center gap-2">
@@ -475,6 +485,12 @@ export function CampaignCard({
         onSave={handleMasterCampaignSave}
       />
     )}
-  </>
+
+    <CampaignManagementDialog
+      campaign={campaign}
+      isOpen={managementDialogOpen}
+      onClose={() => setManagementDialogOpen(false)}
+    />
+    </>
   );
 }

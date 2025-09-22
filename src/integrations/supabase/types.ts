@@ -261,29 +261,53 @@ export type Database = {
       campaign_creators: {
         Row: {
           campaign_id: string
+          contact_status: string | null
           content_urls: Json | null
           created_at: string
           creator_id: string
+          deadline: string | null
           id: string
+          notes: string | null
           organization_id: string
+          payment_amount: number | null
+          payment_due_date: string | null
+          payment_status: string | null
+          priority: string | null
+          stage: string | null
           updated_at: string
         }
         Insert: {
           campaign_id: string
+          contact_status?: string | null
           content_urls?: Json | null
           created_at?: string
           creator_id: string
+          deadline?: string | null
           id?: string
+          notes?: string | null
           organization_id: string
+          payment_amount?: number | null
+          payment_due_date?: string | null
+          payment_status?: string | null
+          priority?: string | null
+          stage?: string | null
           updated_at?: string
         }
         Update: {
           campaign_id?: string
+          contact_status?: string | null
           content_urls?: Json | null
           created_at?: string
           creator_id?: string
+          deadline?: string | null
           id?: string
+          notes?: string | null
           organization_id?: string
+          payment_amount?: number | null
+          payment_due_date?: string | null
+          payment_status?: string | null
+          priority?: string | null
+          stage?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -364,6 +388,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      campaign_project_notes: {
+        Row: {
+          campaign_id: string
+          content: string
+          created_at: string | null
+          created_by: string
+          creator_id: string | null
+          id: string
+          note_type: string | null
+          organization_id: string
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          campaign_id: string
+          content: string
+          created_at?: string | null
+          created_by: string
+          creator_id?: string | null
+          id?: string
+          note_type?: string | null
+          organization_id: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          content?: string
+          created_at?: string | null
+          created_by?: string
+          creator_id?: string | null
+          id?: string
+          note_type?: string | null
+          organization_id?: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      campaign_project_stages: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       campaign_refresh_logs: {
         Row: {

@@ -44,6 +44,7 @@ export function Navigation() {
   const baseNavItems = [
     { to: '/analytics', icon: BarChart3, label: 'Analytics' },
     { to: '/campaigns', icon: FileText, label: 'Campaigns' },
+    { to: '/project-management', icon: Users, label: 'Project Management' },
     { to: '/creator-profiles', icon: UserCircle, label: 'Creator Profiles' },
   ];
 
