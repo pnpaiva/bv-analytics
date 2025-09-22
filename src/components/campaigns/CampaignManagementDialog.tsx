@@ -641,9 +641,9 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
             </Button>
             <Button 
               onClick={handleAddCreator}
-              disabled={!selectedCreatorToAdd || assignCreatorMutation.isPending}
+              disabled={!selectedCreatorToAdd || assignCreatorMutation?.isPending}
             >
-              {assignCreatorMutation.isPending ? 'Adding...' : 'Add Creator'}
+              {assignCreatorMutation?.isPending ? 'Adding...' : 'Add Creator'}
             </Button>
           </div>
         </DialogContent>
