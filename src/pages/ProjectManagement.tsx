@@ -17,11 +17,17 @@ import {
   Filter,
   Search,
   Eye,
-  Edit3
+  Edit3,
+  Table,
+  Clock as TimelineIcon,
+  Paperclip
 } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns';
 import { useProjectOverview, useCampaignCreatorsProject, useProjectStages } from '@/hooks/useProjectManagement';
 import { CampaignManagementDialog } from '@/components/campaigns/CampaignManagementDialog';
+import { ProjectManagementTable } from '@/components/campaigns/ProjectManagementTable';
+import { TimelineManagement } from '@/components/campaigns/TimelineManagement';
+import { FileAttachmentSystem } from '@/components/campaigns/FileAttachmentSystem';
 import { useCampaigns } from '@/hooks/useCampaigns';
 
 export default function ProjectManagement() {
@@ -105,10 +111,21 @@ export default function ProjectManagement() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="table">
+              <Table className="h-4 w-4 mr-2" />
+              Manage Table
+            </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <TimelineIcon className="h-4 w-4 mr-2" />
+              Timeline
+            </TabsTrigger>
+            <TabsTrigger value="files">
+              <Paperclip className="h-4 w-4 mr-2" />
+              Files
+            </TabsTrigger>
             <TabsTrigger value="creators">All Creators</TabsTrigger>
-            <TabsTrigger value="deadlines">Deadlines</TabsTrigger>
             <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
           </TabsList>
 
@@ -257,6 +274,18 @@ export default function ProjectManagement() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="table" className="space-y-6">
+            <ProjectManagementTable />
+          </TabsContent>
+
+          <TabsContent value="timeline" className="space-y-6">
+            <TimelineManagement />
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-6">
+            <FileAttachmentSystem />
           </TabsContent>
 
           <TabsContent value="creators" className="space-y-6">
