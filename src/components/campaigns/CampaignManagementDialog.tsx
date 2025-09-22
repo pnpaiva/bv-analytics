@@ -17,7 +17,8 @@ import { Campaign } from '@/hooks/useCampaigns';
 import { useCampaignCreatorsProject, useProjectStages, useUpdateCampaignCreatorProject, useProjectNotes, useCreateProjectNote } from '@/hooks/useProjectManagement';
 import { useAuth } from '@/hooks/useAuth';
 import { useCreators } from '@/hooks/useCreators';
-import { useCampaignCreators } from '@/hooks/useCampaignCreators';
+import { useCampaignCreators, useCreateCampaignCreator } from '@/hooks/useCampaignCreators';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CampaignManagementDialogProps {
@@ -34,7 +35,7 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
   const { data: notes = [] } = useProjectNotes(campaign.id);
   const updateCreatorProject = useUpdateCampaignCreatorProject();
   const createNote = useCreateProjectNote();
-  const assignCreator = useCampaignCreators();
+  const assignCreatorMutation = useCreateCampaignCreator();
   
   const [selectedCreator, setSelectedCreator] = useState<string>('general');
   const [noteContent, setNoteContent] = useState('');
@@ -98,9 +99,22 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
     if (!selectedCreatorToAdd || !campaign) return;
     
     try {
-      await assignCreator.assignCreator.mutateAsync({
-        campaignId: campaign.id,
-        creatorId: selectedCreatorToAdd,
+      // Get campaign organization_id
+      const { data: campaignData } = await supabase
+        .from('campaigns')
+        .select('organization_id')
+        .eq('id', campaign.id)
+        .single();
+      
+      if (!campaignData?.organization_id) {
+        throw new Error('Campaign organization not found');
+      }
+      
+      await assignCreatorMutation.mutateAsync({
+        campaign_id: campaign.id,
+        creator_id: selectedCreatorToAdd,
+        content_urls: {},
+        organization_id: campaignData.organization_id,
       });
       
       setSelectedCreatorToAdd('');
@@ -627,9 +641,9 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
             </Button>
             <Button 
               onClick={handleAddCreator}
-              disabled={!selectedCreatorToAdd || assignCreatorMutation.assignCreator.isPending}
+              disabled={!selectedCreatorToAdd || assignCreatorMutation.isPending}
             >
-              {assignCreatorMutation.assignCreator.isPending ? 'Adding...' : 'Add Creator'}
+              {assignCreatorMutation.isPending ? 'Adding...' : 'Add Creator'}
             </Button>
           </div>
         </DialogContent>
