@@ -38,7 +38,8 @@ export default function ProjectManagement() {
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
 
   const getStageColor = (stageName: string) => {
-    const stage = stages.find(s => s.name.toLowerCase() === stageName.toLowerCase());
+    const normalizedStageName = stageName.toLowerCase().replace(/_/g, ' ');
+    const stage = stages.find(s => s.name.toLowerCase() === normalizedStageName);
     return stage?.color || '#6B7280';
   };
 
@@ -67,7 +68,7 @@ export default function ProjectManagement() {
       creator.creators?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       creator.campaigns?.brand_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStage = stageFilter === 'all' || creator.stage === stageFilter;
+    const matchesStage = stageFilter === 'all' || creator.stage === stageFilter || creator.stage?.toLowerCase().replace(/_/g, ' ') === stageFilter;
     const matchesPriority = priorityFilter === 'all' || creator.priority === priorityFilter;
     const matchesPayment = paymentFilter === 'all' || creator.payment_status === paymentFilter;
 
@@ -180,7 +181,9 @@ export default function ProjectManagement() {
                   <div className="space-y-4">
                     {stages.map(stage => {
                       const stageKey = stage.name.toLowerCase().replace(/\s+/g, '_');
-                      const count = overview?.stageStats?.[stageKey] || 0;
+                      const count = overview?.stageStats?.[stageKey] || 
+                                   overview?.stageStats?.[stage.name.toLowerCase()] || 
+                                   allCreators.filter(c => c.stage?.toLowerCase().replace(/_/g, ' ') === stage.name.toLowerCase()).length;
                       const percentage = overview?.totalProjects ? (count / overview.totalProjects) * 100 : 0;
                       
                       return (
@@ -401,8 +404,8 @@ export default function ProjectManagement() {
                           size="sm"
                           onClick={() => setSelectedCampaignId(creator.campaign_id)}
                         >
-                          <Eye className="h-4 w-4 mr-2" />
-                          View Campaign
+                          <Edit3 className="h-4 w-4 mr-2" />
+                          Manage
                         </Button>
                       </div>
                     </div>
