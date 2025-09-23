@@ -320,14 +320,17 @@ export default function ProjectManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Stages</SelectItem>
-                        {stages.filter(stage => stage.name && stage.name.trim()).map(stage => (
-                          <SelectItem 
-                            key={stage.id} 
-                            value={stage.name.toLowerCase().replace(/\s+/g, '_')}
-                          >
-                            {stage.name}
-                          </SelectItem>
-                        ))}
+                        {stages.filter(stage => stage.name && stage.name.trim()).map(stage => {
+                          const value = stage.name.toLowerCase().replace(/\s+/g, '_');
+                          return value ? (
+                            <SelectItem 
+                              key={stage.id} 
+                              value={value}
+                            >
+                              {stage.name}
+                            </SelectItem>
+                          ) : null;
+                        }).filter(Boolean)}
                       </SelectContent>
                     </Select>
                   </div>

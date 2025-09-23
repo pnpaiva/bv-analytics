@@ -236,7 +236,7 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
                       <SelectValue placeholder="Select campaign" />
                     </SelectTrigger>
                     <SelectContent>
-                      {campaigns.map(campaign => (
+                      {campaigns.filter(campaign => campaign.id && campaign.id.trim()).map(campaign => (
                         <SelectItem key={campaign.id} value={campaign.id}>
                           {campaign.brand_name}
                         </SelectItem>
@@ -252,7 +252,7 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
                       <SelectValue placeholder="Select creator" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableCreators.map(creator => (
+                      {availableCreators.filter(creator => creator.id && creator.id.trim()).map(creator => (
                         <SelectItem key={creator.id} value={creator.id}>
                           {creator.name}
                         </SelectItem>
@@ -272,11 +272,14 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {stages.filter(stage => stage.name && stage.name.trim()).map(stage => (
-                        <SelectItem key={stage.id} value={stage.name.toLowerCase().replace(/\s+/g, '_')}>
-                          {stage.name}
-                        </SelectItem>
-                      ))}
+                      {stages.filter(stage => stage.name && stage.name.trim()).map(stage => {
+                        const value = stage.name.toLowerCase().replace(/\s+/g, '_');
+                        return value ? (
+                          <SelectItem key={stage.id} value={value}>
+                            {stage.name}
+                          </SelectItem>
+                        ) : null;
+                      }).filter(Boolean)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -427,20 +430,23 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {stages.filter(stage => stage.name && stage.name.trim()).map(stage => (
-                          <SelectItem 
-                            key={stage.id} 
-                            value={stage.name.toLowerCase().replace(/\s+/g, '_')}
-                          >
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-2 h-2 rounded-full"
-                                style={{ backgroundColor: stage.color }}
-                              />
-                              {stage.name}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        {stages.filter(stage => stage.name && stage.name.trim()).map(stage => {
+                          const value = stage.name.toLowerCase().replace(/\s+/g, '_');
+                          return value ? (
+                            <SelectItem 
+                              key={stage.id} 
+                              value={value}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: stage.color }}
+                                />
+                                {stage.name}
+                              </div>
+                            </SelectItem>
+                          ) : null;
+                        }).filter(Boolean)}
                       </SelectContent>
                     </Select>
                   </TableCell>
