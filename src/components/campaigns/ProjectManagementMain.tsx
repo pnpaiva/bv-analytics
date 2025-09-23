@@ -32,13 +32,22 @@ export function ProjectManagementMain() {
   const { data: creators = [] } = useCreators();
   const { data: projectData = [] } = useCampaignCreators();
 
-  // Combine data for the table
+  // Combine data for the table - only show campaigns in development
   const tableData = projectData
     .map(item => {
       const campaign = campaigns.find(c => c.id === item.campaign_id);
       const creator = creators.find(c => c.id === item.creator_id);
       
       if (!campaign || !creator) return null;
+      
+      // Only show campaigns that are NOT completed or don't have content URLs (still in development)
+      const isCompleted = campaign.status === 'completed';
+      const hasContentUrls = campaign.content_urls && 
+        Object.keys(campaign.content_urls).length > 0 &&
+        Object.values(campaign.content_urls).some(urls => urls.length > 0);
+      
+      // Show campaigns that are either not completed OR don't have content URLs (in development)
+      if (isCompleted && hasContentUrls) return null;
       
       return {
         campaign,
