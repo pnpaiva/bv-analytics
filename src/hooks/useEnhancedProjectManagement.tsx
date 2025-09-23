@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrganizationContext } from './useOrganizationContext';
+import { useUserPermissions } from './useUserRoles';
 
 // Enhanced types for project management
 export interface ProjectFile {
@@ -71,16 +72,20 @@ export interface CampaignCreatorEnhanced {
 // Hook to fetch project files
 export function useProjectFiles(campaignId?: string, creatorId?: string) {
   const { selectedOrganizationId } = useOrganizationContext();
+  const { organization, isMasterAdmin } = useUserPermissions();
+  
+  // Use selected org for master admins, user's org for others
+  const currentOrgId = isMasterAdmin ? selectedOrganizationId : organization?.id;
   
   return useQuery({
-    queryKey: ['project-files', campaignId, creatorId, selectedOrganizationId],
+    queryKey: ['project-files', campaignId, creatorId, currentOrgId],
     queryFn: async () => {
-      if (!selectedOrganizationId) return [];
+      if (!currentOrgId) return [];
       
       let query = supabase
         .from('campaign_project_files')
         .select('*')
-        .eq('organization_id', selectedOrganizationId)
+        .eq('organization_id', currentOrgId)
         .order('created_at', { ascending: false });
 
       if (campaignId) {
@@ -96,23 +101,27 @@ export function useProjectFiles(campaignId?: string, creatorId?: string) {
       if (error) throw error;
       return data as ProjectFile[];
     },
-    enabled: !!selectedOrganizationId,
+    enabled: !!currentOrgId,
   });
 }
 
 // Hook to fetch timeline activities
 export function useProjectTimeline(campaignId?: string, creatorId?: string) {
   const { selectedOrganizationId } = useOrganizationContext();
+  const { organization, isMasterAdmin } = useUserPermissions();
+  
+  // Use selected org for master admins, user's org for others
+  const currentOrgId = isMasterAdmin ? selectedOrganizationId : organization?.id;
   
   return useQuery({
-    queryKey: ['project-timeline', campaignId, creatorId, selectedOrganizationId],
+    queryKey: ['project-timeline', campaignId, creatorId, currentOrgId],
     queryFn: async () => {
-      if (!selectedOrganizationId) return [];
+      if (!currentOrgId) return [];
       
       let query = supabase
         .from('campaign_project_timeline')
         .select('*')
-        .eq('organization_id', selectedOrganizationId)
+        .eq('organization_id', currentOrgId)
         .order('created_at', { ascending: false })
         .limit(50);
 
@@ -129,7 +138,7 @@ export function useProjectTimeline(campaignId?: string, creatorId?: string) {
       if (error) throw error;
       return data as TimelineActivity[];
     },
-    enabled: !!selectedOrganizationId,
+    enabled: !!currentOrgId,
   });
 }
 
@@ -137,6 +146,10 @@ export function useProjectTimeline(campaignId?: string, creatorId?: string) {
 export function useUploadProjectFile() {
   const queryClient = useQueryClient();
   const { selectedOrganizationId } = useOrganizationContext();
+  const { organization, isMasterAdmin } = useUserPermissions();
+  
+  // Use selected org for master admins, user's org for others
+  const currentOrgId = isMasterAdmin ? selectedOrganizationId : organization?.id;
 
   return useMutation({
     mutationFn: async ({
@@ -153,7 +166,7 @@ export function useUploadProjectFile() {
       description?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !selectedOrganizationId) throw new Error('User not authenticated');
+      if (!user || !currentOrgId) throw new Error('User not authenticated');
 
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
@@ -178,7 +191,7 @@ export function useUploadProjectFile() {
           file_size: file.size,
           mime_type: file.type,
           uploaded_by: user.id,
-          organization_id: selectedOrganizationId,
+          organization_id: currentOrgId,
           description,
           status: 'pending'
         })
@@ -194,7 +207,7 @@ export function useUploadProjectFile() {
         p_activity_type: 'file_upload',
         p_title: `File uploaded: ${file.name}`,
         p_description: `${fileType} file uploaded`,
-        p_organization_id: selectedOrganizationId
+        p_organization_id: currentOrgId
       });
 
       return data;
@@ -215,6 +228,10 @@ export function useUploadProjectFile() {
 export function useAddProjectUrl() {
   const queryClient = useQueryClient();
   const { selectedOrganizationId } = useOrganizationContext();
+  const { organization, isMasterAdmin } = useUserPermissions();
+  
+  // Use selected org for master admins, user's org for others
+  const currentOrgId = isMasterAdmin ? selectedOrganizationId : organization?.id;
 
   return useMutation({
     mutationFn: async ({
@@ -233,7 +250,7 @@ export function useAddProjectUrl() {
       description?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !selectedOrganizationId) throw new Error('User not authenticated');
+      if (!user || !currentOrgId) throw new Error('User not authenticated');
 
       const { data, error } = await supabase
         .from('campaign_project_files')
@@ -244,7 +261,7 @@ export function useAddProjectUrl() {
           file_name: fileName,
           file_url: url,
           uploaded_by: user.id,
-          organization_id: selectedOrganizationId,
+          organization_id: currentOrgId,
           description,
           status: 'pending'
         })
@@ -260,7 +277,7 @@ export function useAddProjectUrl() {
         p_activity_type: 'file_upload',
         p_title: `URL added: ${fileName}`,
         p_description: `${fileType} URL added`,
-        p_organization_id: selectedOrganizationId
+        p_organization_id: currentOrgId
       });
 
       return data;

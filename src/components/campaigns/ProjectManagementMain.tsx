@@ -265,54 +265,54 @@ export function ProjectManagementMain() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>
+                  <TableHead className="w-[200px]">
                     <Button 
                       variant="ghost" 
                       onClick={() => handleSort('brand_name')}
-                      className="h-auto p-0 font-semibold"
+                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Campaign <SortIcon field="brand_name" />
                     </Button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className="w-[180px]">
                     <Button 
                       variant="ghost" 
                       onClick={() => handleSort('creator_name')}
-                      className="h-auto p-0 font-semibold"
+                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Creator <SortIcon field="creator_name" />
                     </Button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className="w-[120px]">
                     <Button 
                       variant="ghost" 
                       onClick={() => handleSort('stage')}
-                      className="h-auto p-0 font-semibold"
+                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Stage <SortIcon field="stage" />
                     </Button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className="w-[100px]">
                     <Button 
                       variant="ghost" 
                       onClick={() => handleSort('priority')}
-                      className="h-auto p-0 font-semibold"
+                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Priority <SortIcon field="priority" />
                     </Button>
                   </TableHead>
-                  <TableHead>
+                  <TableHead className="w-[140px]">
                     <Button 
                       variant="ghost" 
                       onClick={() => handleSort('campaign_date')}
-                      className="h-auto p-0 font-semibold"
+                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Dates <SortIcon field="campaign_date" />
                     </Button>
                   </TableHead>
-                  <TableHead>Performance</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead className="w-[120px]">Actions</TableHead>
+                  <TableHead className="w-[130px]">Performance</TableHead>
+                  <TableHead className="w-[120px]">Payment</TableHead>
+                  <TableHead className="w-[120px] text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
