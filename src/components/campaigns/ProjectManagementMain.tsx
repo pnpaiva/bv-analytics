@@ -266,49 +266,44 @@ export function ProjectManagementMain() {
                 <TableRow>
                   <TableHead className="w-[50px]"></TableHead>
                   <TableHead className="w-[200px]">
-                    <Button 
-                      variant="ghost" 
+                    <div 
+                      className="flex items-center cursor-pointer hover:text-foreground/80"
                       onClick={() => handleSort('brand_name')}
-                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Campaign <SortIcon field="brand_name" />
-                    </Button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-[180px]">
-                    <Button 
-                      variant="ghost" 
+                    <div 
+                      className="flex items-center cursor-pointer hover:text-foreground/80"
                       onClick={() => handleSort('creator_name')}
-                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Creator <SortIcon field="creator_name" />
-                    </Button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-[120px]">
-                    <Button 
-                      variant="ghost" 
+                    <div 
+                      className="flex items-center cursor-pointer hover:text-foreground/80"
                       onClick={() => handleSort('stage')}
-                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Stage <SortIcon field="stage" />
-                    </Button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-[100px]">
-                    <Button 
-                      variant="ghost" 
+                    <div 
+                      className="flex items-center cursor-pointer hover:text-foreground/80"
                       onClick={() => handleSort('priority')}
-                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Priority <SortIcon field="priority" />
-                    </Button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-[140px]">
-                    <Button 
-                      variant="ghost" 
+                    <div 
+                      className="flex items-center cursor-pointer hover:text-foreground/80"
                       onClick={() => handleSort('campaign_date')}
-                      className="h-auto p-0 font-semibold text-left justify-start"
                     >
                       Dates <SortIcon field="campaign_date" />
-                    </Button>
+                    </div>
                   </TableHead>
                   <TableHead className="w-[130px]">Performance</TableHead>
                   <TableHead className="w-[120px]">Payment</TableHead>
