@@ -98,6 +98,13 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
   const handleAddCreator = async () => {
     if (!selectedCreatorToAdd || !campaign) return;
     
+    // Check if creator is already assigned to prevent duplicate constraint error
+    const isAlreadyAssigned = creators.some(c => c.creator_id === selectedCreatorToAdd);
+    if (isAlreadyAssigned) {
+      toast.error('Creator is already assigned to this campaign');
+      return;
+    }
+    
     try {
       // Get campaign organization_id
       const { data: campaignData } = await supabase
@@ -123,7 +130,12 @@ export function CampaignManagementDialog({ campaign, isOpen, onClose }: Campaign
       toast.success('Creator added to campaign successfully');
     } catch (error) {
       console.error('Error adding creator:', error);
-      toast.error('Failed to add creator to campaign');
+      // Handle specific duplicate key error
+      if (error.code === '23505') {
+        toast.error('Creator is already assigned to this campaign');
+      } else {
+        toast.error('Failed to add creator to campaign');
+      }
     }
   };
 

@@ -67,10 +67,8 @@ export function useCreateCampaignCreator() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['campaign-creators', variables.campaign_id] });
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast.success('Creator added to campaign successfully');
     },
     onError: (error) => {
-      toast.error('Failed to add creator to campaign');
       console.error(error);
     },
   });
