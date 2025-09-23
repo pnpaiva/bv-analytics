@@ -312,6 +312,7 @@ export function ProjectManagementMain() {
                   </TableHead>
                   <TableHead>Performance</TableHead>
                   <TableHead>Payment</TableHead>
+                  <TableHead className="w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

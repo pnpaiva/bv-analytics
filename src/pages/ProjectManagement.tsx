@@ -58,20 +58,7 @@ export default function ProjectManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="projects" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="projects">Project Overview</TabsTrigger>
-            <TabsTrigger value="campaigns">Campaign Support</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="projects" className="space-y-4">
-            <ProjectManagementMain />
-          </TabsContent>
-
-          <TabsContent value="campaigns" className="space-y-4">
-            <Campaigns />
-          </TabsContent>
-        </Tabs>
+        <ProjectManagementMain />
       </div>
     </div>
   );
