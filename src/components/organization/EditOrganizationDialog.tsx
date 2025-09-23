@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Organization } from '@/hooks/useOrganizationManagement';
 import { toast } from 'sonner';
 
@@ -17,7 +18,7 @@ interface EditOrganizationDialogProps {
   organization: Organization | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: { id: string; name: string; slug: string }) => Promise<void>;
+  onSave: (data: { id: string; name: string; slug: string; project_management_enabled: boolean }) => Promise<void>;
 }
 
 export function EditOrganizationDialog({ 
@@ -28,7 +29,8 @@ export function EditOrganizationDialog({
 }: EditOrganizationDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
-    slug: ''
+    slug: '',
+    project_management_enabled: true
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,7 +39,8 @@ export function EditOrganizationDialog({
     if (organization) {
       setFormData({
         name: organization.name,
-        slug: organization.slug
+        slug: organization.slug,
+        project_management_enabled: organization.settings?.project_management_enabled ?? true
       });
     }
   }, [organization]);
@@ -45,7 +48,7 @@ export function EditOrganizationDialog({
   // Auto-generate slug from name
   const handleNameChange = (name: string) => {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    setFormData({ name, slug });
+    setFormData({ ...formData, name, slug });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,7 +64,8 @@ export function EditOrganizationDialog({
       await onSave({
         id: organization.id,
         name: formData.name.trim(),
-        slug: formData.slug.trim()
+        slug: formData.slug.trim(),
+        project_management_enabled: formData.project_management_enabled
       });
       onClose();
     } catch (error) {
@@ -72,7 +76,7 @@ export function EditOrganizationDialog({
   };
 
   const handleClose = () => {
-    setFormData({ name: '', slug: '' });
+    setFormData({ name: '', slug: '', project_management_enabled: true });
     onClose();
   };
 
@@ -111,6 +115,24 @@ export function EditOrganizationDialog({
               <p className="text-xs text-muted-foreground">
                 This will be used in URLs and must be unique
               </p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="project-management">Project Management</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enable project management features for this organization
+                  </p>
+                </div>
+                <Switch
+                  id="project-management"
+                  checked={formData.project_management_enabled}
+                  onCheckedChange={(checked) => 
+                    setFormData({ ...formData, project_management_enabled: checked })
+                  }
+                />
+              </div>
             </div>
           </div>
           

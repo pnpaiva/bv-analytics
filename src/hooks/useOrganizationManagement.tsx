@@ -196,12 +196,15 @@ export function useUpdateOrganization() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: { id: string; name: string; slug: string }) => {
+    mutationFn: async (data: { id: string; name: string; slug: string; project_management_enabled: boolean }) => {
       const { data: organization, error } = await supabase
         .from('organizations')
         .update({ 
           name: data.name, 
           slug: data.slug,
+          settings: {
+            project_management_enabled: data.project_management_enabled
+          },
           updated_at: new Date().toISOString()
         })
         .eq('id', data.id)

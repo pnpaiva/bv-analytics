@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Building2, Users, Settings, Trash2, Edit, TrendingUp, Eye, DollarSign, Activity } from 'lucide-react';
+import { Plus, Building2, Users, Settings, Trash2, Edit, TrendingUp, Eye, DollarSign, Activity, Shield } from 'lucide-react';
 import { useOrganizations, useCreateOrganization, useUpdateOrganization, useDeleteOrganization, Organization } from '@/hooks/useOrganizationManagement';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useCampaigns } from '@/hooks/useCampaigns';
@@ -90,7 +90,7 @@ const OrganizationManagement = () => {
     setIsUserManagementDialogOpen(true);
   };
 
-  const handleUpdateOrganization = async (data: { id: string; name: string; slug: string }) => {
+  const handleUpdateOrganization = async (data: { id: string; name: string; slug: string; project_management_enabled: boolean }) => {
     await updateOrganization.mutateAsync(data);
   };
 
@@ -234,6 +234,7 @@ const OrganizationManagement = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Analytics</TableHead>
                     <TableHead>Users</TableHead>
+                    <TableHead>Features</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-[100px]">Actions</TableHead>
@@ -290,10 +291,20 @@ const OrganizationManagement = () => {
                         ) : (
                           <div className="text-xs text-muted-foreground">Loading...</div>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(org.created_at).toLocaleDateString()}
-                      </TableCell>
+                       </TableCell>
+                       <TableCell>
+                         <div className="flex items-center gap-2">
+                           <div className="flex items-center gap-1">
+                             <Shield className="w-3 h-3" />
+                             <span className="text-xs">
+                               {org.settings?.project_management_enabled !== false ? 'PM' : 'No PM'}
+                             </span>
+                           </div>
+                         </div>
+                       </TableCell>
+                       <TableCell>
+                         {new Date(org.created_at).toLocaleDateString()}
+                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">Active</Badge>
                       </TableCell>
