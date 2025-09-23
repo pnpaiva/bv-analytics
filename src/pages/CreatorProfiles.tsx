@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { LocationInput } from '@/components/ui/LocationInput';
 import { Users, Eye, TrendingUp, Search, User, Calendar, Target, Award, MapPin, Phone, Mail, Edit, Share, Plus, X, Play, Youtube, Instagram, Globe, Heart, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
@@ -969,32 +970,28 @@ export default function CreatorProfiles() {
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(formData.demographics?.[selectedDemoPlatform]?.location || {}).map(([country, percentage]) => (
-                    <div key={country} className="flex gap-2">
-                      <Input
-                        value={country}
-                        onChange={(e) => {
-                          const newLocation = { ...(formData.demographics?.[selectedDemoPlatform]?.location || {}) };
-                          delete newLocation[country];
-                          newLocation[e.target.value] = percentage;
-                          setFormData({
-                            ...formData,
-                            demographics: {
-                              ...formData.demographics,
-                              [selectedDemoPlatform]: {
-                                ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
-                                location: newLocation
-                              }
+                  {Object.entries(formData.demographics?.[selectedDemoPlatform]?.location || {}).map(([country, percentage], index) => (
+                    <LocationInput 
+                      key={`${selectedDemoPlatform}-${index}`}
+                      country={country}
+                      percentage={percentage as number}
+                      onCountryChange={(newCountry) => {
+                        const newLocation = { ...(formData.demographics?.[selectedDemoPlatform]?.location || {}) };
+                        delete newLocation[country];
+                        newLocation[newCountry] = percentage;
+                        setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            [selectedDemoPlatform]: {
+                              ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
+                              location: newLocation
                             }
-                          });
-                        }}
-                        placeholder="Country"
-                        className="border-2"
-                      />
-                      <Input
-                        type="number"
-                        value={percentage}
-                        onChange={(e) => setFormData({
+                          }
+                        });
+                      }}
+                      onPercentageChange={(newPercentage) => {
+                        setFormData({
                           ...formData,
                           demographics: {
                             ...formData.demographics,
@@ -1002,36 +999,27 @@ export default function CreatorProfiles() {
                               ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
                               location: {
                                 ...((formData.demographics?.[selectedDemoPlatform]?.location) || {}),
-                                [country]: Number(e.target.value)
+                                [country]: newPercentage
                               }
                             }
                           }
-                        })}
-                        placeholder="%"
-                        className="border-2 w-20"
-                      />
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          const newLocation = { ...(formData.demographics?.[selectedDemoPlatform]?.location || {}) };
-                          delete newLocation[country];
-                          setFormData({
-                            ...formData,
-                            demographics: {
-                              ...formData.demographics,
-                              [selectedDemoPlatform]: {
-                                ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
-                                location: newLocation
-                              }
+                        });
+                      }}
+                      onRemove={() => {
+                        const newLocation = { ...(formData.demographics?.[selectedDemoPlatform]?.location || {}) };
+                        delete newLocation[country];
+                        setFormData({
+                          ...formData,
+                          demographics: {
+                            ...formData.demographics,
+                            [selectedDemoPlatform]: {
+                              ...(formData.demographics?.[selectedDemoPlatform] || { gender: { female: 0, male: 0 }, age: { '18-24': 0, '25-34': 0, '35-44': 0, '45-54': 0, '55+': 0 }, location: {} }),
+                              location: newLocation
                             }
-                          });
-                        }}
-                        className="border-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
+                          }
+                        });
+                      }}
+                    />
                   ))}
                 </div>
               </div>
