@@ -272,7 +272,7 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {stages.map(stage => (
+                      {stages.filter(stage => stage.name && stage.name.trim()).map(stage => (
                         <SelectItem key={stage.id} value={stage.name.toLowerCase().replace(/\s+/g, '_')}>
                           {stage.name}
                         </SelectItem>
@@ -427,7 +427,7 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {stages.map(stage => (
+                        {stages.filter(stage => stage.name && stage.name.trim()).map(stage => (
                           <SelectItem 
                             key={stage.id} 
                             value={stage.name.toLowerCase().replace(/\s+/g, '_')}

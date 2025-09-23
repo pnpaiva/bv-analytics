@@ -320,7 +320,7 @@ export default function ProjectManagement() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Stages</SelectItem>
-                        {stages.map(stage => (
+                        {stages.filter(stage => stage.name && stage.name.trim()).map(stage => (
                           <SelectItem 
                             key={stage.id} 
                             value={stage.name.toLowerCase().replace(/\s+/g, '_')}
