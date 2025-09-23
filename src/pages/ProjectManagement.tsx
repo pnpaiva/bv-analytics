@@ -29,6 +29,7 @@ import { ProjectManagementTable } from '@/components/campaigns/ProjectManagement
 import { TimelineManagement } from '@/components/campaigns/TimelineManagement';
 import { FileAttachmentSystem } from '@/components/campaigns/FileAttachmentSystem';
 import { useCampaigns } from '@/hooks/useCampaigns';
+import { useProjectFiles, useProjectTimeline } from '@/hooks/useEnhancedProjectManagement';
 
 export default function ProjectManagement() {
   const { data: overview } = useProjectOverview();

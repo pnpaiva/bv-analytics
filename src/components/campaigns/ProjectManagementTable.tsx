@@ -27,6 +27,8 @@ import { useCampaignCreatorsProject, useProjectStages, useUpdateCampaignCreatorP
 import { useCreators } from '@/hooks/useCreators';
 import { useCampaigns } from '@/hooks/useCampaigns';
 import { useCreateCampaignCreator } from '@/hooks/useCampaignCreators';
+import { ProjectDetailDialog } from './ProjectDetailDialog';
+import { CampaignCreatorEnhanced } from '@/hooks/useEnhancedProjectManagement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -45,6 +47,8 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
   const [isAddingCreator, setIsAddingCreator] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(campaignId || '');
   const [selectedCreator, setSelectedCreator] = useState('');
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedCreatorForDetail, setSelectedCreatorForDetail] = useState<CampaignCreatorEnhanced | null>(null);
   const [newCreatorData, setNewCreatorData] = useState({
     stage: 'not_started',
     priority: 'medium',
@@ -545,7 +549,13 @@ export function ProjectManagementTable({ campaignId }: ProjectManagementTablePro
               ))}
             </TableBody>
           </Table>
-        </div>
+      
+      <ProjectDetailDialog 
+        isOpen={detailDialogOpen}
+        onClose={() => setDetailDialogOpen(false)}
+        campaignCreator={selectedCreatorForDetail}
+      />
+    </div>
       </CardContent>
     </Card>
   );

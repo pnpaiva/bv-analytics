@@ -260,12 +260,18 @@ export type Database = {
       }
       campaign_creators: {
         Row: {
+          brief_status: string | null
           campaign_id: string
           contact_status: string | null
           content_urls: Json | null
+          contract_deadline: string | null
+          contract_sent_date: string | null
+          contract_status: string | null
           created_at: string
           creator_id: string
           deadline: string | null
+          final_delivery_date: string | null
+          final_video_url: string | null
           id: string
           notes: string | null
           organization_id: string
@@ -275,14 +281,22 @@ export type Database = {
           priority: string | null
           stage: string | null
           updated_at: string
+          video_approval_status: string | null
+          video_submission_deadline: string | null
         }
         Insert: {
+          brief_status?: string | null
           campaign_id: string
           contact_status?: string | null
           content_urls?: Json | null
+          contract_deadline?: string | null
+          contract_sent_date?: string | null
+          contract_status?: string | null
           created_at?: string
           creator_id: string
           deadline?: string | null
+          final_delivery_date?: string | null
+          final_video_url?: string | null
           id?: string
           notes?: string | null
           organization_id: string
@@ -292,14 +306,22 @@ export type Database = {
           priority?: string | null
           stage?: string | null
           updated_at?: string
+          video_approval_status?: string | null
+          video_submission_deadline?: string | null
         }
         Update: {
+          brief_status?: string | null
           campaign_id?: string
           contact_status?: string | null
           content_urls?: Json | null
+          contract_deadline?: string | null
+          contract_sent_date?: string | null
+          contract_status?: string | null
           created_at?: string
           creator_id?: string
           deadline?: string | null
+          final_delivery_date?: string | null
+          final_video_url?: string | null
           id?: string
           notes?: string | null
           organization_id?: string
@@ -309,6 +331,8 @@ export type Database = {
           priority?: string | null
           stage?: string | null
           updated_at?: string
+          video_approval_status?: string | null
+          video_submission_deadline?: string | null
         }
         Relationships: [
           {
@@ -389,6 +413,66 @@ export type Database = {
           },
         ]
       }
+      campaign_project_files: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          campaign_id: string
+          created_at: string | null
+          creator_id: string | null
+          description: string | null
+          file_name: string
+          file_path: string | null
+          file_size: number | null
+          file_type: string
+          file_url: string | null
+          id: string
+          mime_type: string | null
+          organization_id: string
+          status: string | null
+          updated_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_id: string
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type: string
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          organization_id: string
+          status?: string | null
+          updated_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          campaign_id?: string
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string
+          file_url?: string | null
+          id?: string
+          mime_type?: string | null
+          organization_id?: string
+          status?: string | null
+          updated_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       campaign_project_notes: {
         Row: {
           campaign_id: string
@@ -458,6 +542,51 @@ export type Database = {
           organization_id?: string
           sort_order?: number
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      campaign_project_timeline: {
+        Row: {
+          activity_type: string
+          campaign_id: string
+          created_at: string | null
+          creator_id: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          new_value: string | null
+          old_value: string | null
+          organization_id: string
+          performed_by: string
+          title: string
+        }
+        Insert: {
+          activity_type: string
+          campaign_id: string
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          organization_id: string
+          performed_by: string
+          title: string
+        }
+        Update: {
+          activity_type?: string
+          campaign_id?: string
+          created_at?: string | null
+          creator_id?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          organization_id?: string
+          performed_by?: string
+          title?: string
         }
         Relationships: []
       }
@@ -1427,6 +1556,21 @@ export type Database = {
       is_master_admin: {
         Args: { user_id: string }
         Returns: boolean
+      }
+      log_project_activity: {
+        Args: {
+          p_activity_type?: string
+          p_campaign_id: string
+          p_creator_id?: string
+          p_description?: string
+          p_metadata?: Json
+          p_new_value?: string
+          p_old_value?: string
+          p_organization_id?: string
+          p_performed_by?: string
+          p_title?: string
+        }
+        Returns: undefined
       }
       publish_public_media_kit: {
         Args: { p_creator_id: string; p_user_id: string }
