@@ -453,12 +453,16 @@ export default function CreatorProfiles() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
       
-      const { data: slug, error } = await (supabase as any).rpc('publish_public_media_kit', {
+      const { data: slugData, error } = await (supabase as any).rpc('publish_public_media_kit', {
         p_creator_id: creatorId,
         p_user_id: user.id
       });
 
       if (error) throw error;
+
+      const slug = Array.isArray(slugData) ? slugData[0]?.slug : slugData?.slug;
+      
+      if (!slug) throw new Error('No slug returned from media kit creation');
 
       const mediaKitUrl = `${window.location.origin}/${slug}`;
       

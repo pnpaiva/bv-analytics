@@ -137,6 +137,10 @@ export default function PublicMediaKit() {
         setError(null);
 
         const urlSlug = slug || window.location.pathname.split('/').filter(Boolean).pop();
+        
+        console.log('Debug: slug from params:', slug);
+        console.log('Debug: pathname:', window.location.pathname);
+        console.log('Debug: urlSlug:', urlSlug);
 
         if (!urlSlug) {
           throw new Error('No media kit slug found in URL');
