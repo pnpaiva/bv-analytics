@@ -13,11 +13,9 @@ import {
   Users, 
   Calendar,
   BarChart3,
-  DollarSign,
-  Plus
+  DollarSign
 } from 'lucide-react';
 import { ProjectManagementRow } from './ProjectManagementRow';
-import { CreateProjectDialog } from './CreateProjectDialog';
 import { useCampaigns } from '@/hooks/useCampaigns';
 import { useCreators } from '@/hooks/useCreators';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
@@ -29,28 +27,18 @@ export function ProjectManagementMain() {
   const [stageFilter, setStageFilter] = useState('all');
   const [sortBy, setSortBy] = useState('campaign_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [createProjectOpen, setCreateProjectOpen] = useState(false);
 
   const { data: campaigns = [] } = useCampaigns();
   const { data: creators = [] } = useCreators();
   const { data: projectData = [] } = useCampaignCreators();
 
-  // Combine data for the table - only show campaigns in development
+  // Combine data for the table
   const tableData = projectData
     .map(item => {
       const campaign = campaigns.find(c => c.id === item.campaign_id);
       const creator = creators.find(c => c.id === item.creator_id);
       
       if (!campaign || !creator) return null;
-      
-      // Only show campaigns that are still in development (draft status or no content URLs)
-      const isInDevelopment = campaign.status === 'draft' || campaign.status === 'analyzing';
-      const hasContentUrls = campaign.content_urls && 
-        Object.keys(campaign.content_urls).length > 0 &&
-        Object.values(campaign.content_urls).some(urls => urls.length > 0);
-      
-      // Show campaigns that are in development OR don't have content URLs yet
-      if (campaign.status === 'completed' && hasContentUrls) return null;
       
       return {
         campaign,
@@ -209,21 +197,13 @@ export function ProjectManagementMain() {
       {/* Filters and Search */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="h-5 w-5" />
-                Project Management
-              </CardTitle>
-              <CardDescription>
-                Manage campaigns, creators, and track project progress
-              </CardDescription>
-            </div>
-            <Button onClick={() => setCreateProjectOpen(true)} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Create Project
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Project Management
+          </CardTitle>
+          <CardDescription>
+            Manage campaigns, creators, and track project progress
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -352,11 +332,6 @@ export function ProjectManagementMain() {
           </div>
         </CardContent>
       </Card>
-
-      <CreateProjectDialog
-        open={createProjectOpen}
-        onOpenChange={setCreateProjectOpen}
-      />
     </div>
   );
 }

@@ -183,14 +183,6 @@ export default function Campaigns() {
       const hasAccess = accessibleCampaignIds.length === 0 || accessibleCampaignIds.includes(campaign.id);
       if (!hasAccess) return false;
       
-      // Only show completed campaigns with content URLs (finished campaigns)
-      const isCompleted = campaign.status === 'completed';
-      const hasContentUrls = campaign.content_urls && 
-        Object.keys(campaign.content_urls).length > 0 &&
-        Object.values(campaign.content_urls).some(urls => urls.length > 0);
-      
-      if (!isCompleted || !hasContentUrls) return false;
-      
       // Then check search filter
       const matchesSearch = campaign.brand_name.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
