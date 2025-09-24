@@ -447,21 +447,48 @@ const NICHE_OPTIONS = [
           creatorData[creatorId].campaigns.add(campaign.id);
         };
 
-        if (campaign.analytics_data) {
+        // First try to use URL analytics (most accurate for multi-creator campaigns)
+        // Note: Individual campaign URL analytics would need to be fetched per campaign
+        let hasAttributedViews = false;
+
+        // Try analytics_data with proper creator attribution
+        if (campaign.analytics_data && !hasAttributedViews) {
           Object.entries(campaign.analytics_data).forEach(([_, platformData]: [string, any]) => {
             if (Array.isArray(platformData)) {
               platformData.forEach((item: any) => {
                 const cid = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
                 if (cid) {
                   addToCreator(cid, item.views || 0, item.engagement || 0);
+                  hasAttributedViews = true;
                 }
               });
             }
           });
-        } else {
-          // Fallback to resolved creator totals when no granular data
-          const fallback = resolveCreatorForCampaign(campaign);
-          addToCreator(fallback.id, campaign.total_views || 0, campaign.total_engagement || 0);
+        }
+
+        // Only use campaign totals as last resort and handle multi-creator campaigns properly
+        if (!hasAttributedViews) {
+          const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+          
+          if (campaignCreatorData.length === 1) {
+            // Single creator - safe to attribute all views
+            const creatorId = campaignCreatorData[0].creator_id;
+            addToCreator(creatorId, campaign.total_views || 0, campaign.total_engagement || 0);
+          } else if (campaignCreatorData.length > 1) {
+            // Multi-creator campaign with no granular data - distribute evenly as a fallback
+            const viewsPerCreator = Math.floor((campaign.total_views || 0) / campaignCreatorData.length);
+            const engagementPerCreator = Math.floor((campaign.total_engagement || 0) / campaignCreatorData.length);
+            
+            campaignCreatorData.forEach(cc => {
+              addToCreator(cc.creator_id, viewsPerCreator, engagementPerCreator);
+            });
+
+            console.warn(`⚠️ Multi-creator campaign "${campaign.brand_name}" has no granular analytics data. Views distributed evenly among ${campaignCreatorData.length} creators.`);
+          } else {
+            // No creators found - use fallback
+            const fallback = resolveCreatorForCampaign(campaign);
+            addToCreator(fallback.id, campaign.total_views || 0, campaign.total_engagement || 0);
+          }
         }
       });
 
@@ -500,6 +527,9 @@ const NICHE_OPTIONS = [
       const creatorViews: { [creatorId: string]: { views: number; creatorName: string } } = {};
       
       selectedCampaignData.forEach(campaign => {
+        // First try analytics_data with proper creator attribution
+        let hasAttributedViews = false;
+
         if (campaign.analytics_data) {
           Object.entries(campaign.analytics_data).forEach(([_, platformData]: [string, any]) => {
             if (Array.isArray(platformData)) {
@@ -509,10 +539,38 @@ const NICHE_OPTIONS = [
                   const name = creatorLookup.get(cid) || 'Unknown Creator';
                   if (!creatorViews[cid]) creatorViews[cid] = { views: 0, creatorName: name };
                   creatorViews[cid].views += item.views || 0;
+                  hasAttributedViews = true;
                 }
               });
             }
           });
+        }
+
+        // Handle campaigns without granular data
+        if (!hasAttributedViews) {
+          const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+          
+          if (campaignCreatorData.length === 1) {
+            // Single creator - safe to attribute all views
+            const creatorId = campaignCreatorData[0].creator_id;
+            const name = creatorLookup.get(creatorId) || 'Unknown Creator';
+            if (!creatorViews[creatorId]) creatorViews[creatorId] = { views: 0, creatorName: name };
+            creatorViews[creatorId].views += campaign.total_views || 0;
+          } else if (campaignCreatorData.length > 1) {
+            // Multi-creator campaign - distribute evenly
+            const viewsPerCreator = Math.floor((campaign.total_views || 0) / campaignCreatorData.length);
+            
+            campaignCreatorData.forEach(cc => {
+              const name = creatorLookup.get(cc.creator_id) || 'Unknown Creator';
+              if (!creatorViews[cc.creator_id]) creatorViews[cc.creator_id] = { views: 0, creatorName: name };
+              creatorViews[cc.creator_id].views += viewsPerCreator;
+            });
+          } else {
+            // Fallback to resolved creator
+            const fallback = resolveCreatorForCampaign(campaign);
+            if (!creatorViews[fallback.id]) creatorViews[fallback.id] = { views: 0, creatorName: fallback.name };
+            creatorViews[fallback.id].views += campaign.total_views || 0;
+          }
         }
       });
 
