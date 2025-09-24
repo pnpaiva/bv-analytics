@@ -58,7 +58,7 @@ export function useOrganizationAnalytics(organizationId: string) {
       const avgEngagementRate = totalCampaigns > 0 
         ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / totalCampaigns 
         : 0;
-      const totalDealValue = campaigns?.reduce((sum, c) => sum + (c.deal_value || 0), 0) || 0;
+      const totalDealValue = campaigns?.reduce((sum, c) => sum + (c.fixed_deal_value || 0), 0) || 0;
       
       // Count users by role
       const usersByRole = members?.reduce((acc, member) => {
@@ -134,7 +134,7 @@ export function useAllOrganizationsAnalytics() {
         const avgEngagementRate = totalCampaigns > 0 
           ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / totalCampaigns 
           : 0;
-        const totalDealValue = campaigns?.reduce((sum, c) => sum + (c.deal_value || 0), 0) || 0;
+        const totalDealValue = campaigns?.reduce((sum, c) => sum + (c.fixed_deal_value || 0), 0) || 0;
 
         return {
           [org.id]: {
