@@ -8,6 +8,8 @@ export interface OrganizationAnalytics {
   totalViews: number;
   totalEngagement: number;
   avgEngagementRate: number;
+  totalFixedDealValue: number;
+  totalVariableDealValue: number;
   totalDealValue: number;
   totalUsers: number;
   totalCreators: number;
@@ -58,7 +60,9 @@ export function useOrganizationAnalytics(organizationId: string) {
       const avgEngagementRate = totalCampaigns > 0 
         ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / totalCampaigns 
         : 0;
-      const totalDealValue = campaigns?.reduce((sum, c) => sum + (c.fixed_deal_value || 0), 0) || 0;
+      const totalFixedDealValue = campaigns?.reduce((sum, c) => sum + (c.fixed_deal_value || 0), 0) || 0;
+      const totalVariableDealValue = campaigns?.reduce((sum, c) => sum + (c.variable_deal_value || 0), 0) || 0;
+      const totalDealValue = totalFixedDealValue + totalVariableDealValue;
       
       // Count users by role
       const usersByRole = members?.reduce((acc, member) => {
@@ -73,6 +77,8 @@ export function useOrganizationAnalytics(organizationId: string) {
         totalViews,
         totalEngagement,
         avgEngagementRate,
+        totalFixedDealValue,
+        totalVariableDealValue,
         totalDealValue,
         totalUsers: members?.length || 0,
         totalCreators: creators?.length || 0,
@@ -134,9 +140,11 @@ export function useAllOrganizationsAnalytics() {
         const avgEngagementRate = totalCampaigns > 0 
           ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / totalCampaigns 
           : 0;
-        const totalDealValue = campaigns?.reduce((sum, c) => sum + (c.fixed_deal_value || 0), 0) || 0;
+         const totalFixedDealValue = campaigns?.reduce((sum, c) => sum + (c.fixed_deal_value || 0), 0) || 0;
+         const totalVariableDealValue = campaigns?.reduce((sum, c) => sum + (c.variable_deal_value || 0), 0) || 0;
+         const totalDealValue = totalFixedDealValue + totalVariableDealValue;
 
-        return {
+         return {
           [org.id]: {
             organizationId: org.id,
             totalCampaigns,
@@ -144,12 +152,14 @@ export function useAllOrganizationsAnalytics() {
             totalViews,
             totalEngagement,
             avgEngagementRate,
+            totalFixedDealValue,
+            totalVariableDealValue,
             totalDealValue,
             totalUsers: members?.length || 0,
             totalCreators: creators?.length || 0,
             totalClients: clients?.length || 0,
           }
-        };
+         };
       });
 
       const results = await Promise.all(analyticsPromises);

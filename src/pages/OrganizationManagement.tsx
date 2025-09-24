@@ -257,28 +257,34 @@ const OrganizationManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {analytics ? (
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="flex items-center gap-1">
-                              <Activity className="w-3 h-3 text-blue-500" />
-                              <span>{analytics.totalCampaigns} campaigns</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-3 h-3 text-green-500" />
-                              <span>{analytics.totalViews.toLocaleString()} views</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <TrendingUp className="w-3 h-3 text-purple-500" />
-                              <span>{analytics.avgEngagementRate.toFixed(1)}% eng.</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="w-3 h-3 text-yellow-500" />
-                              <span>${analytics.totalDealValue.toLocaleString()}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-xs text-muted-foreground">Loading...</div>
-                        )}
+                         {analytics ? (
+                           <div className="grid grid-cols-2 gap-2 text-xs">
+                             <div className="flex items-center gap-1">
+                               <Activity className="w-3 h-3 text-blue-500" />
+                               <span>{analytics.totalCampaigns} campaigns</span>
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <Eye className="w-3 h-3 text-green-500" />
+                               <span>{analytics.totalViews.toLocaleString()} views</span>
+                             </div>
+                             <div className="flex items-center gap-1">
+                               <TrendingUp className="w-3 h-3 text-purple-500" />
+                               <span>{analytics.avgEngagementRate.toFixed(1)}% eng.</span>
+                             </div>
+                             <div className="flex flex-col gap-1">
+                               <div className="flex items-center gap-1">
+                                 <DollarSign className="w-3 h-3 text-green-600" />
+                                 <span>F: ${analytics.totalFixedDealValue.toLocaleString()}</span>
+                               </div>
+                               <div className="flex items-center gap-1">
+                                 <DollarSign className="w-3 h-3 text-orange-500" />
+                                 <span>V: ${analytics.totalVariableDealValue.toLocaleString()}</span>
+                               </div>
+                             </div>
+                           </div>
+                         ) : (
+                           <div className="text-xs text-muted-foreground">Loading...</div>
+                         )}
                       </TableCell>
                       <TableCell>
                         {analytics ? (
