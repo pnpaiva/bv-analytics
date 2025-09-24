@@ -155,7 +155,10 @@ export default function PublicMediaKit() {
         const { data: collaborations, error: collabError } = await supabase
           .rpc('get_creator_collaborations', { p_creator_id: mediaKit.creator_id });
 
-        if (collabError) throw collabError;
+        if (collabError) {
+          console.error('Error fetching collaborations:', collabError);
+          // Don't throw error for missing collaborations, just use empty array
+        }
 
         let totalViews = 0;
         let totalEngagement = 0;
@@ -226,7 +229,7 @@ export default function PublicMediaKit() {
         setCreatorProfile(profile);
       } catch (error) {
         console.error('Error fetching creator data:', error);
-        setError(error instanceof Error ? error.message : 'An unknown error occurred');
+        setError(error instanceof Error ? error.message : typeof error === 'string' ? error : 'An unknown error occurred');
       } finally {
         setIsLoading(false);
       }
