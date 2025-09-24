@@ -1522,6 +1522,10 @@ export type Database = {
           brand_name: string
           campaign_date: string
           campaign_id: string
+          engagement_rate: number
+          logo_url: string
+          total_engagement: number
+          total_views: number
         }[]
       }
       get_user_accessible_campaigns_org: {
