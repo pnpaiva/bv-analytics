@@ -387,14 +387,14 @@ export function CampaignCard({
                 <Download className="h-4 w-4 mr-1" />
                 Export
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setManagementDialogOpen(true)}
               >
                 <Users className="h-4 w-4 mr-1" />
                 Management
-              </Button>
+              </Button> */}
           </div>
           
           <div className="flex items-center gap-2">
