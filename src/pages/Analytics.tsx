@@ -492,13 +492,27 @@ const NICHE_OPTIONS = [
 
         // Try analytics_data with proper creator attribution
         if (campaign.analytics_data && !hasAttributedViews) {
-          Object.entries(campaign.analytics_data).forEach(([_, platformData]: [string, any]) => {
+          Object.entries(campaign.analytics_data).forEach(([platform, platformData]: [string, any]) => {
             if (Array.isArray(platformData)) {
               platformData.forEach((item: any) => {
                 const cid = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
                 if (cid) {
                   addToCreator(cid, item.views || 0, item.engagement || 0);
                   hasAttributedViews = true;
+                } else {
+                  // Debug when URL attribution fails
+                  if (campaign.brand_name.includes('Revolut') && campaign.brand_name.includes('Via')) {
+                    console.warn(`❌ Failed to attribute URL in ${campaign.brand_name}:`, {
+                      url: item.url || item.content_url,
+                      views: item.views,
+                      platform,
+                      availableCreators: campaignCreators.filter(cc => cc.campaign_id === campaign.id).map(cc => ({
+                        creatorId: cc.creator_id,
+                        creatorName: filteredCreators?.find(c => c.id === cc.creator_id)?.name,
+                        urls: cc.content_urls
+                      }))
+                    });
+                  }
                 }
               });
             }
@@ -579,6 +593,14 @@ const NICHE_OPTIONS = [
                   if (!creatorViews[cid]) creatorViews[cid] = { views: 0, creatorName: name };
                   creatorViews[cid].views += item.views || 0;
                   hasAttributedViews = true;
+                } else {
+                  // Debug when URL attribution fails for pie chart
+                  if (campaign.brand_name.includes('Revolut') && campaign.brand_name.includes('Via')) {
+                    console.warn(`❌ PIE CHART: Failed to attribute URL in ${campaign.brand_name}:`, {
+                      url: item.url || item.content_url,
+                      views: item.views
+                    });
+                  }
                 }
               });
             }
