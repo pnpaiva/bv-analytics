@@ -274,11 +274,11 @@ const OrganizationManagement = () => {
                              <div className="flex flex-col gap-1">
                                <div className="flex items-center gap-1">
                                  <DollarSign className="w-3 h-3 text-green-600" />
-                                 <span>F: ${analytics.totalFixedDealValue.toLocaleString()}</span>
+                                 <span>F: ${(analytics.totalFixedDealValue || 0).toLocaleString()}</span>
                                </div>
                                <div className="flex items-center gap-1">
                                  <DollarSign className="w-3 h-3 text-orange-500" />
-                                 <span>V: ${analytics.totalVariableDealValue.toLocaleString()}</span>
+                                 <span>V: ${(analytics.totalVariableDealValue || 0).toLocaleString()}</span>
                                </div>
                              </div>
                            </div>
