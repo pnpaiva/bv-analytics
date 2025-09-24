@@ -177,8 +177,35 @@ const NICHE_OPTIONS = [
     if (!url) return '';
     try {
       const u = new URL(url);
+      
+      // Special handling for YouTube URLs - preserve video ID
+      if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+        if (u.hostname.includes('youtu.be')) {
+          // Convert youtu.be/VIDEO_ID to youtube.com/watch?v=VIDEO_ID format
+          const videoId = u.pathname.slice(1); // Remove leading slash
+          return `https://www.youtube.com/watch?v=${videoId}`;
+        } else if (u.pathname === '/watch' && u.searchParams.get('v')) {
+          // Keep the video ID parameter for /watch URLs
+          const videoId = u.searchParams.get('v');
+          return `https://www.youtube.com/watch?v=${videoId}`;
+        } else if (u.pathname.startsWith('/shorts/')) {
+          // Convert /shorts/VIDEO_ID to standard watch format
+          const videoId = u.pathname.replace('/shorts/', '');
+          return `https://www.youtube.com/watch?v=${videoId}`;
+        }
+      }
+      
+      // For other URLs, normalize by removing hash and most search params
       u.hash = '';
-      u.search = '';
+      // Keep essential parameters but remove tracking ones
+      const paramsToKeep = ['v', 'p']; // YouTube video ID, Instagram post ID
+      const newParams = new URLSearchParams();
+      paramsToKeep.forEach(param => {
+        const value = u.searchParams.get(param);
+        if (value) newParams.set(param, value);
+      });
+      u.search = newParams.toString();
+      
       return u.toString().replace(/\/$/, '');
     } catch {
       return url.trim().replace(/\/$/, '');
