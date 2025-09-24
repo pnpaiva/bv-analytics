@@ -193,19 +193,46 @@ const NICHE_OPTIONS = [
       Object.values(content).forEach((arr) => {
         (arr || []).forEach((raw) => {
           const norm = normalizeUrl(raw);
-          if (norm) inner.set(norm, cc.creator_id);
+          if (norm) {
+            inner.set(norm, cc.creator_id);
+            
+            // Debug logging for specific Revolut URLs
+            if (raw.includes('odZoOB29poE') || raw.includes('9H88OV98tao') || raw.includes('DhWWy4c2t84')) {
+              console.log('🔍 URL MAPPING DEBUG:', {
+                originalUrl: raw,
+                normalizedUrl: norm,
+                campaignId: cc.campaign_id,
+                creatorId: cc.creator_id,
+                creatorName: filteredCreators?.find(c => c.id === cc.creator_id)?.name || 'Unknown'
+              });
+            }
+          }
         });
       });
       map.set(cc.campaign_id, inner);
     });
     return map;
-  }, [campaignCreators]);
+  }, [campaignCreators, filteredCreators]);
 
   const getCreatorIdForUrl = (campaignId: string, url?: string) => {
     const inner = urlToCreatorByCampaign.get(campaignId);
     if (!inner || !url) return undefined;
     const norm = normalizeUrl(url);
-    return inner.get(norm);
+    const creatorId = inner.get(norm);
+    
+    // Debug logging for Revolut campaign URLs
+    if (url && (url.includes('odZoOB29poE') || url.includes('9H88OV98tao') || url.includes('DhWWy4c2t84'))) {
+      console.log('🔍 DEBUG URL Attribution:', {
+        originalUrl: url,
+        normalizedUrl: norm,
+        campaignId,
+        foundCreatorId: creatorId,
+        creatorName: creatorId ? creatorLookup.get(creatorId) : 'Not found',
+        allMappingsForCampaign: inner ? Array.from(inner.entries()).slice(0, 5) : 'No mappings'
+      });
+    }
+    
+    return creatorId;
   };
 
   // Helper function to resolve creator for a campaign using campaign_creators
@@ -214,19 +241,31 @@ const NICHE_OPTIONS = [
       return { id: 'unknown', name: 'Unknown Creator' };
     }
 
-          // Find all creators associated with this campaign
-      const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
-      
-      if (campaignCreatorData.length > 0) {
-        // Use the first creator if multiple (most campaigns have one main creator)
-        const creator = filteredCreators.find(c => c.id === campaignCreatorData[0].creator_id);
-        if (creator) {
-          return {
-            id: creator.id,
-            name: creator.name
-          };
+    // Find all creators associated with this campaign
+    const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+    
+    if (campaignCreatorData.length > 0) {
+      // Use the first creator if multiple (most campaigns have one main creator)
+      // IMPORTANT: This should only be used as fallback when URL-specific attribution fails
+      const creator = filteredCreators.find(c => c.id === campaignCreatorData[0].creator_id);
+      if (creator) {
+        // Debug logging for multi-creator campaigns
+        if (campaignCreatorData.length > 1) {
+          console.warn(`⚠️ FALLBACK: Using first creator for multi-creator campaign "${campaign.brand_name}":`, {
+            selectedCreator: creator.name,
+            allCreators: campaignCreatorData.map(cc => {
+              const c = filteredCreators.find(cr => cr.id === cc.creator_id);
+              return c ? c.name : 'Unknown';
+            })
+          });
         }
+        
+        return {
+          id: creator.id,
+          name: creator.name
+        };
       }
+    }
 
     // Fallback logic using campaign.creator_id if no campaign_creators association
     if (campaign.creator_id && creatorLookup.has(campaign.creator_id)) {
