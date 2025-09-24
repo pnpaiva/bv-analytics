@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
+import { useDealValueVisibility } from '@/hooks/useDealValueVisibility';
 import { useAccessibleCampaigns } from '@/hooks/useAccessibleCampaigns';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +46,7 @@ export default function Campaigns() {
   const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [showDealValue, setShowDealValue] = useState(true);
+  const { showDealValue, setShowDealValue } = useDealValueVisibility();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');

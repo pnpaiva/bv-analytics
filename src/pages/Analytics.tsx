@@ -5,6 +5,7 @@ import { useAccessibleCampaigns } from '@/hooks/useAccessibleCampaigns';
 import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
+import { useDealValueVisibility } from '@/hooks/useDealValueVisibility';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -113,7 +114,7 @@ export default function Analytics() {
   const [videoPlatformFilter, setVideoPlatformFilter] = useState<string>('all');
   const [usePercentEngagement, setUsePercentEngagement] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [showDealValue, setShowDealValue] = useState(true);
+  const { showDealValue, setShowDealValue } = useDealValueVisibility();
   const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
   const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
   const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
