@@ -330,7 +330,7 @@ export default function Campaigns() {
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh All'}
             </Button>
-
+            {canCreate && <CreateCampaignDialog />}
           </div>
         </div>
 
