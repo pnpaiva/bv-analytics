@@ -206,24 +206,25 @@ export default function PublicMediaKit() {
           name: (mediaKit as any).name,
           avatar_url: (mediaKit as any).avatar_url,
           platform_handles: (mediaKit as any).platform_handles || {},
-          location: (mediaKit as any).location || 'United States',
-          email: (mediaKit as any).email,
-          bio: (mediaKit as any).bio || 'Content Creator',
+          location: (mediaKit as any).stats?.location || (mediaKit as any).location || 'United States',
+          email: (mediaKit as any).stats?.email || (mediaKit as any).email,
+          phone: (mediaKit as any).stats?.phone || (mediaKit as any).phone,
+          bio: (mediaKit as any).stats?.bio || (mediaKit as any).bio || 'Content Creator',
           totalViews,
           totalEngagement,
           engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
           followerCount: totalFollowers,
-          demographics: (mediaKit as any).demographics || (defaultDemographics as any),
+          demographics: (mediaKit as any).stats?.demographics || (mediaKit as any).demographics || defaultDemographics,
           platformBreakdown: [],
           brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-          topVideos: (mediaKit as any).top_videos || [],
-          services: (mediaKit as any).services || [
+          topVideos: (mediaKit as any).stats?.top_videos || (mediaKit as any).top_videos || [],
+          services: (mediaKit as any).stats?.services || (mediaKit as any).services || [
             { name: 'Reel/Video Post', price: 450 },
             { name: 'Stories', price: 200 },
             { name: 'Product Reviews', price: 600 },
           ],
           mediaKitUrl: `${window.location.origin}/${urlSlug}`,
-          platform_metrics: (mediaKit as any).platform_metrics || {},
+          platform_metrics: (mediaKit as any).stats?.platform_metrics || (mediaKit as any).platform_metrics || {},
         };
 
         setCreatorProfile(profile);
