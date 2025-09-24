@@ -73,7 +73,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.brand_name.trim()) {
+    if (!formData.brand_name?.trim()) {
       toast.error('Please enter a brand name');
       return;
     }
@@ -103,7 +103,7 @@ export function CreateProjectDialog({ open, onOpenChange }: CreateProjectDialogP
       const { data: campaign, error: campaignError } = await supabase
         .from('campaigns')
         .insert({
-          brand_name: formData.brand_name.trim(),
+          brand_name: formData.brand_name?.trim() || '',
           client_id: formData.client_id || null,
           user_id: user.id,
           organization_id: currentOrgId,
