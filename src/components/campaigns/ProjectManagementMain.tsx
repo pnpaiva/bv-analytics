@@ -43,14 +43,14 @@ export function ProjectManagementMain() {
       
       if (!campaign || !creator) return null;
       
-      // Only show campaigns that are NOT completed or don't have content URLs (still in development)
-      const isCompleted = campaign.status === 'completed';
+      // Only show campaigns that are still in development (draft status or no content URLs)
+      const isInDevelopment = campaign.status === 'draft' || campaign.status === 'analyzing';
       const hasContentUrls = campaign.content_urls && 
         Object.keys(campaign.content_urls).length > 0 &&
         Object.values(campaign.content_urls).some(urls => urls.length > 0);
       
-      // Show campaigns that are either not completed OR don't have content URLs (in development)
-      if (isCompleted && hasContentUrls) return null;
+      // Show campaigns that are in development OR don't have content URLs yet
+      if (campaign.status === 'completed' && hasContentUrls) return null;
       
       return {
         campaign,
