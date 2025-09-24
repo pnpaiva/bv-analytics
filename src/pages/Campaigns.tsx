@@ -51,13 +51,15 @@ export default function Campaigns() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
-  const { canCreate, canEdit, canDelete } = useUserPermissions();
+  const { canCreate, canEdit, canDelete, isMasterAdmin, isLocalAdmin } = useUserPermissions();
   const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const queryClient = useQueryClient();
   
   // Debug logging
   console.log('Campaigns - canCreate:', canCreate);
   console.log('Campaigns - canEdit:', canEdit);
+  console.log('Campaigns - isMasterAdmin:', isMasterAdmin);
+  console.log('Campaigns - isLocalAdmin:', isLocalAdmin);
   console.log('Campaigns - accessibleCampaignIds:', accessibleCampaignIds);
   console.log('Campaigns - campaigns:', campaigns);
 
@@ -330,7 +332,7 @@ export default function Campaigns() {
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Refreshing...' : 'Refresh All'}
             </Button>
-            {canCreate && <CreateCampaignDialog />}
+            {(canCreate || isMasterAdmin || isLocalAdmin) && <CreateCampaignDialog />}
           </div>
         </div>
 
