@@ -38,7 +38,8 @@ Deno.serve(async (req) => {
         const watchUrl = `https://www.youtube.com/watch?v=${vid}`;
         const res = await fetch(watchUrl, { headers: { 'Accept-Language': 'en-US,en;q=0.9' } });
         const html = await res.text();
-        // Prefer structured player response when available
+        
+        // Extract basic view count
         const directMatch = html.match(/\"viewCount\":\"(\d+)\"/);
         let views = 0;
         if (directMatch && directMatch[1]) {
@@ -50,14 +51,71 @@ Deno.serve(async (req) => {
             views = Number(readable[1].replace(/[,\.]/g, '')) || 0;
           }
         }
+        
+        // Try to extract basic metadata from HTML
+        const titleMatch = html.match(/<meta name="title" content="([^"]*)">/);
+        const title = titleMatch ? titleMatch[1] : '';
+        
+        const thumbnailMatch = html.match(/<meta property="og:image" content="([^"]*)">/);
+        const thumbnail = thumbnailMatch ? thumbnailMatch[1] : '';
+        
         const likes = 0; // Not reliably available without API
         const comments = 0; // Not reliably available without API
         const engagement = likes + comments;
         const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
-        return { views, likes, comments, engagement, rate };
+        
+        return { 
+          views, 
+          likes, 
+          comments, 
+          engagement, 
+          rate,
+          metadata: {
+            title: title,
+            description: '',
+            publishedAt: '',
+            channelTitle: '',
+            duration: 0,
+            thumbnails: {
+              default: thumbnail,
+              medium: thumbnail,
+              high: thumbnail,
+              standard: thumbnail,
+              maxres: thumbnail
+            },
+            tags: [],
+            categoryId: '',
+            defaultLanguage: '',
+            defaultAudioLanguage: ''
+          }
+        };
       } catch (e) {
         console.error('HTML fallback failed:', e);
-        return { views: 0, likes: 0, comments: 0, engagement: 0, rate: 0 };
+        return { 
+          views: 0, 
+          likes: 0, 
+          comments: 0, 
+          engagement: 0, 
+          rate: 0,
+          metadata: {
+            title: '',
+            description: '',
+            publishedAt: '',
+            channelTitle: '',
+            duration: 0,
+            thumbnails: {
+              default: '',
+              medium: '',
+              high: '',
+              standard: '',
+              maxres: ''
+            },
+            tags: [],
+            categoryId: '',
+            defaultLanguage: '',
+            defaultAudioLanguage: ''
+          }
+        };
       }
     };
     
@@ -70,8 +128,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch data from YouTube Data API
-    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=statistics&key=${youtubeApiKey}`;
+    // Fetch data from YouTube Data API with video details and statistics
+    const apiUrl = `https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=statistics,snippet,contentDetails&key=${youtubeApiKey}`;
     
     const response = await fetch(apiUrl);
     const data = await response.json();
@@ -85,19 +143,51 @@ Deno.serve(async (req) => {
       throw new Error('Video not found');
     }
 
-    const stats = data.items[0].statistics;
+    const video = data.items[0];
+    const stats = video.statistics;
+    const snippet = video.snippet;
+    const contentDetails = video.contentDetails;
+    
     const views = parseInt(stats.viewCount || '0');
     const likes = parseInt(stats.likeCount || '0');
     const comments = parseInt(stats.commentCount || '0');
     const engagement = likes + comments;
     const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
 
+    // Parse ISO 8601 duration (PT4M13S) to seconds
+    const parseDuration = (duration: string): number => {
+      const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!match) return 0;
+      const hours = parseInt(match[1] || '0');
+      const minutes = parseInt(match[2] || '0');
+      const seconds = parseInt(match[3] || '0');
+      return hours * 3600 + minutes * 60 + seconds;
+    };
+
     const result = {
       views,
       engagement,
       likes,
       comments,
-      rate
+      rate,
+      metadata: {
+        title: snippet?.title || '',
+        description: snippet?.description || '',
+        publishedAt: snippet?.publishedAt || '',
+        channelTitle: snippet?.channelTitle || '',
+        duration: parseDuration(contentDetails?.duration || 'PT0S'),
+        thumbnails: {
+          default: snippet?.thumbnails?.default?.url || '',
+          medium: snippet?.thumbnails?.medium?.url || '',
+          high: snippet?.thumbnails?.high?.url || '',
+          standard: snippet?.thumbnails?.standard?.url || '',
+          maxres: snippet?.thumbnails?.maxres?.url || ''
+        },
+        tags: snippet?.tags || [],
+        categoryId: snippet?.categoryId || '',
+        defaultLanguage: snippet?.defaultLanguage || '',
+        defaultAudioLanguage: snippet?.defaultAudioLanguage || ''
+      }
     };
 
     return new Response(
@@ -107,7 +197,31 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error fetching YouTube analytics:', error);
-    const safeFallback = { views: 0, engagement: 0, likes: 0, comments: 0, rate: 0 };
+    const safeFallback = { 
+      views: 0, 
+      engagement: 0, 
+      likes: 0, 
+      comments: 0, 
+      rate: 0,
+      metadata: {
+        title: '',
+        description: '',
+        publishedAt: '',
+        channelTitle: '',
+        duration: 0,
+        thumbnails: {
+          default: '',
+          medium: '',
+          high: '',
+          standard: '',
+          maxres: ''
+        },
+        tags: [],
+        categoryId: '',
+        defaultLanguage: '',
+        defaultAudioLanguage: ''
+      }
+    };
     return new Response(
       JSON.stringify(safeFallback),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

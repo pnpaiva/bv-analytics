@@ -153,6 +153,21 @@ Deno.serve(async (req) => {
                   totalViews += data.views || 0;
                   totalEngagement += data.engagement || 0;
                   platformResults.youtube.push({ url, ...data });
+                  
+                  // Store URL analytics with metadata
+                  await supabase.rpc('upsert_campaign_url_analytics', {
+                    p_campaign_id: campaignId,
+                    p_content_url: url,
+                    p_platform: 'youtube',
+                    p_date_recorded: new Date().toISOString().split('T')[0],
+                    p_views: data.views || 0,
+                    p_likes: data.likes || 0,
+                    p_comments: data.comments || 0,
+                    p_shares: 0,
+                    p_engagement: data.engagement || 0,
+                    p_engagement_rate: data.rate || 0,
+                    p_analytics_metadata: data.metadata || {}
+                  });
                 }
               } catch (error) {
                 console.error(`Error processing YouTube URL ${url}:`, error);
@@ -179,6 +194,21 @@ Deno.serve(async (req) => {
                   totalViews += data.views || 0;
                   totalEngagement += data.engagement || 0;
                   platformResults.instagram.push({ url, ...data });
+                  
+                  // Store URL analytics
+                  await supabase.rpc('upsert_campaign_url_analytics', {
+                    p_campaign_id: campaignId,
+                    p_content_url: url,
+                    p_platform: 'instagram',
+                    p_date_recorded: new Date().toISOString().split('T')[0],
+                    p_views: data.views || 0,
+                    p_likes: data.likes || 0,
+                    p_comments: data.comments || 0,
+                    p_shares: data.shares || 0,
+                    p_engagement: data.engagement || 0,
+                    p_engagement_rate: data.rate || 0,
+                    p_analytics_metadata: data.metadata || {}
+                  });
                 }
               } catch (error) {
                 console.error(`Error processing Instagram URL ${url}:`, error);
@@ -205,6 +235,21 @@ Deno.serve(async (req) => {
                   totalViews += data.views || 0;
                   totalEngagement += data.engagement || 0;
                   platformResults.tiktok.push({ url, ...data });
+                  
+                  // Store URL analytics
+                  await supabase.rpc('upsert_campaign_url_analytics', {
+                    p_campaign_id: campaignId,
+                    p_content_url: url,
+                    p_platform: 'tiktok',
+                    p_date_recorded: new Date().toISOString().split('T')[0],
+                    p_views: data.views || 0,
+                    p_likes: data.likes || 0,
+                    p_comments: data.comments || 0,
+                    p_shares: data.shares || 0,
+                    p_engagement: data.engagement || 0,
+                    p_engagement_rate: data.rate || 0,
+                    p_analytics_metadata: data.metadata || {}
+                  });
                 }
               } catch (error) {
                 console.error(`Error processing TikTok URL ${url}:`, error);
