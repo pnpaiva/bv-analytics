@@ -394,37 +394,73 @@ export class EnhancedPDFExporter {
     }
 
     // Content URLs with per-URL creator annotation
-    if (options.includeContentUrls && campaign.content_urls) {
-      this.currentY += 5;
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Content Links:', this.margin, this.currentY);
-      this.currentY += 6;
+    if (options.includeContentUrls) {
+      // Aggregate content URLs from campaign creators or fallback to campaign.content_urls
+      let allContentUrls: Record<string, Array<{url: string; creatorName?: string}>> = {};
+      
+      // First, try to get URLs from campaign_creators (preferred method)
+      if (campaign.campaign_creators && campaign.campaign_creators.length > 0) {
+        campaign.campaign_creators.forEach(campaignCreator => {
+          const creatorName = campaignCreator.creators?.name || 'Unknown Creator';
+          const contentUrls = campaignCreator.content_urls || {};
+          
+          Object.entries(contentUrls).forEach(([platform, urls]) => {
+            if (Array.isArray(urls) && urls.length > 0) {
+              if (!allContentUrls[platform]) {
+                allContentUrls[platform] = [];
+              }
+              urls.forEach(url => {
+                if (url && url.trim()) {
+                  allContentUrls[platform].push({ url, creatorName });
+                }
+              });
+            }
+          });
+        });
+      }
+      
+      // Fallback to campaign.content_urls if no campaign_creators data
+      if (Object.keys(allContentUrls).length === 0 && campaign.content_urls) {
+        Object.entries(campaign.content_urls).forEach(([platform, urls]) => {
+          if (Array.isArray(urls) && urls.length > 0) {
+            allContentUrls[platform] = urls.filter(url => url && url.trim()).map(url => {
+              const creatorName = options.getCreatorNameForUrl ? options.getCreatorNameForUrl(campaign.id, url) : undefined;
+              return { url, creatorName };
+            });
+          }
+        });
+      }
 
-      Object.entries(campaign.content_urls).forEach(([platform, urls]) => {
-        if (Array.isArray(urls) && urls.length > 0) {
-          this.doc.setFont('helvetica', 'bold');
-          this.doc.text(`${platform.charAt(0).toUpperCase() + platform.slice(1)}:`, this.margin + 10, this.currentY);
-          this.currentY += 5;
+      // Render content URLs if we have any
+      if (Object.keys(allContentUrls).length > 0) {
+        this.currentY += 5;
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.text('Content Links:', this.margin, this.currentY);
+        this.currentY += 6;
 
-          urls.forEach((url, index) => {
-            if (url && url.trim()) {
+        Object.entries(allContentUrls).forEach(([platform, urlData]) => {
+          if (urlData.length > 0) {
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.text(`${platform.charAt(0).toUpperCase() + platform.slice(1)}:`, this.margin + 10, this.currentY);
+            this.currentY += 5;
+
+            urlData.forEach((item, index) => {
               this.checkPageBreak();
-              const creatorName = options.getCreatorNameForUrl ? (options.getCreatorNameForUrl(campaign.id, url) || '') : '';
               this.doc.setFont('helvetica', 'normal');
               this.doc.setTextColor(0, 0, 255);
-              this.doc.text(`${index + 1}. ${url}`, this.margin + 20, this.currentY);
+              this.doc.text(`${index + 1}. ${item.url}`, this.margin + 20, this.currentY);
               this.doc.setTextColor(0, 0, 0);
-              if (creatorName) {
+              if (item.creatorName) {
                 this.doc.setFont('helvetica', 'italic');
-                this.doc.text(`Creator: ${creatorName}`, this.margin + 20, this.currentY + 5);
+                this.doc.text(`Creator: ${item.creatorName}`, this.margin + 20, this.currentY + 5);
                 this.currentY += 10;
               } else {
                 this.currentY += 6;
               }
-            }
-          });
-        }
-      });
+            });
+          }
+        });
+      }
     }
 
     // Add card border
