@@ -21,6 +21,7 @@ import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download
 import { Campaign } from '@/hooks/useCampaigns';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
+import { CampaignTimelineChart } from '@/components/analytics/CampaignTimelineChart';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter, ZAxis } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1461,6 +1462,17 @@ const NICHE_OPTIONS = [
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Campaign Timeline Chart */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Campaign Timeline</CardTitle>
+            <CardDescription>Number of campaigns launched by month</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CampaignTimelineChart campaigns={filteredCampaigns} />
           </CardContent>
         </Card>
           </TabsContent>
