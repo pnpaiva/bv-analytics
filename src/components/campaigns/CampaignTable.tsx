@@ -15,7 +15,7 @@ import { BarChart3, Eye, EyeOff, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-
 import { formatDistanceToNow } from 'date-fns';
 import { ContentUrlDropdown } from './ContentUrlDropdown';
 
-export type SortField = 'brand_name' | 'status' | 'total_views' | 'total_engagement' | 'engagement_rate' | 'deal_value' | 'created_at';
+export type SortField = 'brand_name' | 'status' | 'total_views' | 'total_engagement' | 'engagement_rate' | 'deal_value' | 'created_at' | 'campaign_date';
 export type SortOrder = 'asc' | 'desc';
 
 interface CampaignTableProps {

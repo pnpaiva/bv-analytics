@@ -48,7 +48,7 @@ export default function Campaigns() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { showDealValue, setShowDealValue } = useDealValueVisibility();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortField, setSortField] = useState<SortField>('campaign_date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
@@ -223,6 +223,10 @@ export default function Campaigns() {
         case 'created_at':
           aValue = new Date(a.created_at);
           bValue = new Date(b.created_at);
+          break;
+        case 'campaign_date':
+          aValue = new Date(a.campaign_date);
+          bValue = new Date(b.campaign_date);
           break;
         default:
           return 0;
