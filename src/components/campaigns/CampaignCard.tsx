@@ -213,7 +213,7 @@ export function CampaignCard({
     // Get URLs from campaign creators instead of campaign.content_urls
     if (campaignCreators.length === 0) return null;
 
-    const allUrls: Array<{ platform: string; url: string; creatorName: string }> = [];
+    const allUrls: Array<{ platform: string; url: string; creatorName: string; title?: string; metadata?: any }> = [];
     
     campaignCreators.forEach((campaignCreator) => {
       const contentUrls = campaignCreator.content_urls;
@@ -222,10 +222,23 @@ export function CampaignCard({
           if (Array.isArray(urls)) {
             urls.forEach((url) => {
               if (url && url.trim()) {
+                // Find matching analytics data for this URL
+                const analyticsData = urlAnalytics.find(analytics => 
+                  analytics.content_url === url.trim() && analytics.platform === platform
+                );
+                
+                // Extract title from metadata for YouTube videos
+                let title = url.trim();
+                if (platform === 'youtube' && analyticsData?.analytics_metadata?.title) {
+                  title = analyticsData.analytics_metadata.title;
+                }
+                
                 allUrls.push({ 
                   platform, 
                   url: url.trim(),
-                  creatorName: campaignCreator.creators?.name || 'Unknown Creator'
+                  creatorName: campaignCreator.creators?.name || 'Unknown Creator',
+                  title,
+                  metadata: analyticsData?.analytics_metadata
                 });
               }
             });
@@ -242,6 +255,10 @@ export function CampaignCard({
         <div className="space-y-2">
           {allUrls.map((item, index) => {
             const IconComponent = getPlatformIcon(item.platform);
+            const displayText = item.platform === 'youtube' && item.title !== item.url 
+              ? item.title 
+              : item.url.replace(/^https?:\/\//, '');
+            
             return (
               <a
                 key={index}
@@ -257,8 +274,8 @@ export function CampaignCard({
                     {item.creatorName}
                   </span>
                 </div>
-                <span className="truncate group-hover:underline flex-1">
-                  {item.url.replace(/^https?:\/\//, '')}
+                <span className="truncate group-hover:underline flex-1" title={item.platform === 'youtube' ? item.title : item.url}>
+                  {displayText}
                 </span>
                 <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
               </a>
