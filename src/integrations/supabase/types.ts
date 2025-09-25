@@ -1620,20 +1620,35 @@ export type Database = {
         Returns: undefined
       }
       upsert_campaign_url_analytics: {
-        Args: {
-          p_analytics_metadata?: Json
-          p_campaign_id: string
-          p_comments?: number
-          p_content_url: string
-          p_date_recorded: string
-          p_engagement?: number
-          p_engagement_rate?: number
-          p_likes?: number
-          p_platform: string
-          p_shares?: number
-          p_views?: number
-        }
-        Returns: undefined
+        Args:
+          | {
+              p_analytics_metadata: Json
+              p_campaign_id: string
+              p_comments: number
+              p_content_url: string
+              p_date_recorded: string
+              p_engagement: number
+              p_engagement_rate: number
+              p_fetched_at: string
+              p_likes: number
+              p_platform: string
+              p_shares: number
+              p_views: number
+            }
+          | {
+              p_analytics_metadata?: Json
+              p_campaign_id: string
+              p_comments?: number
+              p_content_url: string
+              p_date_recorded: string
+              p_engagement?: number
+              p_engagement_rate?: number
+              p_likes?: number
+              p_platform: string
+              p_shares?: number
+              p_views?: number
+            }
+        Returns: string
       }
       upsert_daily_campaign_performance: {
         Args: {
