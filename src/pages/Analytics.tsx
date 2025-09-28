@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff, FileText, Link } from 'lucide-react';
+import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff, FileText, Link, Tag } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
@@ -121,7 +121,7 @@ export default function Analytics() {
   // Comparison tab state
   const [comparisonItems, setComparisonItems] = useState<Array<{
     id: string;
-    type: 'creator' | 'campaign' | 'url';
+    type: 'creator' | 'campaign' | 'url' | 'niche';
     name: string;
     data: any;
   }>>([]);
@@ -2155,63 +2155,109 @@ const NICHE_OPTIONS = [
                     </Select>
                   </div>
 
-                  {/* Content URL Selection */}
+                  {/* Niche Comparison */}
                   <div>
-                    <Label className="text-sm font-medium mb-2 block">Add Content URL</Label>
-                    <Select onValueChange={(urlKey) => {
-                      const [campaignId, url] = urlKey.split('||');
-                      const campaign = campaigns.find(c => c.id === campaignId);
-                      
-                      // Extract URL analytics from campaign.analytics_data
-                      let urlAnalytics = null;
-                      if (campaign?.analytics_data) {
-                        Object.values(campaign.analytics_data).forEach((platformData: any) => {
-                          if (Array.isArray(platformData)) {
-                            const urlData = platformData.find((item: any) => 
-                              (item.url === url || item.content_url === url)
-                            );
-                            if (urlData) {
-                              urlAnalytics = urlData;
-                            }
+                    <Label className="text-sm font-medium mb-2 block">Compare Niches in Campaign</Label>
+                    <div className="space-y-2">
+                      <Select onValueChange={(campaignId) => {
+                        const campaign = campaigns.find(c => c.id === campaignId);
+                        if (!campaign) return;
+                        
+                        // Get all creators associated with this campaign and their niches
+                        const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaignId);
+                        const availableNiches = new Set<string>();
+                        
+                        campaignCreatorData.forEach(cc => {
+                          const creatorNiche = cc.creators?.niche;
+                          if (creatorNiche && Array.isArray(creatorNiche)) {
+                            creatorNiche.forEach(niche => {
+                              if (niche && niche.trim()) {
+                                availableNiches.add(niche.trim());
+                              }
+                            });
                           }
                         });
-                      }
-                      
-                      if (campaign && !comparisonItems.find(item => item.id === urlKey && item.type === 'url')) {
-                        const platform = url.includes('youtube.com') || url.includes('youtu.be') ? 'YouTube' 
-                          : url.includes('instagram.com') ? 'Instagram'
-                          : url.includes('tiktok.com') ? 'TikTok'
-                          : 'Other';
                         
-                        setComparisonItems(prev => [...prev, {
-                          id: urlKey,
-                          type: 'url',
-                          name: `${campaign.brand_name} - ${platform}`,
-                          data: {
-                            totalViews: urlAnalytics?.views || 0,
-                            totalEngagement: urlAnalytics?.engagement || (urlAnalytics?.likes || 0) + (urlAnalytics?.comments || 0) + (urlAnalytics?.shares || 0),
-                            avgEngagementRate: Number((urlAnalytics?.engagement_rate || 0).toFixed(2)),
-                            platform,
-                            url: url.length > 50 ? url.substring(0, 50) + '...' : url
+                        // For each niche, create a comparison item
+                        Array.from(availableNiches).forEach(niche => {
+                          const nicheKey = `${campaignId}-${niche}`;
+                          
+                          if (!comparisonItems.find(item => item.id === nicheKey && item.type === 'niche')) {
+                            // Calculate analytics for this niche within this campaign
+                            let nicheViews = 0;
+                            let nicheEngagement = 0;
+                            let nicheCreatorCount = 0;
+                            
+                            campaignCreatorData.forEach(cc => {
+                              const creatorNiche = cc.creators?.niche;
+                              if (creatorNiche && Array.isArray(creatorNiche) && creatorNiche.includes(niche)) {
+                                nicheCreatorCount++;
+                                
+                                // Get analytics data for this creator from the campaign
+                                if (campaign.analytics_data) {
+                                  Object.values(campaign.analytics_data).forEach((platformData: any) => {
+                                    if (Array.isArray(platformData)) {
+                                      platformData.forEach((item: any) => {
+                                        const itemCreatorId = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
+                                        if (itemCreatorId === cc.creator_id) {
+                                          nicheViews += item.views || 0;
+                                          nicheEngagement += item.engagement || (item.likes || 0) + (item.comments || 0) + (item.shares || 0);
+                                        }
+                                      });
+                                    }
+                                  });
+                                }
+                              }
+                            });
+                            
+                            // If no URL-level data, distribute campaign totals proportionally
+                            if (nicheViews === 0 && nicheCreatorCount > 0) {
+                              const totalCreators = campaignCreatorData.length;
+                              nicheViews = Math.round((campaign.total_views || 0) * (nicheCreatorCount / totalCreators));
+                              nicheEngagement = Math.round((campaign.total_engagement || 0) * (nicheCreatorCount / totalCreators));
+                            }
+                            
+                            const engagementRate = nicheViews > 0 ? (nicheEngagement / nicheViews) * 100 : 0;
+                            
+                            setComparisonItems(prev => [...prev, {
+                              id: nicheKey,
+                              type: 'niche',
+                              name: `${niche} (${campaign.brand_name})`,
+                              data: {
+                                totalViews: nicheViews,
+                                totalEngagement: nicheEngagement,
+                                avgEngagementRate: Number(engagementRate.toFixed(2)),
+                                creatorCount: nicheCreatorCount,
+                                campaignName: campaign.brand_name,
+                                niche: niche,
+                                campaignDate: campaign.campaign_date
+                              }
+                            }]);
                           }
-                        }]);
-                      }
-                    }}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select content URL" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {campaigns.flatMap(campaign => 
-                          campaign.content_urls ? Object.entries(campaign.content_urls).map(([platform, urls]) => 
-                            urls.map(url => (
-                              <SelectItem key={`${campaign.id}||${url}`} value={`${campaign.id}||${url}`}>
-                                {campaign.brand_name} - {platform}: {url.length > 30 ? url.substring(0, 30) + '...' : url}
-                              </SelectItem>
-                            ))
-                          ).flat() : []
-                        )}
-                      </SelectContent>
-                    </Select>
+                        });
+                      }}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select campaign to analyze niches" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {campaigns.filter(campaign => {
+                            // Only show campaigns that have creators with niches
+                            const campaignCreatorData = campaignCreators.filter(cc => cc.campaign_id === campaign.id);
+                            return campaignCreatorData.some(cc => {
+                              const creatorNiche = cc.creators?.niche;
+                              return creatorNiche && Array.isArray(creatorNiche) && creatorNiche.length > 0;
+                            });
+                          }).map(campaign => (
+                            <SelectItem key={campaign.id} value={campaign.id}>
+                              {campaign.brand_name} - {new Date(campaign.campaign_date).toLocaleDateString()}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <div className="text-xs text-muted-foreground">
+                        Select a campaign to compare how different niches perform within it
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -2225,6 +2271,7 @@ const NICHE_OPTIONS = [
                           {item.type === 'creator' && <Users className="w-3 h-3" />}
                           {item.type === 'campaign' && <FileText className="w-3 h-3" />}
                           {item.type === 'url' && <Link className="w-3 h-3" />}
+                          {item.type === 'niche' && <Tag className="w-3 h-3" />}
                           {item.name}
                           <Button
                             variant="ghost"
@@ -2291,11 +2338,16 @@ const NICHE_OPTIONS = [
                                       {item.data.url}
                                     </div>
                                   )}
+                                  {item.type === 'niche' && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Campaign: {item.data.campaignName} • {item.data.creatorCount} creators
+                                    </div>
+                                  )}
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="capitalize">
-                                  {item.type === 'url' ? 'Content URL' : item.type}
+                                  {item.type === 'url' ? 'Content URL' : item.type === 'niche' ? 'Niche Analysis' : item.type}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right font-mono">
@@ -2352,6 +2404,11 @@ const NICHE_OPTIONS = [
                                   {item.type === 'url' && (
                                     <div className="text-xs">
                                       <span className="text-muted-foreground">Platform:</span> {item.data.platform}
+                                    </div>
+                                  )}
+                                  {item.type === 'niche' && (
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">Creators:</span> {item.data.creatorCount}
                                     </div>
                                   )}
                                   <div className="text-xs">
