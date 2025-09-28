@@ -225,6 +225,15 @@ export function Navigation() {
                   <User className="w-4 h-4" />
                   <span className="font-body">Profile</span>
                 </DropdownMenuItem>
+                {isMasterAdmin && (
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/organizations')}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50"
+                  >
+                    <Building2 className="w-4 h-4" />
+                    <span className="font-body">Master Admin</span>
+                  </DropdownMenuItem>
+                )}
                 <ThemeToggle />
                 <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem 
