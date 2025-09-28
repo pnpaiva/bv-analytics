@@ -1345,42 +1345,101 @@ const NICHE_OPTIONS = [
                   <CardTitle>{creatorViewMode ? 'Creator Performance' : 'Platform Performance'}</CardTitle>
                   <CardDescription>{creatorViewMode ? 'Views and engagement by creator' : 'Views and engagement by platform'}</CardDescription>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="creator-view-bar">Creator View</Label>
-                  <Switch
-                    id="creator-view-bar"
-                    checked={creatorViewMode}
-                    onCheckedChange={setCreatorViewMode}
-                  />
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="percent-engagement" className="text-sm">% Engagement</Label>
+                    <Switch
+                      id="percent-engagement"
+                      checked={usePercentEngagement}
+                      onCheckedChange={setUsePercentEngagement}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="creator-view-bar">Creator View</Label>
+                    <Switch
+                      id="creator-view-bar"
+                      checked={creatorViewMode}
+                      onCheckedChange={setCreatorViewMode}
+                    />
+                  </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <div data-chart={creatorViewMode ? "creator-performance" : "platform-performance"}>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="platform" />
-                    <YAxis tickFormatter={(value) => {
-                      if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
-                      if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
-                      return value.toString();
-                    }} />
-                    <Tooltip formatter={(value, name) => {
-                      const formatNumber = (num: number) => {
-                        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-                        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-                        return num.toLocaleString();
-                      };
-                      return [
-                        typeof value === 'number' ? formatNumber(value) : value,
-                        name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
-                      ];
-                    }} />
-                    <Legend />
-                    <Bar dataKey="views" fill="hsl(var(--primary))" name="Views" />
-                    <Bar dataKey="engagement" fill="hsl(var(--brand-accent-green))" name="Engagement" />
-                  </BarChart>
+                  {usePercentEngagement ? (
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="platform" />
+                      <YAxis 
+                        yAxisId="left"
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                          if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                          return value.toString();
+                        }} 
+                      />
+                      <YAxis 
+                        yAxisId="right" 
+                        orientation="right"
+                        tickFormatter={(value) => `${value.toFixed(1)}%`}
+                      />
+                      <Tooltip formatter={(value, name) => {
+                        if (name === 'engagementRate') {
+                          return [`${Number(value).toFixed(2)}%`, 'Engagement Rate'];
+                        }
+                        const formatNumber = (num: number) => {
+                          if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                          if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                          return num.toLocaleString();
+                        };
+                        return [
+                          typeof value === 'number' ? formatNumber(value) : value,
+                          name === 'views' ? 'Views' : 'Engagement Rate'
+                        ];
+                      }} />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="views" fill="hsl(var(--primary))" name="Views" />
+                      <Bar yAxisId="right" dataKey="engagementRate" fill="hsl(var(--brand-accent-green))" name="Engagement Rate (%)" />
+                    </BarChart>
+                  ) : (
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="platform" />
+                      <YAxis 
+                        yAxisId="left"
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                          if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                          return value.toString();
+                        }} 
+                      />
+                      <YAxis 
+                        yAxisId="right" 
+                        orientation="right"
+                        tickFormatter={(value) => {
+                          if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                          if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
+                          return value.toString();
+                        }}
+                      />
+                      <Tooltip formatter={(value, name) => {
+                        const formatNumber = (num: number) => {
+                          if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                          if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                          return num.toLocaleString();
+                        };
+                        return [
+                          typeof value === 'number' ? formatNumber(value) : value,
+                          name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
+                        ];
+                      }} />
+                      <Legend />
+                      <Bar yAxisId="left" dataKey="views" fill="hsl(var(--primary))" name="Views" />
+                      <Bar yAxisId="right" dataKey="engagement" fill="hsl(var(--brand-accent-green))" name="Engagement" />
+                    </BarChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </CardContent>
