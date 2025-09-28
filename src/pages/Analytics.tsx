@@ -897,7 +897,11 @@ const NICHE_OPTIONS = [
     const isExcluded = excludedVideos.has(videoKey);
     
     return (
-      <div className="rounded-md border bg-background p-3 text-xs shadow-lg min-w-[200px]">
+      <div 
+        className="rounded-md border bg-background p-3 text-xs shadow-lg min-w-[200px] pointer-events-auto"
+        onMouseEnter={(e) => e.preventDefault()}
+        onMouseLeave={(e) => e.preventDefault()}
+      >
         <div className="font-medium text-foreground">{p.campaign}</div>
         <div className="text-muted-foreground mb-2">{p.platform} • {p.creator}</div>
         <div className="space-y-1">
@@ -906,11 +910,14 @@ const NICHE_OPTIONS = [
           <div>Eng. Rate: {p.size.toFixed(1)}%</div>
         </div>
         <div className="mt-2 pt-2 border-t border-border flex gap-2">
-          <Button
-            size="sm"
-            variant={isExcluded ? "default" : "secondary"}
-            className="h-6 px-2 text-xs"
-            onClick={(e) => {
+          <button
+            className={`px-2 py-1 text-xs rounded transition-colors ${
+              isExcluded 
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+            }`}
+            onMouseDown={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setExcludedVideos(prev => {
                 const newSet = new Set(prev);
@@ -924,18 +931,17 @@ const NICHE_OPTIONS = [
             }}
           >
             {isExcluded ? 'Include' : 'Exclude'}
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-6 px-2 text-xs"
-            onClick={(e) => {
+          </button>
+          <button
+            className="px-2 py-1 text-xs rounded bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+            onMouseDown={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               if (p.url) window.open(p.url, '_blank', 'noopener,noreferrer');
             }}
           >
             View
-          </Button>
+          </button>
         </div>
       </div>
     );
@@ -1398,67 +1404,31 @@ const NICHE_OPTIONS = [
                   <CardDescription>{creatorViewMode ? 'Views and engagement by creator' : 'Views and engagement by platform'}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2 group">
+                  <div className="flex items-center space-x-3 p-2 rounded-lg bg-muted/30 border border-border/50">
                     <Label 
                       htmlFor="percent-engagement" 
                       className="text-sm font-medium text-foreground cursor-pointer select-none"
                     >
                       % Engagement
                     </Label>
-                    <div className={`
-                      relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer
-                      ${usePercentEngagement 
-                        ? 'bg-primary shadow-sm' 
-                        : 'bg-muted border border-border hover:bg-muted/80'
-                      }
-                    `}>
-                      <Switch
-                        id="percent-engagement"
-                        checked={usePercentEngagement}
-                        onCheckedChange={setUsePercentEngagement}
-                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                      />
-                      <span className={`
-                        inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-200 ease-in-out
-                        ${usePercentEngagement ? 'translate-x-6' : 'translate-x-1'}
-                      `} />
-                      {usePercentEngagement && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-2 h-2 bg-primary-foreground rounded-full opacity-60" />
-                        </div>
-                      )}
-                    </div>
+                    <Switch
+                      id="percent-engagement"
+                      checked={usePercentEngagement}
+                      onCheckedChange={setUsePercentEngagement}
+                    />
                   </div>
-                  <div className="flex items-center space-x-2 group">
+                  <div className="flex items-center space-x-3 p-2 rounded-lg bg-muted/30 border border-border/50">
                     <Label 
                       htmlFor="creator-view-bar" 
                       className="text-sm font-medium text-foreground cursor-pointer select-none"
                     >
                       Creator View
                     </Label>
-                    <div className={`
-                      relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer
-                      ${creatorViewMode 
-                        ? 'bg-primary shadow-sm' 
-                        : 'bg-muted border border-border hover:bg-muted/80'
-                      }
-                    `}>
-                      <Switch
-                        id="creator-view-bar"
-                        checked={creatorViewMode}
-                        onCheckedChange={setCreatorViewMode}
-                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                      />
-                      <span className={`
-                        inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-200 ease-in-out
-                        ${creatorViewMode ? 'translate-x-6' : 'translate-x-1'}
-                      `} />
-                      {creatorViewMode && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-2 h-2 bg-primary-foreground rounded-full opacity-60" />
-                        </div>
-                      )}
-                    </div>
+                    <Switch
+                      id="creator-view-bar"
+                      checked={creatorViewMode}
+                      onCheckedChange={setCreatorViewMode}
+                    />
                   </div>
                 </div>
               </div>
@@ -1576,36 +1546,18 @@ const NICHE_OPTIONS = [
                   <CardTitle>Views Distribution</CardTitle>
                   <CardDescription>{creatorViewMode ? 'Share of total views by creator' : 'Share of total views by platform'}</CardDescription>
                 </div>
-                <div className="flex items-center space-x-2 group">
+                <div className="flex items-center space-x-3 p-2 rounded-lg bg-muted/30 border border-border/50">
                   <Label 
                     htmlFor="creator-view-pie" 
                     className="text-sm font-medium text-foreground cursor-pointer select-none"
                   >
                     Creator View
                   </Label>
-                  <div className={`
-                    relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer
-                    ${creatorViewMode 
-                      ? 'bg-primary shadow-sm' 
-                      : 'bg-muted border border-border hover:bg-muted/80'
-                    }
-                  `}>
-                    <Switch
-                      id="creator-view-pie"
-                      checked={creatorViewMode}
-                      onCheckedChange={setCreatorViewMode}
-                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                    />
-                    <span className={`
-                      inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-200 ease-in-out
-                      ${creatorViewMode ? 'translate-x-6' : 'translate-x-1'}
-                    `} />
-                    {creatorViewMode && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-2 h-2 bg-primary-foreground rounded-full opacity-60" />
-                      </div>
-                    )}
-                  </div>
+                  <Switch
+                    id="creator-view-pie"
+                    checked={creatorViewMode}
+                    onCheckedChange={setCreatorViewMode}
+                  />
                 </div>
               </div>
             </CardHeader>
