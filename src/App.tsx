@@ -29,124 +29,139 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="light"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <OrganizationProvider>
-        <TooltipProvider>
+    <OrganizationProvider>
+      <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
-        <Routes>
-          {/* Public routes - accessible without authentication */}
-          <Route path="/" element={<Index />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogPost />} />
-          
-          {/* Public media kit routes - accessible to anyone with the link */}
-          <Route path="/:slug" element={<PublicMediaKit />} />
-          
-          {/* Routes that need authentication context */}
-          <Route path="/auth" element={
-            <AuthProvider>
-              <Auth />
-            </AuthProvider>
-          } />
-          
-          {/* Protected routes - require authentication */}
-          <Route path="/campaigns" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <Campaigns />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
-          <Route path="/analytics" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <Analytics />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
-          <Route path="/master-campaigns" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <MasterCampaigns />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
-          <Route path="/creator-profiles" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <CreatorProfiles />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
-          <Route path="/project-management" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <ProjectManagement />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
-          <Route 
-            path="/admin" 
-            element={
-              <AuthProvider>
-                <AdminProtectedRoute>
-                  <RoleBasedDashboard />
-                </AdminProtectedRoute>
-              </AuthProvider>
-            }
-          />
-          <Route 
-            path="/admin/blog" 
-            element={
-              <AuthProvider>
-                <AdminProtectedRoute>
-                  <AdminBlog />
-                </AdminProtectedRoute>
-              </AuthProvider>
-            } 
-          />
-          <Route 
-            path="/organizations" 
-            element={
-              <AuthProvider>
-                <AdminProtectedRoute>
-                  <OrganizationManagement />
-                </AdminProtectedRoute>
-              </AuthProvider>
-            } 
-          />
-          <Route 
-            path="/organization-users" 
-            element={
-              <AuthProvider>
-                <AdminProtectedRoute>
-                  <OrganizationUsers />
-                </AdminProtectedRoute>
-              </AuthProvider>
-            } 
-          />
-          <Route path="/profile" element={
-            <AuthProvider>
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            </AuthProvider>
-          } />
-          
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-        </TooltipProvider>
-      </OrganizationProvider>
-    </ThemeProvider>
+          <Routes>
+            {/* Public routes - accessible without authentication (no theme provider) */}
+            <Route path="/" element={<Index />} />
+            <Route path="/blog" element={<Blog />} />
+            <Route path="/blog/:slug" element={<BlogPost />} />
+            
+            {/* Public media kit routes - accessible to anyone with the link */}
+            <Route path="/:slug" element={<PublicMediaKit />} />
+            
+            {/* Routes that need authentication context with theme support */}
+            <Route path="/auth" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <Auth />
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            
+            {/* Protected routes - require authentication with theme support */}
+            <Route path="/campaigns" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <Campaigns />
+                  </ProtectedRoute>
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            <Route path="/analytics" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            <Route path="/master-campaigns" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <MasterCampaigns />
+                  </ProtectedRoute>
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            <Route path="/creator-profiles" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <CreatorProfiles />
+                  </ProtectedRoute>
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            <Route path="/project-management" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <ProjectManagement />
+                  </ProtectedRoute>
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            <Route 
+              path="/admin" 
+              element={
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                  <AuthProvider>
+                    <AdminProtectedRoute>
+                      <RoleBasedDashboard />
+                    </AdminProtectedRoute>
+                  </AuthProvider>
+                </ThemeProvider>
+              }
+            />
+            <Route 
+              path="/admin/blog" 
+              element={
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                  <AuthProvider>
+                    <AdminProtectedRoute>
+                      <AdminBlog />
+                    </AdminProtectedRoute>
+                  </AuthProvider>
+                </ThemeProvider>
+              } 
+            />
+            <Route 
+              path="/organizations" 
+              element={
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                  <AuthProvider>
+                    <AdminProtectedRoute>
+                      <OrganizationManagement />
+                    </AdminProtectedRoute>
+                  </AuthProvider>
+                </ThemeProvider>
+              } 
+            />
+            <Route 
+              path="/organization-users" 
+              element={
+                <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                  <AuthProvider>
+                    <AdminProtectedRoute>
+                      <OrganizationUsers />
+                    </AdminProtectedRoute>
+                  </AuthProvider>
+                </ThemeProvider>
+              } 
+            />
+            <Route path="/profile" element={
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+                <AuthProvider>
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                </AuthProvider>
+              </ThemeProvider>
+            } />
+            
+            {/* Catch-all route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </OrganizationProvider>
   </QueryClientProvider>
 );
 
