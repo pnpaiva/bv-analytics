@@ -80,7 +80,7 @@ export default function CreatorProfiles() {
   const { data: campaignCreators = [] } = useCampaignCreators();
   const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const updateCreator = useUpdateCreator();
-  const { canEdit, isAdmin } = useUserPermissions();
+  const { canEdit, isAdmin, isLocalAdmin } = useUserPermissions();
   
   // Debug logging
   console.log('CreatorProfiles - creators:', creators);
@@ -1729,7 +1729,7 @@ export default function CreatorProfiles() {
         </div>
         
         {/* Render EditCreatorDialog */}
-        {selectedCreatorProfile && canEdit && <EditCreatorDialog creator={selectedCreatorProfile} />}
+        {selectedCreatorProfile && (canEdit || isLocalAdmin) && <EditCreatorDialog creator={selectedCreatorProfile} />}
       </div>
     </div>
   );

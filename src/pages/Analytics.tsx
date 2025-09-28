@@ -1066,22 +1066,22 @@ const NICHE_OPTIONS = [
 
         {/* Compact Filters */}
         {showFilters && (
-          <div className="mb-6 p-4 bg-gray-50/30 rounded-lg border border-gray-200">
+          <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-3 flex-wrap">
               {/* Search Input */}
               <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search Campaigns"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-9 bg-white border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  className="pl-10 h-9"
                 />
               </div>
 
               {/* Creators Filter */}
               <Select onValueChange={handleCreatorFilterChange}>
-                <SelectTrigger className="w-32 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                <SelectTrigger className="w-32 h-9">
                   <SelectValue placeholder="Creators" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1095,7 +1095,7 @@ const NICHE_OPTIONS = [
 
               {/* Clients Filter */}
               <Select onValueChange={handleClientFilterChange}>
-                <SelectTrigger className="w-32 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                <SelectTrigger className="w-32 h-9">
                   <SelectValue placeholder="Clients" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1109,7 +1109,7 @@ const NICHE_OPTIONS = [
 
               {/* Campaigns Filter */}
               <Select onValueChange={handleCampaignFilterChange}>
-                <SelectTrigger className="w-36 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                <SelectTrigger className="w-36 h-9">
                   <SelectValue placeholder="Campaigns" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1125,7 +1125,7 @@ const NICHE_OPTIONS = [
 
               {/* Master Campaigns Filter */}
               <Select onValueChange={handleMasterCampaignFilterChange}>
-                <SelectTrigger className="w-36 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                <SelectTrigger className="w-36 h-9">
                   <SelectValue placeholder="Master Campaigns" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1139,7 +1139,7 @@ const NICHE_OPTIONS = [
 
               {/* Niches Filter */}
               <Select onValueChange={handleNicheFilterChange}>
-                <SelectTrigger className="w-32 h-9 bg-white border-gray-300 hover:border-gray-400 focus:border-blue-500">
+                <SelectTrigger className="w-32 h-9">
                   <SelectValue placeholder="Niches" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1156,7 +1156,7 @@ const NICHE_OPTIONS = [
                 variant="outline"
                 size="sm"
                 onClick={() => setShowFilters(false)}
-                className="h-9 px-3 bg-gray-100 border-gray-300 hover:bg-gray-200"
+                className="h-9 px-3"
               >
                 <Filter className="h-4 w-4 mr-1" />
                 Hide filters
@@ -1165,17 +1165,17 @@ const NICHE_OPTIONS = [
 
             {/* Active Filter Tags */}
             {(creatorFilters.length > 0 || clientFilters.length > 0 || campaignFilters.length > 0 || masterCampaignFilters.length > 0 || nicheFilters.length > 0) && (
-              <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="mt-3 pt-3 border-t">
                 <div className="flex flex-wrap gap-2">
                   {creatorFilters.map((creatorId) => {
                     const creator = creators.find(c => c.id === creatorId);
                     return creator ? (
-                      <Badge key={creatorId} variant="secondary" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                      <Badge key={creatorId} variant="secondary" className="text-xs">
                         Creator: {creator.name}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-auto p-0 ml-1 hover:bg-blue-200"
+                          className="h-auto p-0 ml-1"
                           onClick={() => removeCreatorFilter(creatorId)}
                         >
                           <X className="h-3 w-3" />
@@ -1186,12 +1186,12 @@ const NICHE_OPTIONS = [
                   {clientFilters.map((clientId) => {
                     const client = clients.find(c => c.id === clientId);
                     return client ? (
-                      <Badge key={clientId} variant="secondary" className="text-xs bg-green-100 text-green-800 border-green-200">
+                      <Badge key={clientId} variant="secondary" className="text-xs">
                         Client: {client.name}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-auto p-0 ml-1 hover:bg-green-200"
+                          className="h-auto p-0 ml-1"
                           onClick={() => removeClientFilter(clientId)}
                         >
                           <X className="h-3 w-3" />
@@ -1202,12 +1202,12 @@ const NICHE_OPTIONS = [
                   {campaignFilters.map((campaignId) => {
                     const campaign = campaigns.find(c => c.id === campaignId);
                     return campaign ? (
-                      <Badge key={campaignId} variant="secondary" className="text-xs bg-indigo-100 text-indigo-800 border-indigo-200">
+                      <Badge key={campaignId} variant="secondary" className="text-xs">
                         Campaign: {campaign.brand_name}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-auto p-0 ml-1 hover:bg-indigo-200"
+                          className="h-auto p-0 ml-1"
                           onClick={() => removeCampaignFilter(campaignId)}
                         >
                           <X className="h-3 w-3" />
@@ -1216,12 +1216,12 @@ const NICHE_OPTIONS = [
                     ) : null;
                   })}
                   {masterCampaignFilters.map((masterCampaignName) => (
-                    <Badge key={masterCampaignName} variant="secondary" className="text-xs bg-purple-100 text-purple-800 border-purple-200">
+                    <Badge key={masterCampaignName} variant="secondary" className="text-xs">
                       Master: {masterCampaignName}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-auto p-0 ml-1 hover:bg-purple-200"
+                        className="h-auto p-0 ml-1"
                         onClick={() => removeMasterCampaignFilter(masterCampaignName)}
                       >
                         <X className="h-3 w-3" />
@@ -1229,12 +1229,12 @@ const NICHE_OPTIONS = [
                     </Badge>
                   ))}
                   {nicheFilters.map((niche) => (
-                    <Badge key={niche} variant="secondary" className="text-xs bg-orange-100 text-orange-800 border-orange-200">
+                    <Badge key={niche} variant="secondary" className="text-xs">
                       Niche: {niche}
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-auto p-0 ml-1 hover:bg-orange-200"
+                        className="h-auto p-0 ml-1"
                         onClick={() => removeNicheFilter(niche)}
                       >
                         <X className="h-3 w-3" />
@@ -1253,7 +1253,7 @@ const NICHE_OPTIONS = [
             <Button
               variant="outline"
               onClick={() => setShowFilters(true)}
-              className="h-9 px-3 bg-gray-100 border-gray-300 hover:bg-gray-200"
+              className="h-9 px-3"
             >
               <Filter className="h-4 w-4 mr-2" />
               Show filters
