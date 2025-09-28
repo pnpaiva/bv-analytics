@@ -23,7 +23,7 @@ import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
 import { CampaignTimelineChart } from '@/components/analytics/CampaignTimelineChart';
 import { toast } from 'sonner';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter, ZAxis } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, ScatterChart, Scatter, ZAxis, ComposedChart } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -1369,7 +1369,7 @@ const NICHE_OPTIONS = [
               <div data-chart={creatorViewMode ? "creator-performance" : "platform-performance"}>
                 <ResponsiveContainer width="100%" height={300}>
                   {usePercentEngagement ? (
-                    <BarChart data={chartData}>
+                    <ComposedChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="platform" />
                       <YAxis 
@@ -1401,10 +1401,18 @@ const NICHE_OPTIONS = [
                       }} />
                       <Legend />
                       <Bar yAxisId="left" dataKey="views" fill="hsl(var(--primary))" name="Views" />
-                      <Bar yAxisId="right" dataKey="engagementRate" fill="hsl(var(--brand-accent-green))" name="Engagement Rate (%)" />
-                    </BarChart>
+                      <Line 
+                        yAxisId="right" 
+                        type="monotone" 
+                        dataKey="engagementRate" 
+                        stroke="hsl(var(--chart-2))" 
+                        strokeWidth={3}
+                        dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
+                        name="Engagement Rate (%)" 
+                      />
+                    </ComposedChart>
                   ) : (
-                    <BarChart data={chartData}>
+                    <ComposedChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="platform" />
                       <YAxis 
@@ -1419,7 +1427,7 @@ const NICHE_OPTIONS = [
                         yAxisId="right" 
                         orientation="right"
                         tickFormatter={(value) => {
-                          if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+                          if (value >= 100000) return (value / 1000).toFixed(0) + 'K';
                           if (value >= 1000) return (value / 1000).toFixed(1) + 'K';
                           return value.toString();
                         }}
@@ -1437,8 +1445,16 @@ const NICHE_OPTIONS = [
                       }} />
                       <Legend />
                       <Bar yAxisId="left" dataKey="views" fill="hsl(var(--primary))" name="Views" />
-                      <Bar yAxisId="right" dataKey="engagement" fill="hsl(var(--brand-accent-green))" name="Engagement" />
-                    </BarChart>
+                      <Line 
+                        yAxisId="right" 
+                        type="monotone" 
+                        dataKey="engagement" 
+                        stroke="hsl(var(--chart-2))" 
+                        strokeWidth={3}
+                        dot={{ fill: "hsl(var(--chart-2))", strokeWidth: 2, r: 4 }}
+                        name="Engagement" 
+                      />
+                    </ComposedChart>
                   )}
                 </ResponsiveContainer>
               </div>
