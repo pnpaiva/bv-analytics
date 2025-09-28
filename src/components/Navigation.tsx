@@ -17,6 +17,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useUserRole, useUserPermissions } from '@/hooks/useUserRoles';
 import { useProfile } from '@/hooks/useProfileManagement';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export function Navigation() {
   const { user } = useAuth();
@@ -224,6 +225,7 @@ export function Navigation() {
                   <User className="w-4 h-4" />
                   <span className="font-body">Profile</span>
                 </DropdownMenuItem>
+                <ThemeToggle />
                 <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem 
                   onClick={handleLogout}
