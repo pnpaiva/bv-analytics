@@ -2046,8 +2046,8 @@ const NICHE_OPTIONS = [
                   <div>
                     <Label className="text-sm font-medium mb-2 block">Add Creator</Label>
                     <Select onValueChange={(creatorId) => {
-                      const creator = creatorLookup[creatorId];
-                      if (creator && !comparisonItems.find(item => item.id === creatorId && item.type === 'creator')) {
+                      const creatorName = creatorLookup.get(creatorId);
+                      if (creatorName && !comparisonItems.find(item => item.id === creatorId && item.type === 'creator')) {
                         const creatorCampaigns = campaigns.filter(c => resolveCreatorForCampaign(c).id === creatorId);
                         const totalViews = creatorCampaigns.reduce((sum, c) => sum + (c.total_views || 0), 0);
                         const totalEngagement = creatorCampaigns.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
@@ -2055,15 +2055,39 @@ const NICHE_OPTIONS = [
                           ? creatorCampaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / creatorCampaigns.length 
                           : 0;
                         
+                        // Get platform breakdown for this creator
+                        const platformBreakdown: Record<string, number> = {};
+                        creatorCampaigns.forEach(campaign => {
+                          if (campaign.analytics_data) {
+                            Object.entries(campaign.analytics_data).forEach(([platform, data]: [string, any]) => {
+                              if (Array.isArray(data)) {
+                                data.forEach((item: any) => {
+                                  const itemCreatorId = getCreatorIdForUrl(campaign.id, item.url || item.content_url);
+                                  if (itemCreatorId === creatorId) {
+                                    platformBreakdown[platform] = (platformBreakdown[platform] || 0) + (item.views || 0);
+                                  }
+                                });
+                              }
+                            });
+                          }
+                        });
+                        
                         setComparisonItems(prev => [...prev, {
                           id: creatorId,
                           type: 'creator',
-                          name: creator.name,
+                          name: creatorName,
                           data: {
                             totalViews,
                             totalEngagement,
                             avgEngagementRate: Number(avgEngagementRate.toFixed(2)),
-                            campaignCount: creatorCampaigns.length
+                            campaignCount: creatorCampaigns.length,
+                            platformBreakdown,
+                            campaigns: creatorCampaigns.map(c => ({
+                              name: c.brand_name,
+                              date: c.campaign_date,
+                              views: c.total_views || 0,
+                              engagement: c.total_engagement || 0
+                            }))
                           }
                         }]);
                       }
@@ -2072,7 +2096,7 @@ const NICHE_OPTIONS = [
                         <SelectValue placeholder="Select creator" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.values(creatorLookup).map(creator => (
+                        {filteredCreators.map(creator => (
                           <SelectItem key={creator.id} value={creator.id}>
                             {creator.name}
                           </SelectItem>
@@ -2087,6 +2111,19 @@ const NICHE_OPTIONS = [
                     <Select onValueChange={(campaignId) => {
                       const campaign = campaigns.find(c => c.id === campaignId);
                       if (campaign && !comparisonItems.find(item => item.id === campaignId && item.type === 'campaign')) {
+                        // Get platform breakdown for this campaign
+                        const platformBreakdown: Record<string, number> = {};
+                        if (campaign.analytics_data) {
+                          Object.entries(campaign.analytics_data).forEach(([platform, data]: [string, any]) => {
+                            if (Array.isArray(data)) {
+                              const platformViews = data.reduce((sum: number, item: any) => sum + (item.views || 0), 0);
+                              if (platformViews > 0) {
+                                platformBreakdown[platform] = platformViews;
+                              }
+                            }
+                          });
+                        }
+                        
                         setComparisonItems(prev => [...prev, {
                           id: campaignId,
                           type: 'campaign',
@@ -2095,7 +2132,12 @@ const NICHE_OPTIONS = [
                             totalViews: campaign.total_views || 0,
                             totalEngagement: campaign.total_engagement || 0,
                             avgEngagementRate: Number((campaign.engagement_rate || 0).toFixed(2)),
-                            contentUrlCount: campaign.content_urls ? Object.keys(campaign.content_urls).length : 0
+                            contentUrlCount: campaign.content_urls ? Object.values(campaign.content_urls).flat().length : 0,
+                            platformBreakdown,
+                            creator: resolveCreatorForCampaign(campaign).name,
+                            brandName: campaign.brand_name,
+                            campaignDate: campaign.campaign_date,
+                            status: campaign.status
                           }
                         }]);
                       }
@@ -2218,34 +2260,112 @@ const NICHE_OPTIONS = [
                           <TableHead className="text-right">Total Views</TableHead>
                           <TableHead className="text-right">Total Engagement</TableHead>
                           <TableHead className="text-right">Avg Engagement Rate</TableHead>
-                          <TableHead className="text-right">Additional Info</TableHead>
+                          <TableHead className="text-right">Top Platform</TableHead>
+                          <TableHead className="text-right">Performance</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {comparisonItems.map((item) => (
-                          <TableRow key={`${item.type}-${item.id}`}>
-                            <TableCell className="font-medium">{item.name}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {item.type}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              {item.data.totalViews.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              {item.data.totalEngagement.toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                              {item.data.avgEngagementRate}%
-                            </TableCell>
-                            <TableCell className="text-right text-sm text-muted-foreground">
-                              {item.type === 'creator' && `${item.data.campaignCount} campaigns`}
-                              {item.type === 'campaign' && `${item.data.contentUrlCount} URLs`}
-                              {item.type === 'url' && item.data.platform}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {comparisonItems.map((item) => {
+                          const topPlatform = item.data.platformBreakdown 
+                            ? Object.entries(item.data.platformBreakdown)
+                                .sort(([,a], [,b]) => Number(b) - Number(a))[0] 
+                            : null;
+                          
+                          return (
+                            <TableRow key={`${item.type}-${item.id}`}>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{item.name}</div>
+                                  {item.type === 'campaign' && (
+                                    <div className="text-xs text-muted-foreground">
+                                      by {item.data.creator} • {item.data.status}
+                                    </div>
+                                  )}
+                                  {item.type === 'creator' && item.data.campaigns && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Recent: {item.data.campaigns.slice(-2).map((c: any) => c.name).join(', ')}
+                                    </div>
+                                  )}
+                                  {item.type === 'url' && (
+                                    <div className="text-xs text-muted-foreground font-mono">
+                                      {item.data.url}
+                                    </div>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="capitalize">
+                                  {item.type === 'url' ? 'Content URL' : item.type}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                <div className="font-medium">{item.data.totalViews.toLocaleString()}</div>
+                                {item.type === 'creator' && item.data.campaignCount > 1 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    avg {Math.round(item.data.totalViews / item.data.campaignCount).toLocaleString()}/campaign
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                <div className="font-medium">{item.data.totalEngagement.toLocaleString()}</div>
+                                {item.type === 'creator' && item.data.campaignCount > 1 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    avg {Math.round(item.data.totalEngagement / item.data.campaignCount).toLocaleString()}/campaign
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                <div className="font-medium">{item.data.avgEngagementRate}%</div>
+                                {item.data.totalViews > 0 && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {((item.data.totalEngagement / item.data.totalViews) * 100).toFixed(2)}% actual
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {topPlatform ? (
+                                  <div>
+                                    <div className="font-medium capitalize">{topPlatform[0]}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                      {Number(topPlatform[1]).toLocaleString()} views
+                                      {item.data.totalViews > 0 && (
+                                        <span> ({Math.round((Number(topPlatform[1]) / Number(item.data.totalViews)) * 100)}%)</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">No data</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="space-y-1">
+                                  {item.type === 'creator' && (
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">Campaigns:</span> {item.data.campaignCount}
+                                    </div>
+                                  )}
+                                  {item.type === 'campaign' && (
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">URLs:</span> {item.data.contentUrlCount}
+                                    </div>
+                                  )}
+                                  {item.type === 'url' && (
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">Platform:</span> {item.data.platform}
+                                    </div>
+                                  )}
+                                  <div className="text-xs">
+                                    <span className="text-muted-foreground">CPV:</span> ₹
+                                    {item.data.totalViews > 0 
+                                      ? (1000 / item.data.totalViews).toFixed(3)
+                                      : '0.000'
+                                    }
+                                  </div>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
