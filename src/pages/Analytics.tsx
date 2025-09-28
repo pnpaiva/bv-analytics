@@ -684,7 +684,7 @@ const NICHE_OPTIONS = [
       const platformColors = [
         'hsl(var(--primary))',        // YouTube
         'hsl(var(--brand-accent-green))', // Instagram  
-        'hsl(var(--teal))',          // TikTok
+        'hsl(var(--chart-3))',       // TikTok - brighter color for dark mode visibility
         'hsl(var(--orange))',        // Additional platforms
         'hsl(var(--secondary))',     // Additional platforms
       ];
