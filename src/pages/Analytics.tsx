@@ -1442,13 +1442,14 @@ const NICHE_OPTIONS = [
                         }}
                       />
                       <Tooltip formatter={(value, name, props) => {
-                        if (name === 'engagementRate') {
-                          return [`${Number(value).toFixed(2)}%`, 'Engagement Rate'];
-                        }
                         if (name === 'Engagement') {
-                          // Calculate engagement rate from the data point
-                          const engagementRate = props.payload.engagementRate || 0;
-                          return [`${engagementRate.toFixed(2)}%`, 'Engagement Rate'];
+                          // When toggle is OFF, show total engagement numbers
+                          const formatNumber = (num: number) => {
+                            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+                            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+                            return num.toLocaleString();
+                          };
+                          return [formatNumber(Number(value)), 'Total Engagement'];
                         }
                         const formatNumber = (num: number) => {
                           if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
