@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
-import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff } from 'lucide-react';
+import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff, FileText, Link } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
@@ -117,6 +117,14 @@ export default function Analytics() {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const { showDealValue, setShowDealValue } = useDealValueVisibility();
   const [bubbleCreatorFilter, setBubbleCreatorFilter] = useState<string[]>([]);
+
+  // Comparison tab state
+  const [comparisonItems, setComparisonItems] = useState<Array<{
+    id: string;
+    type: 'creator' | 'campaign' | 'url';
+    name: string;
+    data: any;
+  }>>([]);
   const [bubbleCampaignFilter, setBubbleCampaignFilter] = useState<string[]>([]);
   const [bubblePlatformFilter, setBubblePlatformFilter] = useState<string[]>([]);
   const [bubbleNicheFilter, setBubbleNicheFilter] = useState<string[]>([]);
@@ -1329,9 +1337,10 @@ const NICHE_OPTIONS = [
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="videos">Video Analytics</TabsTrigger>
+            <TabsTrigger value="comparison">Comparison</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -2021,6 +2030,274 @@ const NICHE_OPTIONS = [
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="comparison" className="space-y-6">
+            {/* Comparison Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Items to Compare</CardTitle>
+                <CardDescription>Choose creators, campaigns, or specific content URLs to compare their analytics</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Creator Selection */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Add Creator</Label>
+                    <Select onValueChange={(creatorId) => {
+                      const creator = creatorLookup[creatorId];
+                      if (creator && !comparisonItems.find(item => item.id === creatorId && item.type === 'creator')) {
+                        const creatorCampaigns = campaigns.filter(c => resolveCreatorForCampaign(c).id === creatorId);
+                        const totalViews = creatorCampaigns.reduce((sum, c) => sum + (c.total_views || 0), 0);
+                        const totalEngagement = creatorCampaigns.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
+                        const avgEngagementRate = creatorCampaigns.length > 0 
+                          ? creatorCampaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / creatorCampaigns.length 
+                          : 0;
+                        
+                        setComparisonItems(prev => [...prev, {
+                          id: creatorId,
+                          type: 'creator',
+                          name: creator.name,
+                          data: {
+                            totalViews,
+                            totalEngagement,
+                            avgEngagementRate: Number(avgEngagementRate.toFixed(2)),
+                            campaignCount: creatorCampaigns.length
+                          }
+                        }]);
+                      }
+                    }}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select creator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(creatorLookup).map(creator => (
+                          <SelectItem key={creator.id} value={creator.id}>
+                            {creator.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Campaign Selection */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Add Campaign</Label>
+                    <Select onValueChange={(campaignId) => {
+                      const campaign = campaigns.find(c => c.id === campaignId);
+                      if (campaign && !comparisonItems.find(item => item.id === campaignId && item.type === 'campaign')) {
+                        setComparisonItems(prev => [...prev, {
+                          id: campaignId,
+                          type: 'campaign',
+                          name: `${campaign.brand_name} - ${new Date(campaign.campaign_date).toLocaleDateString()}`,
+                          data: {
+                            totalViews: campaign.total_views || 0,
+                            totalEngagement: campaign.total_engagement || 0,
+                            avgEngagementRate: Number((campaign.engagement_rate || 0).toFixed(2)),
+                            contentUrlCount: campaign.content_urls ? Object.keys(campaign.content_urls).length : 0
+                          }
+                        }]);
+                      }
+                    }}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select campaign" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campaigns.map(campaign => (
+                          <SelectItem key={campaign.id} value={campaign.id}>
+                            {campaign.brand_name} - {new Date(campaign.campaign_date).toLocaleDateString()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Content URL Selection */}
+                  <div>
+                    <Label className="text-sm font-medium mb-2 block">Add Content URL</Label>
+                    <Select onValueChange={(urlKey) => {
+                      const [campaignId, url] = urlKey.split('||');
+                      const campaign = campaigns.find(c => c.id === campaignId);
+                      
+                      // Extract URL analytics from campaign.analytics_data
+                      let urlAnalytics = null;
+                      if (campaign?.analytics_data) {
+                        Object.values(campaign.analytics_data).forEach((platformData: any) => {
+                          if (Array.isArray(platformData)) {
+                            const urlData = platformData.find((item: any) => 
+                              (item.url === url || item.content_url === url)
+                            );
+                            if (urlData) {
+                              urlAnalytics = urlData;
+                            }
+                          }
+                        });
+                      }
+                      
+                      if (campaign && !comparisonItems.find(item => item.id === urlKey && item.type === 'url')) {
+                        const platform = url.includes('youtube.com') || url.includes('youtu.be') ? 'YouTube' 
+                          : url.includes('instagram.com') ? 'Instagram'
+                          : url.includes('tiktok.com') ? 'TikTok'
+                          : 'Other';
+                        
+                        setComparisonItems(prev => [...prev, {
+                          id: urlKey,
+                          type: 'url',
+                          name: `${campaign.brand_name} - ${platform}`,
+                          data: {
+                            totalViews: urlAnalytics?.views || 0,
+                            totalEngagement: urlAnalytics?.engagement || (urlAnalytics?.likes || 0) + (urlAnalytics?.comments || 0) + (urlAnalytics?.shares || 0),
+                            avgEngagementRate: Number((urlAnalytics?.engagement_rate || 0).toFixed(2)),
+                            platform,
+                            url: url.length > 50 ? url.substring(0, 50) + '...' : url
+                          }
+                        }]);
+                      }
+                    }}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select content URL" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campaigns.flatMap(campaign => 
+                          campaign.content_urls ? Object.entries(campaign.content_urls).map(([platform, urls]) => 
+                            urls.map(url => (
+                              <SelectItem key={`${campaign.id}||${url}`} value={`${campaign.id}||${url}`}>
+                                {campaign.brand_name} - {platform}: {url.length > 30 ? url.substring(0, 30) + '...' : url}
+                              </SelectItem>
+                            ))
+                          ).flat() : []
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Selected Items */}
+                {comparisonItems.length > 0 && (
+                  <div className="mt-6">
+                    <Label className="text-sm font-medium mb-2 block">Selected for Comparison ({comparisonItems.length})</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {comparisonItems.map((item) => (
+                        <Badge key={`${item.type}-${item.id}`} variant="secondary" className="flex items-center gap-2">
+                          {item.type === 'creator' && <Users className="w-3 h-3" />}
+                          {item.type === 'campaign' && <FileText className="w-3 h-3" />}
+                          {item.type === 'url' && <Link className="w-3 h-3" />}
+                          {item.name}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                            onClick={() => setComparisonItems(prev => prev.filter(i => !(i.id === item.id && i.type === item.type)))}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Comparison Results */}
+            {comparisonItems.length >= 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comparison Results</CardTitle>
+                  <CardDescription>Analytics comparison between selected items</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Comparison Table */}
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Item</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="text-right">Total Views</TableHead>
+                          <TableHead className="text-right">Total Engagement</TableHead>
+                          <TableHead className="text-right">Avg Engagement Rate</TableHead>
+                          <TableHead className="text-right">Additional Info</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {comparisonItems.map((item) => (
+                          <TableRow key={`${item.type}-${item.id}`}>
+                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="capitalize">
+                                {item.type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {item.data.totalViews.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {item.data.totalEngagement.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                              {item.data.avgEngagementRate}%
+                            </TableCell>
+                            <TableCell className="text-right text-sm text-muted-foreground">
+                              {item.type === 'creator' && `${item.data.campaignCount} campaigns`}
+                              {item.type === 'campaign' && `${item.data.contentUrlCount} URLs`}
+                              {item.type === 'url' && item.data.platform}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Key Insights */}
+                  {comparisonItems.length >= 2 && (
+                    <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                      <h4 className="font-medium mb-2">Key Insights</h4>
+                      <div className="space-y-1 text-sm text-muted-foreground">
+                        {(() => {
+                          const sortedByViews = [...comparisonItems].sort((a, b) => b.data.totalViews - a.data.totalViews);
+                          const sortedByEngagement = [...comparisonItems].sort((a, b) => b.data.avgEngagementRate - a.data.avgEngagementRate);
+                          const bestViews = sortedByViews[0];
+                          const bestEngagement = sortedByEngagement[0];
+                          
+                          return (
+                            <>
+                              <p>🏆 <strong>Highest Views:</strong> {bestViews.name} ({bestViews.data.totalViews.toLocaleString()} views)</p>
+                              <p>📈 <strong>Best Engagement Rate:</strong> {bestEngagement.name} ({bestEngagement.data.avgEngagementRate}%)</p>
+                              {sortedByViews.length > 1 && (
+                                <p>📊 <strong>Views Difference:</strong> {Math.round(((bestViews.data.totalViews - sortedByViews[1].data.totalViews) / sortedByViews[1].data.totalViews) * 100)}% higher than second best</p>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {comparisonItems.length === 1 && (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center text-muted-foreground">
+                    <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Add at least one more item to start comparing</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {comparisonItems.length === 0 && (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center text-muted-foreground">
+                    <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Select creators, campaigns, or content URLs above to begin comparison</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
 
