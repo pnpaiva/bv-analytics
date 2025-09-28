@@ -94,7 +94,7 @@ export function useUpdateCreator() {
           updated_at: new Date().toISOString(),
         })
         .eq('id', data.id)
-        .eq('user_id', user.id)
+        // Removed .eq('user_id', user.id) to allow local admins to edit creators in their organization
         .select()
         .single();
 
@@ -107,7 +107,7 @@ export function useUpdateCreator() {
     },
     onError: (error) => {
       toast.error('Failed to update creator');
-      console.error(error);
+      console.error('Update creator error:', error);
     },
   });
 }
@@ -123,8 +123,8 @@ export function useDeleteCreator() {
       const { error } = await supabase
         .from('creators')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
+        // Removed .eq('user_id', user.id) to allow local admins to delete creators in their organization
 
       if (error) throw error;
     },
@@ -134,7 +134,7 @@ export function useDeleteCreator() {
     },
     onError: (error) => {
       toast.error('Failed to delete creator');
-      console.error(error);
+      console.error('Delete creator error:', error);
     },
   });
 }
