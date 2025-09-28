@@ -684,8 +684,8 @@ const NICHE_OPTIONS = [
       const platformColors = [
         'hsl(var(--primary))',        // YouTube
         'hsl(var(--brand-accent-green))', // Instagram  
-        'hsl(var(--chart-4))',       // TikTok - changed to chart-4 for better visibility
-        'hsl(var(--chart-3))',       // Additional platforms
+        'hsl(var(--chart-3))',       // TikTok - back to chart-3
+        'hsl(var(--chart-4))',       // Additional platforms
         'hsl(var(--secondary))',     // Additional platforms
       ];
       
@@ -1346,16 +1346,16 @@ const NICHE_OPTIONS = [
                   <CardDescription>{creatorViewMode ? 'Views and engagement by creator' : 'Views and engagement by platform'}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor="percent-engagement" className="text-sm">% Engagement</Label>
+                  <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg border border-border">
+                    <Label htmlFor="percent-engagement" className="text-sm font-medium text-foreground">% Engagement</Label>
                     <Switch
                       id="percent-engagement"
                       checked={usePercentEngagement}
                       onCheckedChange={setUsePercentEngagement}
                     />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Label htmlFor="creator-view-bar">Creator View</Label>
+                  <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg border border-border">
+                    <Label htmlFor="creator-view-bar" className="text-sm font-medium text-foreground">Creator View</Label>
                     <Switch
                       id="creator-view-bar"
                       checked={creatorViewMode}
@@ -1477,8 +1477,8 @@ const NICHE_OPTIONS = [
                   <CardTitle>Views Distribution</CardTitle>
                   <CardDescription>{creatorViewMode ? 'Share of total views by creator' : 'Share of total views by platform'}</CardDescription>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="creator-view-pie">Creator View</Label>
+                <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg border border-border">
+                  <Label htmlFor="creator-view-pie" className="text-sm font-medium text-foreground">Creator View</Label>
                   <Switch
                     id="creator-view-pie"
                     checked={creatorViewMode}
