@@ -231,7 +231,7 @@ export function Navigation() {
                     className="flex items-center space-x-2 cursor-pointer hover:bg-muted/50"
                   >
                     <Building2 className="w-4 h-4" />
-                    <span className="font-body">Master Admin</span>
+                    <span className="font-body">Management</span>
                   </DropdownMenuItem>
                 )}
                 <ThemeToggle />
