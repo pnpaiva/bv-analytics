@@ -1432,7 +1432,15 @@ const NICHE_OPTIONS = [
                           return value.toString();
                         }}
                       />
-                      <Tooltip formatter={(value, name) => {
+                      <Tooltip formatter={(value, name, props) => {
+                        if (name === 'engagementRate') {
+                          return [`${Number(value).toFixed(2)}%`, 'Engagement Rate'];
+                        }
+                        if (name === 'Engagement') {
+                          // Calculate engagement rate from the data point
+                          const engagementRate = props.payload.engagementRate || 0;
+                          return [`${engagementRate.toFixed(2)}%`, 'Engagement Rate'];
+                        }
                         const formatNumber = (num: number) => {
                           if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
                           if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
@@ -1440,7 +1448,7 @@ const NICHE_OPTIONS = [
                         };
                         return [
                           typeof value === 'number' ? formatNumber(value) : value,
-                          name === 'views' ? 'Views' : name === 'engagement' ? 'Engagement' : name
+                          name === 'views' ? 'Views' : name
                         ];
                       }} />
                       <Legend />
