@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { BarChart3, Eye, EyeOff, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { BarChart3, Eye, EyeOff, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ContentUrlDropdown } from './ContentUrlDropdown';
 
@@ -27,6 +27,8 @@ interface CampaignTableProps {
   sortField?: SortField;
   sortOrder?: SortOrder;
   onSort: (field: SortField) => void;
+  onRefreshCampaign?: (campaignId: string) => void;
+  refreshingCampaignId?: string | null;
 }
 
 export function CampaignTable({
@@ -37,7 +39,9 @@ export function CampaignTable({
   showDealValue,
   sortField,
   sortOrder,
-  onSort
+  onSort,
+  onRefreshCampaign,
+  refreshingCampaignId
 }: CampaignTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -177,6 +181,16 @@ export function CampaignTable({
                   >
                     <BarChart3 className="h-4 w-4" />
                   </Button>
+                  {onRefreshCampaign && campaign.status !== 'draft' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRefreshCampaign(campaign.id)}
+                      disabled={refreshingCampaignId === campaign.id}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${refreshingCampaignId === campaign.id ? 'animate-spin' : ''}`} />
+                    </Button>
+                  )}
                   {campaign.content_urls && Object.keys(campaign.content_urls).length > 0 && (
                     <ContentUrlDropdown contentUrls={campaign.content_urls} />
                   )}

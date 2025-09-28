@@ -46,6 +46,7 @@ export default function Campaigns() {
   const [refreshProgressOpen, setRefreshProgressOpen] = useState(false);
   const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshingCampaignId, setRefreshingCampaignId] = useState<string | null>(null);
   const { showDealValue, setShowDealValue } = useDealValueVisibility();
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [sortField, setSortField] = useState<SortField>('campaign_date');
@@ -170,6 +171,49 @@ export default function Campaigns() {
     console.log('Refresh completion process finished');
     toast.success('Campaign refresh completed - numbers should now be updated');
   }, [queryClient]);
+
+  const handleRefreshSingle = async (campaignId: string) => {
+    if (refreshingCampaignId) {
+      toast.warning('A campaign refresh is already in progress. Please wait for it to complete.');
+      return;
+    }
+
+    setRefreshingCampaignId(campaignId);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`https://hepscjgcjnlofdpoewqx.supabase.co/functions/v1/refresh-campaign-analytics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ campaignId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to refresh campaign');
+      }
+
+      toast.success('Campaign analytics refreshed successfully');
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['accessible-campaigns'] });
+      queryClient.invalidateQueries({ queryKey: ['campaign-url-analytics', campaignId] });
+      
+    } catch (error) {
+      console.error('Error refreshing campaign:', error);
+      toast.error(`Failed to refresh campaign: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setRefreshingCampaignId(null);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -427,6 +471,8 @@ export default function Campaigns() {
                 sortField={sortField}
                 sortOrder={sortOrder}
                 onSort={handleSort}
+                onRefreshCampaign={handleRefreshSingle}
+                refreshingCampaignId={refreshingCampaignId}
               />
             )}
             
