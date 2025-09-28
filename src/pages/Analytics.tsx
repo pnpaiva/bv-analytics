@@ -130,6 +130,7 @@ export default function Analytics() {
   const [bubbleNicheFilter, setBubbleNicheFilter] = useState<string[]>([]);
   const [campaignSearchTerm, setCampaignSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(true);
+  const [excludedVideos, setExcludedVideos] = useState<Set<string>>(new Set());
 
   // Create a creator lookup map for better performance
   const creatorLookup = useMemo(() => {
@@ -801,6 +802,11 @@ const NICHE_OPTIONS = [
     // Start with raw video analytics data, not the pre-filtered version
     let bubbleVideoData = videoAnalytics;
     
+    // Apply excluded videos filter first
+    bubbleVideoData = bubbleVideoData.filter(v => 
+      !excludedVideos.has(`${v.campaign}-${v.url}`)
+    );
+    
     // Apply bubble chart specific platform filter
     if (bubblePlatformFilter.length > 0) {
       bubbleVideoData = bubbleVideoData.filter(v => 
@@ -882,18 +888,55 @@ const NICHE_OPTIONS = [
     });
     
     return groups;
-  }, [videoAnalytics, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, bubbleNicheFilter, masterCampaignFilters, campaigns, creators, campaignCreators]);
+  }, [videoAnalytics, excludedVideos, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, bubbleNicheFilter, masterCampaignFilters, campaigns, creators, campaignCreators]);
 
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
     const p = payload[0].payload;
+    const videoKey = `${p.campaign}-${p.url}`;
+    const isExcluded = excludedVideos.has(videoKey);
+    
     return (
-      <div className="rounded-md border bg-background p-2 text-xs">
-        <div className="font-medium">{p.campaign}</div>
-        <div className="text-muted-foreground">{p.platform} • {p.creator}</div>
-        <div>Views: {p.y.toLocaleString()}</div>
-        <div>{usePercentEngagement ? 'Engagement %' : 'Engagement'}: {usePercentEngagement ? `${(p.x as number).toFixed(1)}%` : (p.x as number).toLocaleString()}</div>
-        <div>Eng. Rate: {p.size.toFixed(1)}%</div>
+      <div className="rounded-md border bg-background p-3 text-xs shadow-lg min-w-[200px]">
+        <div className="font-medium text-foreground">{p.campaign}</div>
+        <div className="text-muted-foreground mb-2">{p.platform} • {p.creator}</div>
+        <div className="space-y-1">
+          <div>Views: {p.y.toLocaleString()}</div>
+          <div>{usePercentEngagement ? 'Engagement %' : 'Engagement'}: {usePercentEngagement ? `${(p.x as number).toFixed(1)}%` : (p.x as number).toLocaleString()}</div>
+          <div>Eng. Rate: {p.size.toFixed(1)}%</div>
+        </div>
+        <div className="mt-2 pt-2 border-t border-border flex gap-2">
+          <Button
+            size="sm"
+            variant={isExcluded ? "default" : "secondary"}
+            className="h-6 px-2 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExcludedVideos(prev => {
+                const newSet = new Set(prev);
+                if (isExcluded) {
+                  newSet.delete(videoKey);
+                } else {
+                  newSet.add(videoKey);
+                }
+                return newSet;
+              });
+            }}
+          >
+            {isExcluded ? 'Include' : 'Exclude'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (p.url) window.open(p.url, '_blank', 'noopener,noreferrer');
+            }}
+          >
+            View
+          </Button>
+        </div>
       </div>
     );
   };
@@ -1355,21 +1398,67 @@ const NICHE_OPTIONS = [
                   <CardDescription>{creatorViewMode ? 'Views and engagement by creator' : 'Views and engagement by platform'}</CardDescription>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg border border-border">
-                    <Label htmlFor="percent-engagement" className="text-sm font-medium text-foreground">% Engagement</Label>
-                    <Switch
-                      id="percent-engagement"
-                      checked={usePercentEngagement}
-                      onCheckedChange={setUsePercentEngagement}
-                    />
+                  <div className="flex items-center space-x-2 group">
+                    <Label 
+                      htmlFor="percent-engagement" 
+                      className="text-sm font-medium text-foreground cursor-pointer select-none"
+                    >
+                      % Engagement
+                    </Label>
+                    <div className={`
+                      relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer
+                      ${usePercentEngagement 
+                        ? 'bg-primary shadow-sm' 
+                        : 'bg-muted border border-border hover:bg-muted/80'
+                      }
+                    `}>
+                      <Switch
+                        id="percent-engagement"
+                        checked={usePercentEngagement}
+                        onCheckedChange={setUsePercentEngagement}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                      />
+                      <span className={`
+                        inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-200 ease-in-out
+                        ${usePercentEngagement ? 'translate-x-6' : 'translate-x-1'}
+                      `} />
+                      {usePercentEngagement && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-2 h-2 bg-primary-foreground rounded-full opacity-60" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg border border-border">
-                    <Label htmlFor="creator-view-bar" className="text-sm font-medium text-foreground">Creator View</Label>
-                    <Switch
-                      id="creator-view-bar"
-                      checked={creatorViewMode}
-                      onCheckedChange={setCreatorViewMode}
-                    />
+                  <div className="flex items-center space-x-2 group">
+                    <Label 
+                      htmlFor="creator-view-bar" 
+                      className="text-sm font-medium text-foreground cursor-pointer select-none"
+                    >
+                      Creator View
+                    </Label>
+                    <div className={`
+                      relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer
+                      ${creatorViewMode 
+                        ? 'bg-primary shadow-sm' 
+                        : 'bg-muted border border-border hover:bg-muted/80'
+                      }
+                    `}>
+                      <Switch
+                        id="creator-view-bar"
+                        checked={creatorViewMode}
+                        onCheckedChange={setCreatorViewMode}
+                        className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                      />
+                      <span className={`
+                        inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-200 ease-in-out
+                        ${creatorViewMode ? 'translate-x-6' : 'translate-x-1'}
+                      `} />
+                      {creatorViewMode && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-2 h-2 bg-primary-foreground rounded-full opacity-60" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1487,13 +1576,36 @@ const NICHE_OPTIONS = [
                   <CardTitle>Views Distribution</CardTitle>
                   <CardDescription>{creatorViewMode ? 'Share of total views by creator' : 'Share of total views by platform'}</CardDescription>
                 </div>
-                <div className="flex items-center space-x-2 bg-muted/50 px-3 py-2 rounded-lg border border-border">
-                  <Label htmlFor="creator-view-pie" className="text-sm font-medium text-foreground">Creator View</Label>
-                  <Switch
-                    id="creator-view-pie"
-                    checked={creatorViewMode}
-                    onCheckedChange={setCreatorViewMode}
-                  />
+                <div className="flex items-center space-x-2 group">
+                  <Label 
+                    htmlFor="creator-view-pie" 
+                    className="text-sm font-medium text-foreground cursor-pointer select-none"
+                  >
+                    Creator View
+                  </Label>
+                  <div className={`
+                    relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer
+                    ${creatorViewMode 
+                      ? 'bg-primary shadow-sm' 
+                      : 'bg-muted border border-border hover:bg-muted/80'
+                    }
+                  `}>
+                    <Switch
+                      id="creator-view-pie"
+                      checked={creatorViewMode}
+                      onCheckedChange={setCreatorViewMode}
+                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                    />
+                    <span className={`
+                      inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition-transform duration-200 ease-in-out
+                      ${creatorViewMode ? 'translate-x-6' : 'translate-x-1'}
+                    `} />
+                    {creatorViewMode && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-2 h-2 bg-primary-foreground rounded-full opacity-60" />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardHeader>
@@ -2008,6 +2120,64 @@ const NICHE_OPTIONS = [
                   <Button variant="outline" size="sm" onClick={() => setUsePercentEngagement((p) => !p)}>
                     {usePercentEngagement ? 'X: Engagement %' : 'X: Total Engagement'}
                   </Button>
+                  
+                  {/* Excluded Videos Management */}
+                  {excludedVideos.size > 0 && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-muted-foreground">
+                          {excludedVideos.size} Excluded
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80 p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">Excluded Videos</h4>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setExcludedVideos(new Set())}
+                              className="h-6 px-2 text-xs"
+                            >
+                              Clear All
+                            </Button>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto space-y-2">
+                            {Array.from(excludedVideos).map((videoKey) => {
+                              const [campaign, url] = videoKey.split('-', 2);
+                              const video = videoAnalytics.find(v => 
+                                v.campaign === campaign && v.url === url
+                              );
+                              return (
+                                <div key={videoKey} className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium truncate">{campaign}</div>
+                                    <div className="text-muted-foreground">
+                                      {video?.platform} • {video?.creator}
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 flex-shrink-0 ml-2"
+                                    onClick={() => {
+                                      setExcludedVideos(prev => {
+                                        const newSet = new Set(prev);
+                                        newSet.delete(videoKey);
+                                        return newSet;
+                                      });
+                                    }}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               </div>
             </CardHeader>
