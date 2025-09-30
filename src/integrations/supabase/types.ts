@@ -933,6 +933,57 @@ export type Database = {
           },
         ]
       }
+      creator_invitations: {
+        Row: {
+          created_at: string
+          created_by: string
+          creator_id: string | null
+          expires_at: string
+          id: string
+          invitation_token: string
+          organization_id: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          creator_id?: string | null
+          expires_at?: string
+          id?: string
+          invitation_token: string
+          organization_id: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          creator_id?: string | null
+          expires_at?: string
+          id?: string
+          invitation_token?: string
+          organization_id?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_invitations_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_invitations_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators_with_org"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           avatar_url: string | null
@@ -1332,6 +1383,87 @@ export type Database = {
           },
         ]
       }
+      youtube_channel_connections: {
+        Row: {
+          access_token: string
+          channel_description: string | null
+          channel_handle: string | null
+          channel_id: string
+          channel_title: string
+          connected_at: string
+          created_at: string
+          creator_id: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          organization_id: string
+          profile_picture_url: string | null
+          refresh_token: string
+          subscriber_count: number | null
+          token_expires_at: string
+          updated_at: string
+          video_count: number | null
+          view_count: number | null
+        }
+        Insert: {
+          access_token: string
+          channel_description?: string | null
+          channel_handle?: string | null
+          channel_id: string
+          channel_title: string
+          connected_at?: string
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          organization_id: string
+          profile_picture_url?: string | null
+          refresh_token: string
+          subscriber_count?: number | null
+          token_expires_at: string
+          updated_at?: string
+          video_count?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          access_token?: string
+          channel_description?: string | null
+          channel_handle?: string | null
+          channel_id?: string
+          channel_title?: string
+          connected_at?: string
+          created_at?: string
+          creator_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          organization_id?: string
+          profile_picture_url?: string | null
+          refresh_token?: string
+          subscriber_count?: number | null
+          token_expires_at?: string
+          updated_at?: string
+          video_count?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_channel_connections_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "youtube_channel_connections_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators_with_org"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       campaigns_with_org: {
@@ -1475,6 +1607,10 @@ export type Database = {
         Args: { title_text: string }
         Returns: string
       }
+      generate_creator_invitation: {
+        Args: { p_creator_id: string; p_organization_id: string }
+        Returns: string
+      }
       get_blog_analytics_summary: {
         Args: {
           p_end_date?: string
@@ -1579,6 +1715,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_invitation_used: {
+        Args: { p_token: string }
+        Returns: boolean
+      }
       publish_public_media_kit: {
         Args: { p_creator_id: string; p_user_id: string }
         Returns: {
@@ -1664,6 +1804,18 @@ export type Database = {
       upsert_user_profile: {
         Args: { p_bio?: string; p_display_name?: string; p_id: string }
         Returns: undefined
+      }
+      validate_creator_invitation: {
+        Args: { p_token: string }
+        Returns: {
+          creator_id: string
+          creator_name: string
+          expires_at: string
+          invitation_id: string
+          is_valid: boolean
+          organization_id: string
+          organization_name: string
+        }[]
       }
     }
     Enums: {
