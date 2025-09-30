@@ -5,7 +5,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { FileText, BarChart3, Link, Crown, ImageIcon } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileText, BarChart3, Link, Crown, ImageIcon, Filter } from 'lucide-react';
 
 export interface ExportCustomizationOptions {
   includeLogo?: boolean;
@@ -14,6 +15,11 @@ export interface ExportCustomizationOptions {
   includeMasterCampaigns?: boolean;
   includeCharts?: boolean;
   customTitle?: string;
+  dateRange?: 'all' | '30days' | '90days' | '1year';
+  platformFilter?: 'all' | 'youtube' | 'instagram' | 'tiktok';
+  includeCreatorBreakdown?: boolean;
+  includePlatformBreakdown?: boolean;
+  includeTopPerformers?: boolean;
 }
 
 interface ExportCustomizationDialogProps {
@@ -34,10 +40,15 @@ export function ExportCustomizationDialog({
   const [options, setOptions] = useState<ExportCustomizationOptions>({
     includeLogo: true,
     includeAnalytics: true,
-    includeContentUrls: true,
+    includeContentUrls: false,
     includeMasterCampaigns: true,
     includeCharts: true,
-    customTitle: defaultTitle
+    customTitle: defaultTitle,
+    dateRange: 'all',
+    platformFilter: 'all',
+    includeCreatorBreakdown: true,
+    includePlatformBreakdown: true,
+    includeTopPerformers: true
   });
 
   const handleOptionChange = (key: keyof ExportCustomizationOptions, value: boolean | string) => {
@@ -51,14 +62,14 @@ export function ExportCustomizationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Customize PDF Export
+            Customize Campaign Export
           </DialogTitle>
           <DialogDescription>
-            Choose what to include in your PDF report for {campaignCount} campaign{campaignCount !== 1 ? 's' : ''}.
+            Choose what to include in your campaign PDF report for {campaignCount} campaign{campaignCount !== 1 ? 's' : ''}.
           </DialogDescription>
         </DialogHeader>
         
@@ -76,6 +87,48 @@ export function ExportCustomizationDialog({
 
           <Separator />
 
+          {/* Filtering Options */}
+          <div className="space-y-4">
+            <Label className="text-sm font-medium flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              Data Filters
+            </Label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="dateRange" className="text-xs">Date Range</Label>
+                <Select value={options.dateRange} onValueChange={(value) => handleOptionChange('dateRange', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="1year">Last Year</SelectItem>
+                    <SelectItem value="90days">Last 90 Days</SelectItem>
+                    <SelectItem value="30days">Last 30 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="platformFilter" className="text-xs">Platform</Label>
+                <Select value={options.platformFilter} onValueChange={(value) => handleOptionChange('platformFilter', value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Platforms</SelectItem>
+                    <SelectItem value="youtube">YouTube Only</SelectItem>
+                    <SelectItem value="instagram">Instagram Only</SelectItem>
+                    <SelectItem value="tiktok">TikTok Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
           {/* Content Options */}
           <div className="space-y-4">
             <Label className="text-sm font-medium">Include in Report</Label>
@@ -89,7 +142,7 @@ export function ExportCustomizationDialog({
                 />
                 <Label htmlFor="analytics" className="flex items-center gap-2 text-sm">
                   <BarChart3 className="h-4 w-4" />
-                  Analytics Data (views, engagement, rates)
+                  Summary Analytics
                 </Label>
               </div>
 
@@ -107,13 +160,46 @@ export function ExportCustomizationDialog({
 
               <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="creatorBreakdown"
+                  checked={options.includeCreatorBreakdown}
+                  onCheckedChange={(checked) => handleOptionChange('includeCreatorBreakdown', checked as boolean)}
+                />
+                <Label htmlFor="creatorBreakdown" className="text-sm">
+                  Creator Performance Breakdown
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="platformBreakdown"
+                  checked={options.includePlatformBreakdown}
+                  onCheckedChange={(checked) => handleOptionChange('includePlatformBreakdown', checked as boolean)}
+                />
+                <Label htmlFor="platformBreakdown" className="text-sm">
+                  Platform Performance Breakdown
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="topPerformers"
+                  checked={options.includeTopPerformers}
+                  onCheckedChange={(checked) => handleOptionChange('includeTopPerformers', checked as boolean)}
+                />
+                <Label htmlFor="topPerformers" className="text-sm">
+                  Top Performing Content
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
                   id="urls"
                   checked={options.includeContentUrls}
                   onCheckedChange={(checked) => handleOptionChange('includeContentUrls', checked as boolean)}
                 />
                 <Label htmlFor="urls" className="flex items-center gap-2 text-sm">
                   <Link className="h-4 w-4" />
-                  Content URLs
+                  Individual Content URLs
                 </Label>
               </div>
 
@@ -125,19 +211,7 @@ export function ExportCustomizationDialog({
                 />
                 <Label htmlFor="master" className="flex items-center gap-2 text-sm">
                   <Crown className="h-4 w-4" />
-                  Master Campaign Information
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="logo"
-                  checked={options.includeLogo}
-                  onCheckedChange={(checked) => handleOptionChange('includeLogo', checked as boolean)}
-                />
-                <Label htmlFor="logo" className="flex items-center gap-2 text-sm">
-                  <ImageIcon className="h-4 w-4" />
-                  Campaign Logos
+                  Master Campaign Details
                 </Label>
               </div>
             </div>

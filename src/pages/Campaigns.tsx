@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff, Grid3X3, List } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
-import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
+import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { ExportCustomizationDialog, ExportCustomizationOptions } from '@/components/campaigns/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import {
@@ -72,12 +72,12 @@ export default function Campaigns() {
 
   const handleExportPDF = async (options: ExportCustomizationOptions) => {
     try {
-      const exporter = new PremiumPDFExporter();
+      const exporter = new EnhancedPDFExporter();
       const exportTitle = options.customTitle || (searchTerm 
         ? `Filtered Campaigns Report` 
         : 'All Campaigns Report');
       
-      await exporter.exportPremiumReport(sortedCampaigns, exportTitle, {
+      await exporter.exportWithCharts(sortedCampaigns, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
         includeMasterCampaigns: options.includeMasterCampaigns,

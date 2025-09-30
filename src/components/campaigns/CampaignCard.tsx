@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
 import { CampaignManagementDialog } from './CampaignManagementDialog';
-import { PremiumPDFExporter } from '@/utils/premiumPdfExporter';
+import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -181,11 +181,12 @@ export function CampaignCard({
 
   const handleExportPDF = async () => {
     try {
-      const exporter = new PremiumPDFExporter();
-      await exporter.exportSingleCampaignPremium(campaign, {
+      const exporter = new EnhancedPDFExporter();
+      await exporter.exportWithCharts([campaign], `${campaign.brand_name} Campaign Report`, {
         includeAnalytics: true,
         includeContentUrls: true,
-        includeMasterCampaigns: true
+        includeMasterCampaigns: true,
+        includeCharts: true
       });
       
       toast.success('Campaign PDF exported successfully');
