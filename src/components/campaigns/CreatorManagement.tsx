@@ -26,10 +26,11 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Plus, Edit, Trash2, Loader2, User, ChevronDown } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, User, ChevronDown, Link as LinkIcon } from 'lucide-react';
 import { useCreators } from '@/hooks/useCreators';
 import { useCreateCreator, useUpdateCreator, useDeleteCreator } from '@/hooks/useManageCreators';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { InvitationLinkDialog } from '@/components/creators/InvitationLinkDialog';
 
 interface CreatorFormData {
   name: string;
@@ -67,6 +68,8 @@ export function CreatorManagement() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingCreator, setEditingCreator] = useState<any>(null);
+  const [invitationOpen, setInvitationOpen] = useState(false);
+  const [invitingCreator, setInvitingCreator] = useState<{ id: string; name: string } | null>(null);
   const [formData, setFormData] = useState<CreatorFormData>({
     name: '',
     avatar_url: '',
@@ -346,7 +349,18 @@ export function CreatorManagement() {
                           </div>
                         )}
                 
-                <div className="flex items-center justify-end gap-2">
+                 <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setInvitingCreator({ id: creator.id, name: creator.name });
+                      setInvitationOpen(true);
+                    }}
+                  >
+                    <LinkIcon className="h-3 w-3 mr-1" />
+                    Invite
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -528,6 +542,16 @@ export function CreatorManagement() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Invitation Link Dialog */}
+      {invitingCreator && (
+        <InvitationLinkDialog
+          open={invitationOpen}
+          onOpenChange={setInvitationOpen}
+          creatorId={invitingCreator.id}
+          creatorName={invitingCreator.name}
+        />
+      )}
     </div>
   );
 }

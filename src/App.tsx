@@ -22,6 +22,7 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import PublicMediaKit from "./pages/PublicMediaKit";
 import YouTubeCallback from "./pages/YouTubeCallback";
+import CreatorInvitation from "./pages/CreatorInvitation";
 import OrganizationManagement from "./pages/OrganizationManagement";
 import OrganizationUsers from "./pages/OrganizationUsers";
 import NotFound from "./pages/NotFound";
@@ -46,6 +47,9 @@ const App = () => (
             
             {/* YouTube OAuth callback - no auth required */}
             <Route path="/youtube-callback" element={<YouTubeCallback />} />
+            
+            {/* Creator invitation - no auth required */}
+            <Route path="/creator-invitation" element={<CreatorInvitation />} />
             
             {/* Routes that need authentication context with theme support */}
             <Route path="/auth" element={
