@@ -1,5 +1,23 @@
 project_id = "hepscjgcjnlofdpoewqx"
 
+[functions.youtube-oauth-initiate]
+verify_jwt = false
+
+[functions.youtube-oauth-callback]
+verify_jwt = false
+
+[functions.youtube-refresh-token]
+verify_jwt = false
+
+[functions.youtube-get-channel-info]
+verify_jwt = false
+
+[functions.youtube-get-video-list]
+verify_jwt = false
+
+[functions.youtube-get-video-retention]
+verify_jwt = false
+
 [functions.fetch-youtube-analytics]
 verify_jwt = false
 

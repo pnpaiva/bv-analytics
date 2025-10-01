@@ -21,6 +21,7 @@ import Profile from "./pages/Profile";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import PublicMediaKit from "./pages/PublicMediaKit";
+import YouTubeCallback from "./pages/YouTubeCallback";
 import OrganizationManagement from "./pages/OrganizationManagement";
 import OrganizationUsers from "./pages/OrganizationUsers";
 import NotFound from "./pages/NotFound";
@@ -42,6 +43,9 @@ const App = () => (
             
             {/* Public media kit routes - accessible to anyone with the link */}
             <Route path="/:slug" element={<PublicMediaKit />} />
+            
+            {/* YouTube OAuth callback - no auth required */}
+            <Route path="/youtube-callback" element={<YouTubeCallback />} />
             
             {/* Routes that need authentication context with theme support */}
             <Route path="/auth" element={
