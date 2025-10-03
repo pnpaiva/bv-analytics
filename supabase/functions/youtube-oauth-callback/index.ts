@@ -43,6 +43,17 @@ Deno.serve(async (req) => {
     if (!tokenResponse.ok) {
       const error = await tokenResponse.text();
       console.error('Token exchange failed:', error);
+      
+      // Check for specific OAuth errors
+      try {
+        const errorData = JSON.parse(error);
+        if (errorData.error === 'invalid_grant') {
+          throw new Error('Authorization code expired or already used. Please try connecting again from the beginning.');
+        }
+      } catch (e) {
+        // If parsing fails, use generic error
+      }
+      
       throw new Error('Failed to exchange authorization code for tokens');
     }
 

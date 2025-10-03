@@ -36,11 +36,12 @@ export default function YouTubeCallback() {
         );
 
         if (callbackError) {
-          throw callbackError;
+          console.error('Callback error details:', callbackError);
+          throw new Error(callbackError.message || 'Failed to connect YouTube channel');
         }
 
-        if (!data.success) {
-          throw new Error(data.error || 'Failed to connect YouTube channel');
+        if (!data?.success) {
+          throw new Error(data?.error || 'Failed to connect YouTube channel');
         }
 
         setStatus('success');
