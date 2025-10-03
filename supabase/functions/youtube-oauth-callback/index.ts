@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
         connected_at: new Date().toISOString(),
         last_synced_at: new Date().toISOString(),
       }, {
-        onConflict: 'creator_id',
+        onConflict: 'creator_id,organization_id',
       })
       .select()
       .single();
