@@ -48,6 +48,21 @@ export default function YouTubeCallback() {
         setMessage(`Successfully connected ${data.channel.title}!`);
         toast.success('YouTube channel connected successfully');
 
+        // Fetch demographics data
+        try {
+          const stateData = JSON.parse(atob(state));
+          await supabase.functions.invoke('youtube-fetch-demographics', {
+            body: {
+              creatorId: stateData.creatorId,
+              organizationId: stateData.organizationId,
+            },
+          });
+          console.log('Demographics fetched successfully');
+        } catch (demoError) {
+          console.error('Failed to fetch demographics:', demoError);
+          // Don't throw - demographics is optional
+        }
+
         // Redirect back to creator profiles after 2 seconds
         setTimeout(() => {
           navigate('/creator-profiles');
