@@ -10,8 +10,10 @@ interface YouTubeConnectionStatusProps {
 }
 
 export function YouTubeConnectionStatus({ creatorId, showDisconnect = false }: YouTubeConnectionStatusProps) {
-  const { data: connection } = useYouTubeConnection(creatorId);
+  const { data: connection, isLoading, error } = useYouTubeConnection(creatorId);
   const disconnectYouTube = useDisconnectYouTube();
+
+  console.log('YouTubeConnectionStatus:', { creatorId, connection, isLoading, error });
 
   const handleDisconnect = async () => {
     await disconnectYouTube.mutateAsync(creatorId);
