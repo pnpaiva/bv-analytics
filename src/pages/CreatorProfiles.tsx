@@ -5,6 +5,7 @@ import { useCampaigns } from '@/hooks/useCampaigns';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
+import { YouTubeConnectionStatus } from '@/components/creators/YouTubeConnectionStatus';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -223,8 +224,8 @@ export default function CreatorProfiles() {
         .sort((a, b) => b.views - a.views)
         .slice(0, 3);
 
-      // Mock demographics data (in real app would come from analytics)
-      const demographics = {
+      // Use real demographics from YouTube if available, otherwise use mock data
+      const mockDemographics = {
         youtube: {
           gender: { female: 75, male: 25 },
           age: { '18-24': 40, '25-34': 35, '35-44': 15, '45-54': 8, '55+': 2 },
@@ -240,6 +241,13 @@ export default function CreatorProfiles() {
           age: { '18-24': 50, '25-34': 30, '35-44': 15, '45-54': 5, '55+': 0 },
           location: { 'United States': 50, 'United Kingdom': 20, 'Canada': 15, 'Australia': 15 }
         }
+      };
+      
+      // Merge real demographics data with mock data
+      const realDemographics = (creator as any).demographics || {};
+      const demographics = {
+        ...mockDemographics,
+        ...realDemographics
       };
 
       // Mock services data
@@ -262,7 +270,7 @@ export default function CreatorProfiles() {
         totalEngagement,
         engagementRate: totalViews > 0 ? (totalEngagement / totalViews) * 100 : 0,
         followerCount: totalFollowers,
-        demographics: { ...demographics, ...(((creator as any).demographics) || {}) },
+        demographics,
         platformBreakdown,
         brandCollaborations: brandCollaborations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
         topVideos: (creator as any).top_videos || topVideos,
@@ -1224,6 +1232,12 @@ export default function CreatorProfiles() {
                               </Avatar>
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm truncate text-[#3333cc]">{creator.name}</p>
+                                <div className="mt-1">
+                                  <YouTubeConnectionStatus 
+                                    creatorId={creator.id} 
+                                    showDisconnect={false}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1360,10 +1374,16 @@ export default function CreatorProfiles() {
                             <Eye className="h-3 w-3" />
                             {formatNumber(creator.totalViews)}
                           </span>
-          <span className="flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" />
-            {Number(creator.engagementRate || 0).toFixed(1)}%
-          </span>
+                          <span className="flex items-center gap-1">
+                            <TrendingUp className="h-3 w-3" />
+                            {Number(creator.engagementRate || 0).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="mt-2">
+                          <YouTubeConnectionStatus 
+                            creatorId={creator.id} 
+                            showDisconnect={canEdit}
+                          />
                         </div>
                       </div>
                     </div>

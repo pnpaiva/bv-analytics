@@ -79,3 +79,26 @@ export function useYouTubeConnection(creatorId: string | null) {
     enabled: !!creatorId,
   });
 }
+
+export function useDisconnectYouTube() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (creatorId: string) => {
+      const { error } = await supabase
+        .from('youtube_channel_connections')
+        .update({ is_active: false })
+        .eq('creator_id', creatorId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['youtube-connection'] });
+      toast.success('YouTube channel disconnected successfully');
+    },
+    onError: (error: any) => {
+      console.error('Error disconnecting YouTube:', error);
+      toast.error(error.message || 'Failed to disconnect YouTube channel');
+    },
+  });
+}
