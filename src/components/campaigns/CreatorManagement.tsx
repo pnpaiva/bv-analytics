@@ -31,6 +31,7 @@ import { useCreators } from '@/hooks/useCreators';
 import { useCreateCreator, useUpdateCreator, useDeleteCreator } from '@/hooks/useManageCreators';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InvitationLinkDialog } from '@/components/creators/InvitationLinkDialog';
+import { YouTubeConnectionStatus } from '@/components/creators/YouTubeConnectionStatus';
 
 interface CreatorFormData {
   name: string;
@@ -323,16 +324,26 @@ export function CreatorManagement() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 mb-4">
-                  {creator.platform_handles?.youtube && (
-                    <Badge variant="outline">YouTube: {creator.platform_handles.youtube}</Badge>
-                  )}
-                  {creator.platform_handles?.instagram && (
-                    <Badge variant="outline">Instagram: {creator.platform_handles.instagram}</Badge>
-                  )}
-                  {creator.platform_handles?.tiktok && (
-                    <Badge variant="outline">TikTok: {creator.platform_handles.tiktok}</Badge>
-                  )}
+                <div className="space-y-3 mb-4">
+                  <div className="space-y-2">
+                    {creator.platform_handles?.youtube && (
+                      <Badge variant="outline">YouTube: {creator.platform_handles.youtube}</Badge>
+                    )}
+                    {creator.platform_handles?.instagram && (
+                      <Badge variant="outline">Instagram: {creator.platform_handles.instagram}</Badge>
+                    )}
+                    {creator.platform_handles?.tiktok && (
+                      <Badge variant="outline">TikTok: {creator.platform_handles.tiktok}</Badge>
+                    )}
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <div className="text-xs text-muted-foreground mb-1">OAuth Connection:</div>
+                    <YouTubeConnectionStatus 
+                      creatorId={creator.id} 
+                      showDisconnect={true}
+                    />
+                  </div>
                 </div>
                          {(creator as any).niche && (creator as any).niche.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
