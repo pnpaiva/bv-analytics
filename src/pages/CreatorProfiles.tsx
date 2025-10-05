@@ -224,31 +224,29 @@ export default function CreatorProfiles() {
         .sort((a, b) => b.views - a.views)
         .slice(0, 3);
 
-      // Use real demographics from YouTube if available, otherwise use mock data
-      const mockDemographics = {
-        youtube: {
+      // Use real demographics from YouTube OAuth if available, otherwise use mock data
+      const realDemographics = (creator as any).demographics || {};
+      
+      // Build final demographics object
+      const demographics: CreatorProfile['demographics'] = {
+        youtube: realDemographics.youtube || {
           gender: { female: 75, male: 25 },
           age: { '18-24': 40, '25-34': 35, '35-44': 15, '45-54': 8, '55+': 2 },
           location: { 'United States': 40, 'United Kingdom': 25, 'Canada': 20, 'Australia': 15 }
         },
-        instagram: {
+        instagram: realDemographics.instagram || {
           gender: { female: 60, male: 40 },
           age: { '18-24': 30, '25-34': 40, '35-44': 20, '45-54': 8, '55+': 2 },
           location: { 'United States': 30, 'United Kingdom': 20, 'Canada': 25, 'Australia': 25 }
         },
-        tiktok: {
+        tiktok: realDemographics.tiktok || {
           gender: { female: 80, male: 20 },
           age: { '18-24': 50, '25-34': 30, '35-44': 15, '45-54': 5, '55+': 0 },
           location: { 'United States': 50, 'United Kingdom': 20, 'Canada': 15, 'Australia': 15 }
         }
       };
       
-      // Merge real demographics data with mock data
-      const realDemographics = (creator as any).demographics || {};
-      const demographics = {
-        ...mockDemographics,
-        ...realDemographics
-      };
+      console.log(`Creator ${creator.name} demographics:`, { realDemographics, demographics });
 
       // Mock services data
       const services = [

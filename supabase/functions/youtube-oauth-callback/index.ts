@@ -119,6 +119,30 @@ Deno.serve(async (req) => {
 
     console.log('Successfully connected YouTube channel:', channel.id);
 
+    // Fetch demographics data after successful connection
+    try {
+      console.log('Fetching demographics for creator:', creatorId);
+      const { data: demographicsData, error: demoError } = await supabase.functions.invoke(
+        'youtube-fetch-demographics',
+        {
+          body: {
+            creatorId,
+            organizationId,
+          },
+        }
+      );
+
+      if (demoError) {
+        console.error('Failed to fetch demographics:', demoError);
+        // Don't fail the entire connection if demographics fetch fails
+      } else {
+        console.log('Demographics fetched successfully:', demographicsData);
+      }
+    } catch (demoError) {
+      console.error('Error invoking demographics function:', demoError);
+      // Don't fail the entire connection if demographics fetch fails
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
