@@ -1,8 +1,10 @@
-import { Youtube, CheckCircle2, XCircle } from 'lucide-react';
+import { Youtube, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useYouTubeConnection, useDisconnectYouTube } from '@/hooks/useCreatorInvitations';
+import { useFetchYouTubeDemographics } from '@/hooks/useYouTubeAnalytics';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface YouTubeConnectionStatusProps {
   creatorId: string;
@@ -12,11 +14,16 @@ interface YouTubeConnectionStatusProps {
 export function YouTubeConnectionStatus({ creatorId, showDisconnect = false }: YouTubeConnectionStatusProps) {
   const { data: connection, isLoading, error } = useYouTubeConnection(creatorId);
   const disconnectYouTube = useDisconnectYouTube();
+  const fetchDemographics = useFetchYouTubeDemographics();
 
   console.log('YouTubeConnectionStatus:', { creatorId, connection, isLoading, error });
 
   const handleDisconnect = async () => {
     await disconnectYouTube.mutateAsync(creatorId);
+  };
+
+  const handleFetchDemographics = async () => {
+    await fetchDemographics.mutateAsync(creatorId);
   };
 
   if (!connection) {
@@ -35,6 +42,25 @@ export function YouTubeConnectionStatus({ creatorId, showDisconnect = false }: Y
         <Youtube className="h-3 w-3" />
         <span className="text-xs">Connected</span>
       </Badge>
+      
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={handleFetchDemographics}
+              disabled={fetchDemographics.isPending}
+            >
+              <RefreshCw className={`h-3 w-3 ${fetchDemographics.isPending ? 'animate-spin' : ''}`} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Fetch YouTube demographics (last 90 days)</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       
       {showDisconnect && (
         <AlertDialog>

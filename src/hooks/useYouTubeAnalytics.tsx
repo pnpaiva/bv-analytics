@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useOrganizationContext } from './useOrganizationContext';
 
 export function useYouTubeChannelInfo(creatorId: string | null) {
   return useQuery({
@@ -67,5 +68,36 @@ export function useYouTubeVideoRetention(
     },
     enabled: !!creatorId && !!videoId,
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+  });
+}
+
+export function useFetchYouTubeDemographics() {
+  const queryClient = useQueryClient();
+  const { selectedOrganizationId } = useOrganizationContext();
+
+  return useMutation({
+    mutationFn: async (creatorId: string) => {
+      if (!selectedOrganizationId) {
+        throw new Error('No organization selected');
+      }
+
+      const { data, error } = await supabase.functions.invoke('youtube-fetch-demographics', {
+        body: { 
+          creatorId,
+          organizationId: selectedOrganizationId 
+        },
+      });
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['creators'] });
+      toast.success('YouTube demographics updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error fetching demographics:', error);
+      toast.error('Failed to fetch YouTube demographics');
+    },
   });
 }
