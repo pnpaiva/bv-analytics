@@ -77,6 +77,8 @@ export function useFetchYouTubeDemographics() {
 
   return useMutation({
     mutationFn: async (creatorId: string) => {
+      console.log('Fetching demographics for:', { creatorId, organizationId: selectedOrganizationId });
+      
       if (!selectedOrganizationId) {
         throw new Error('No organization selected');
       }
@@ -88,16 +90,23 @@ export function useFetchYouTubeDemographics() {
         },
       });
 
-      if (error) throw error;
+      console.log('Demographics response:', { data, error });
+
+      if (error) {
+        console.error('Demographics error details:', error);
+        throw error;
+      }
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Demographics fetch successful:', data);
       queryClient.invalidateQueries({ queryKey: ['creators'] });
+      queryClient.invalidateQueries({ queryKey: ['youtube-connection'] });
       toast.success('YouTube demographics updated successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error fetching demographics:', error);
-      toast.error('Failed to fetch YouTube demographics');
+      toast.error(`Failed to fetch YouTube demographics: ${error.message || 'Unknown error'}`);
     },
   });
 }
