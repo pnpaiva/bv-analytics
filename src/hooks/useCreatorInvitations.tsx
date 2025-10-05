@@ -71,6 +71,8 @@ export function useYouTubeConnection(creatorId: string | null) {
         .select('*')
         .eq('creator_id', creatorId)
         .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
