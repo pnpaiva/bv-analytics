@@ -21,14 +21,16 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the YouTube connection
+    // Get the YouTube connection (most recent if multiple exist)
     const { data: connection, error: connectionError } = await supabase
       .from('youtube_channel_connections')
       .select('*')
       .eq('creator_id', creatorId)
       .eq('organization_id', organizationId)
       .eq('is_active', true)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (connectionError || !connection) {
       throw new Error('YouTube channel not connected');
