@@ -12,6 +12,7 @@ Deno.serve(async (req) => {
 
   try {
     const { creatorId, organizationId } = await req.json();
+    console.log('Fetching demographics for:', { creatorId, organizationId });
 
     if (!creatorId || !organizationId) {
       throw new Error('Creator ID and Organization ID are required');
@@ -32,8 +33,15 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    if (connectionError || !connection) {
-      throw new Error('YouTube channel not connected');
+    console.log('Connection query result:', { connection: !!connection, error: connectionError });
+
+    if (connectionError) {
+      console.error('Connection error:', connectionError);
+      throw new Error(`Failed to fetch connection: ${connectionError.message}`);
+    }
+
+    if (!connection) {
+      throw new Error('YouTube channel not connected for this creator');
     }
 
     // Check if token needs refresh
