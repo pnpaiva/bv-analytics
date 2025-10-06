@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { creatorId } = await req.json();
+    const { creatorId, organizationId } = await req.json();
+    console.log('Refreshing token for:', { creatorId, organizationId });
 
     if (!creatorId) {
       throw new Error('Creator ID is required');
@@ -21,15 +22,31 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get current connection
-    const { data: connection, error: fetchError } = await supabase
+    // Get current connection (most recent if multiple exist)
+    const queryBuilder = supabase
       .from('youtube_channel_connections')
       .select('*')
       .eq('creator_id', creatorId)
-      .single();
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (fetchError || !connection) {
-      throw new Error('YouTube connection not found');
+    // Add organization filter if provided
+    if (organizationId) {
+      queryBuilder.eq('organization_id', organizationId);
+    }
+
+    const { data: connection, error: fetchError } = await queryBuilder.maybeSingle();
+
+    console.log('Connection query result:', { connection: !!connection, error: fetchError });
+
+    if (fetchError) {
+      console.error('Connection error:', fetchError);
+      throw new Error(`Failed to fetch connection: ${fetchError.message}`);
+    }
+
+    if (!connection) {
+      throw new Error('YouTube connection not found for this creator');
     }
 
     const clientId = Deno.env.get('YOUTUBE_OAUTH_CLIENT_ID');
@@ -60,17 +77,25 @@ Deno.serve(async (req) => {
     const tokens = await tokenResponse.json();
     const { access_token, expires_in } = tokens;
 
-    // Update database with new token
-    const { error: updateError } = await supabase
+    // Update database with new token (update all matching connections)
+    const updateBuilder = supabase
       .from('youtube_channel_connections')
       .update({
         access_token,
         token_expires_at: new Date(Date.now() + expires_in * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('creator_id', creatorId);
+      .eq('creator_id', creatorId)
+      .eq('is_active', true);
+
+    if (organizationId) {
+      updateBuilder.eq('organization_id', organizationId);
+    }
+
+    const { error: updateError } = await updateBuilder;
 
     if (updateError) {
+      console.error('Update error:', updateError);
       throw new Error('Failed to update access token');
     }
 
