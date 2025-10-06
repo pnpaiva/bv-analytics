@@ -111,19 +111,33 @@ Deno.serve(async (req) => {
     );
 
     if (!ageResponse.ok || !genderResponse.ok || !countryResponse.ok) {
+      const ageError = ageResponse.ok ? null : await ageResponse.text();
+      const genderError = genderResponse.ok ? null : await genderResponse.text();
+      const countryError = countryResponse.ok ? null : await countryResponse.text();
+      
       console.error('Failed to fetch demographics:', {
-        age: await ageResponse.text(),
-        gender: await genderResponse.text(),
-        country: await countryResponse.text(),
+        age: ageError,
+        gender: genderError,
+        country: countryError,
       });
-      throw new Error('Failed to fetch demographics from YouTube Analytics');
+      
+      // If channel is too small or has insufficient data, return empty but valid structure
+      if (ageError?.includes('insufficient data') || countryError?.includes('not supported')) {
+        console.log('Channel has insufficient data for demographics, returning empty structure');
+      } else {
+        throw new Error('Failed to fetch demographics from YouTube Analytics');
+      }
     }
 
-    const ageData = await ageResponse.json();
-    const genderData = await genderResponse.json();
-    const countryData = await countryResponse.json();
+    const ageData = ageResponse.ok ? await ageResponse.json() : { rows: [] };
+    const genderData = genderResponse.ok ? await genderResponse.json() : { rows: [] };
+    const countryData = countryResponse.ok ? await countryResponse.json() : { rows: [] };
 
-    console.log('Demographics data fetched:', { ageData, genderData, countryData });
+    console.log('Demographics data fetched:', { 
+      ageRows: ageData.rows?.length || 0,
+      genderRows: genderData.rows?.length || 0, 
+      countryRows: countryData.rows?.length || 0 
+    });
 
     // Transform the data into the format expected by the creators table
     const demographics: any = {
