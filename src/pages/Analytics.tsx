@@ -2309,18 +2309,46 @@ const NICHE_OPTIONS = [
                     <Select onValueChange={(campaignId) => {
                       const campaign = campaigns.find(c => c.id === campaignId);
                       if (campaign && !comparisonItems.find(item => item.id === campaignId && item.type === 'campaign')) {
-                        // Get platform breakdown for this campaign
-                        const platformBreakdown: Record<string, number> = {};
+                        // Get platform breakdown and URL details for this campaign
+                        const platformBreakdown: Record<string, { views: number; urlCount: number }> = {};
+                        const urlDetails: Array<{ url: string; platform: string; views: number; engagement: number }> = [];
+                        
                         if (campaign.analytics_data) {
                           Object.entries(campaign.analytics_data).forEach(([platform, data]: [string, any]) => {
                             if (Array.isArray(data)) {
                               const platformViews = data.reduce((sum: number, item: any) => sum + (item.views || 0), 0);
                               if (platformViews > 0) {
-                                platformBreakdown[platform] = platformViews;
+                                platformBreakdown[platform] = {
+                                  views: platformViews,
+                                  urlCount: data.length
+                                };
                               }
+                              // Collect URL details
+                              data.forEach((item: any) => {
+                                urlDetails.push({
+                                  url: item.url || '',
+                                  platform,
+                                  views: item.views || 0,
+                                  engagement: item.engagement || 0
+                                });
+                              });
                             }
                           });
                         }
+                        
+                        // Count total URLs from content_urls structure
+                        const totalUrls = campaign.content_urls 
+                          ? Object.values(campaign.content_urls).flat().filter(url => url).length 
+                          : 0;
+                        
+                        // Calculate URL-based metrics
+                        const actualUrlsWithData = urlDetails.length;
+                        const avgViewsPerUrl = actualUrlsWithData > 0 
+                          ? Math.round((campaign.total_views || 0) / actualUrlsWithData) 
+                          : 0;
+                        const avgEngagementPerUrl = actualUrlsWithData > 0 
+                          ? Math.round((campaign.total_engagement || 0) / actualUrlsWithData) 
+                          : 0;
                         
                         setComparisonItems(prev => [...prev, {
                           id: campaignId,
@@ -2330,8 +2358,12 @@ const NICHE_OPTIONS = [
                             totalViews: campaign.total_views || 0,
                             totalEngagement: campaign.total_engagement || 0,
                             avgEngagementRate: Number((campaign.engagement_rate || 0).toFixed(2)),
-                            contentUrlCount: campaign.content_urls ? Object.values(campaign.content_urls).flat().length : 0,
+                            contentUrlCount: totalUrls,
+                            actualUrlsWithData,
+                            avgViewsPerUrl,
+                            avgEngagementPerUrl,
                             platformBreakdown,
+                            urlDetails,
                             creator: resolveCreatorForCampaign(campaign).name,
                             brandName: campaign.brand_name,
                             campaignDate: campaign.campaign_date,
@@ -2398,15 +2430,24 @@ const NICHE_OPTIONS = [
                           <TableHead className="text-right">Total Views</TableHead>
                           <TableHead className="text-right">Total Engagement</TableHead>
                           <TableHead className="text-right">Avg Engagement Rate</TableHead>
+                          <TableHead className="text-right">Content URLs</TableHead>
+                          <TableHead className="text-right">Efficiency</TableHead>
                           <TableHead className="text-right">Top Platform</TableHead>
-                          <TableHead className="text-right">Performance</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {comparisonItems.map((item) => {
                           const topPlatform = item.data.platformBreakdown 
                             ? Object.entries(item.data.platformBreakdown)
-                                .sort(([,a], [,b]) => Number(b) - Number(a))[0] 
+                                .sort(([,a], [,b]) => {
+                                  const aVal = typeof a === 'object' && a && 'views' in a 
+                                    ? (a as { views: number }).views 
+                                    : Number(a);
+                                  const bVal = typeof b === 'object' && b && 'views' in b 
+                                    ? (b as { views: number }).views 
+                                    : Number(b);
+                                  return bVal - aVal;
+                                })[0] 
                             : null;
                           
                           return (
@@ -2421,7 +2462,7 @@ const NICHE_OPTIONS = [
                                   )}
                                   {item.type === 'creator' && item.data.campaigns && (
                                     <div className="text-xs text-muted-foreground">
-                                      Recent: {item.data.campaigns.slice(-2).map((c: any) => c.name).join(', ')}
+                                      {item.data.campaignCount} campaigns
                                     </div>
                                   )}
                                 </div>
@@ -2435,7 +2476,7 @@ const NICHE_OPTIONS = [
                                 <div className="font-medium">{item.data.totalViews.toLocaleString()}</div>
                                 {item.type === 'creator' && item.data.campaignCount > 1 && (
                                   <div className="text-xs text-muted-foreground">
-                                    avg {Math.round(item.data.totalViews / item.data.campaignCount).toLocaleString()}/campaign
+                                    {Math.round(item.data.totalViews / item.data.campaignCount).toLocaleString()}/campaign
                                   </div>
                                 )}
                               </TableCell>
@@ -2443,7 +2484,7 @@ const NICHE_OPTIONS = [
                                 <div className="font-medium">{item.data.totalEngagement.toLocaleString()}</div>
                                 {item.type === 'creator' && item.data.campaignCount > 1 && (
                                   <div className="text-xs text-muted-foreground">
-                                    avg {Math.round(item.data.totalEngagement / item.data.campaignCount).toLocaleString()}/campaign
+                                    {Math.round(item.data.totalEngagement / item.data.campaignCount).toLocaleString()}/campaign
                                   </div>
                                 )}
                               </TableCell>
@@ -2455,41 +2496,79 @@ const NICHE_OPTIONS = [
                                   </div>
                                 )}
                               </TableCell>
+                              <TableCell className="text-right font-mono">
+                                {item.type === 'campaign' ? (
+                                  <div>
+                                    <div className="font-medium">{item.data.contentUrlCount} URLs</div>
+                                    {item.data.actualUrlsWithData && item.data.actualUrlsWithData !== item.data.contentUrlCount && (
+                                      <div className="text-xs text-muted-foreground">
+                                        {item.data.actualUrlsWithData} with data
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <div className="font-medium">{item.data.campaignCount} campaigns</div>
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                {item.type === 'campaign' && item.data.actualUrlsWithData > 0 ? (
+                                  <div>
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">Views/URL:</span> {item.data.avgViewsPerUrl.toLocaleString()}
+                                    </div>
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">Eng/URL:</span> {item.data.avgEngagementPerUrl.toLocaleString()}
+                                    </div>
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">CPV:</span> ₹
+                                      {item.data.totalViews > 0 
+                                        ? (1000 / item.data.totalViews).toFixed(3)
+                                        : '0.000'
+                                      }
+                                    </div>
+                                  </div>
+                                ) : item.type === 'creator' ? (
+                                  <div>
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">Avg Views:</span> {Math.round(item.data.totalViews / item.data.campaignCount).toLocaleString()}
+                                    </div>
+                                    <div className="text-xs">
+                                      <span className="text-muted-foreground">CPV:</span> ₹
+                                      {item.data.totalViews > 0 
+                                        ? (1000 / item.data.totalViews).toFixed(3)
+                                        : '0.000'
+                                      }
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">N/A</span>
+                                )}
+                              </TableCell>
                               <TableCell className="text-right">
                                 {topPlatform ? (
                                   <div>
                                     <div className="font-medium capitalize">{topPlatform[0]}</div>
                                     <div className="text-xs text-muted-foreground">
-                                      {Number(topPlatform[1]).toLocaleString()} views
+                                      {typeof topPlatform[1] === 'object' && topPlatform[1] && 'views' in topPlatform[1]
+                                        ? `${(topPlatform[1] as { views: number; urlCount: number }).views.toLocaleString()} views (${(topPlatform[1] as { views: number; urlCount: number }).urlCount} URLs)`
+                                        : `${Number(topPlatform[1]).toLocaleString()} views`
+                                      }
                                       {item.data.totalViews > 0 && (
-                                        <span> ({Math.round((Number(topPlatform[1]) / Number(item.data.totalViews)) * 100)}%)</span>
+                                        <div>
+                                          {Math.round((
+                                            (typeof topPlatform[1] === 'object' && topPlatform[1] && 'views' in topPlatform[1]
+                                              ? (topPlatform[1] as { views: number }).views
+                                              : Number(topPlatform[1])
+                                            ) / Number(item.data.totalViews)) * 100)}% of total
+                                        </div>
                                       )}
                                     </div>
                                   </div>
                                 ) : (
                                   <span className="text-muted-foreground text-sm">No data</span>
                                 )}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="space-y-1">
-                                  {item.type === 'creator' && (
-                                    <div className="text-xs">
-                                      <span className="text-muted-foreground">Campaigns:</span> {item.data.campaignCount}
-                                    </div>
-                                  )}
-                                  {item.type === 'campaign' && (
-                                    <div className="text-xs">
-                                      <span className="text-muted-foreground">URLs:</span> {item.data.contentUrlCount}
-                                    </div>
-                                  )}
-                                  <div className="text-xs">
-                                    <span className="text-muted-foreground">CPV:</span> ₹
-                                    {item.data.totalViews > 0 
-                                      ? (1000 / item.data.totalViews).toFixed(3)
-                                      : '0.000'
-                                    }
-                                  </div>
-                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -2498,27 +2577,170 @@ const NICHE_OPTIONS = [
                     </Table>
                   </div>
 
-                  {/* Key Insights */}
+                  {/* Enhanced Insights */}
                   {comparisonItems.length >= 2 && (
-                    <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                      <h4 className="font-medium mb-2">Key Insights</h4>
-                      <div className="space-y-1 text-sm text-muted-foreground">
-                        {(() => {
-                          const sortedByViews = [...comparisonItems].sort((a, b) => b.data.totalViews - a.data.totalViews);
-                          const sortedByEngagement = [...comparisonItems].sort((a, b) => b.data.avgEngagementRate - a.data.avgEngagementRate);
-                          const bestViews = sortedByViews[0];
-                          const bestEngagement = sortedByEngagement[0];
-                          
-                          return (
-                            <>
-                              <p>🏆 <strong>Highest Views:</strong> {bestViews.name} ({bestViews.data.totalViews.toLocaleString()} views)</p>
-                              <p>📈 <strong>Best Engagement Rate:</strong> {bestEngagement.name} ({bestEngagement.data.avgEngagementRate}%)</p>
-                              {sortedByViews.length > 1 && (
-                                <p>📊 <strong>Views Difference:</strong> {Math.round(((bestViews.data.totalViews - sortedByViews[1].data.totalViews) / sortedByViews[1].data.totalViews) * 100)}% higher than second best</p>
-                              )}
-                            </>
-                          );
-                        })()}
+                    <div className="mt-6 space-y-4">
+                      {/* Key Performance Metrics */}
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          Key Performance Metrics
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          {(() => {
+                            const sortedByViews = [...comparisonItems].sort((a, b) => b.data.totalViews - a.data.totalViews);
+                            const sortedByEngagement = [...comparisonItems].sort((a, b) => b.data.avgEngagementRate - a.data.avgEngagementRate);
+                            const bestViews = sortedByViews[0];
+                            const bestEngagement = sortedByEngagement[0];
+                            
+                            return (
+                              <>
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xl">🏆</span>
+                                  <div>
+                                    <div className="font-medium">Highest Total Views</div>
+                                    <div className="text-muted-foreground">{bestViews.name}</div>
+                                    <div className="font-mono text-xs">{bestViews.data.totalViews.toLocaleString()} views</div>
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xl">📈</span>
+                                  <div>
+                                    <div className="font-medium">Best Engagement Rate</div>
+                                    <div className="text-muted-foreground">{bestEngagement.name}</div>
+                                    <div className="font-mono text-xs">{bestEngagement.data.avgEngagementRate}%</div>
+                                  </div>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Content Strategy Analysis */}
+                      {comparisonItems.some(item => item.type === 'campaign') && (
+                        <div className="p-4 bg-muted/50 rounded-lg">
+                          <h4 className="font-medium mb-3 flex items-center gap-2">
+                            <Link className="w-4 h-4" />
+                            Content Strategy Analysis
+                          </h4>
+                          <div className="space-y-3 text-sm">
+                            {(() => {
+                              const campaigns = comparisonItems.filter(item => item.type === 'campaign');
+                              const sortedByEfficiency = [...campaigns].sort((a, b) => 
+                                (b.data.avgViewsPerUrl || 0) - (a.data.avgViewsPerUrl || 0)
+                              );
+                              const mostEfficient = sortedByEfficiency[0];
+                              
+                              const sortedByUrlCount = [...campaigns].sort((a, b) => 
+                                b.data.contentUrlCount - a.data.contentUrlCount
+                              );
+                              const mostUrls = sortedByUrlCount[0];
+                              const leastUrls = sortedByUrlCount[sortedByUrlCount.length - 1];
+                              
+                              return (
+                                <>
+                                  {mostEfficient && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-xl">⚡</span>
+                                      <div>
+                                        <div className="font-medium">Most Efficient Campaign</div>
+                                        <div className="text-muted-foreground">{mostEfficient.name}</div>
+                                        <div className="font-mono text-xs">
+                                          {mostEfficient.data.avgViewsPerUrl.toLocaleString()} avg views/URL 
+                                          ({mostEfficient.data.contentUrlCount} URLs)
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {campaigns.length > 1 && mostUrls !== leastUrls && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-xl">🎯</span>
+                                      <div>
+                                        <div className="font-medium">Content Volume Comparison</div>
+                                        <div className="text-muted-foreground">
+                                          {mostUrls.name} used {mostUrls.data.contentUrlCount} URLs vs {leastUrls.name} with {leastUrls.data.contentUrlCount} URLs
+                                        </div>
+                                        {mostUrls.data.totalViews > 0 && leastUrls.data.totalViews > 0 && (
+                                          <div className="font-mono text-xs">
+                                            Despite {Math.abs(mostUrls.data.contentUrlCount - leastUrls.data.contentUrlCount)}x difference in URLs, 
+                                            {mostUrls.data.totalViews > leastUrls.data.totalViews 
+                                              ? ` ${mostUrls.data.brandName} achieved ${Math.round((mostUrls.data.totalViews / leastUrls.data.totalViews) * 100) - 100}% more views`
+                                              : ` ${leastUrls.data.brandName} achieved ${Math.round((leastUrls.data.totalViews / mostUrls.data.totalViews) * 100) - 100}% more views with fewer URLs`
+                                            }
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {campaigns.some(c => c.data.avgViewsPerUrl > 0) && (
+                                    <div className="flex items-start gap-2">
+                                      <span className="text-xl">💡</span>
+                                      <div>
+                                        <div className="font-medium">Strategy Insight</div>
+                                        <div className="text-muted-foreground">
+                                          {sortedByEfficiency[0].data.avgViewsPerUrl > 100000 
+                                            ? "High-performing single URLs can be more effective than distributing content across many URLs"
+                                            : "Multi-URL strategies help reach wider audiences but may dilute per-URL performance"
+                                          }
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Platform Distribution Analysis */}
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <h4 className="font-medium mb-3 flex items-center gap-2">
+                          <Tag className="w-4 h-4" />
+                          Platform Distribution
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          {(() => {
+                            const platformStats: Record<string, { items: string[]; totalViews: number }> = {};
+                            
+                            comparisonItems.forEach(item => {
+                              if (item.data.platformBreakdown) {
+                                Object.entries(item.data.platformBreakdown).forEach(([platform, data]) => {
+                                  if (!platformStats[platform]) {
+                                    platformStats[platform] = { items: [], totalViews: 0 };
+                                  }
+                                  platformStats[platform].items.push(item.name);
+                                  const views = typeof data === 'object' && data && 'views' in data
+                                    ? (data as { views: number }).views
+                                    : Number(data);
+                                  platformStats[platform].totalViews += views;
+                                });
+                              }
+                            });
+                            
+                            const sortedPlatforms = Object.entries(platformStats)
+                              .sort(([,a], [,b]) => b.totalViews - a.totalViews);
+                            
+                            return sortedPlatforms.length > 0 ? (
+                              sortedPlatforms.map(([platform, stats]) => (
+                                <div key={platform} className="flex justify-between items-center">
+                                  <div>
+                                    <span className="font-medium capitalize">{platform}</span>
+                                    <span className="text-muted-foreground ml-2">
+                                      ({stats.items.length} {stats.items.length === 1 ? 'item' : 'items'})
+                                    </span>
+                                  </div>
+                                  <div className="font-mono text-xs">{stats.totalViews.toLocaleString()} views</div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-muted-foreground">No platform data available</div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
                   )}
