@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.send-milestone-celebration]
 verify_jwt = false
+
+[functions.scheduled-daily-refresh]
+verify_jwt = false
