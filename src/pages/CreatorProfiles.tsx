@@ -5,7 +5,7 @@ import { useCampaigns } from '@/hooks/useCampaigns';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
-import { YouTubeConnectionStatus } from '@/components/creators/YouTubeConnectionStatus';
+import { PlatformConnectionsManager } from '@/components/creators/PlatformConnectionsManager';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -1231,10 +1231,7 @@ export default function CreatorProfiles() {
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm truncate text-[#3333cc]">{creator.name}</p>
                                 <div className="mt-1">
-                                  <YouTubeConnectionStatus 
-                                    creatorId={creator.id} 
-                                    showDisconnect={false}
-                                  />
+                                  <PlatformConnectionsManager creatorId={creator.id} />
                                 </div>
                               </div>
                             </div>
@@ -1378,10 +1375,7 @@ export default function CreatorProfiles() {
                           </span>
                         </div>
                         <div className="mt-2">
-                          <YouTubeConnectionStatus 
-                            creatorId={creator.id} 
-                            showDisconnect={canEdit}
-                          />
+                          <PlatformConnectionsManager creatorId={creator.id} />
                         </div>
                       </div>
                     </div>
