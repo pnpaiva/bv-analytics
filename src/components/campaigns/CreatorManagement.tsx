@@ -31,7 +31,7 @@ import { useCreators } from '@/hooks/useCreators';
 import { useCreateCreator, useUpdateCreator, useDeleteCreator } from '@/hooks/useManageCreators';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { InvitationLinkDialog } from '@/components/creators/InvitationLinkDialog';
-import { YouTubeConnectionStatus } from '@/components/creators/YouTubeConnectionStatus';
+import { PlatformConnectionsManager } from '@/components/creators/PlatformConnectionsManager';
 
 interface CreatorFormData {
   name: string;
@@ -338,11 +338,8 @@ export function CreatorManagement() {
                   </div>
                   
                   <div className="pt-2 border-t">
-                    <div className="text-xs text-muted-foreground mb-1">OAuth Connection:</div>
-                    <YouTubeConnectionStatus 
-                      creatorId={creator.id} 
-                      showDisconnect={true}
-                    />
+                    <div className="text-xs text-muted-foreground mb-1">Platform Connections:</div>
+                    <PlatformConnectionsManager creatorId={creator.id} />
                   </div>
                 </div>
                          {(creator as any).niche && (creator as any).niche.length > 0 && (
