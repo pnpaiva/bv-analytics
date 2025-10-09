@@ -20,8 +20,17 @@ export function YouTubeConnectionRow({ creatorId }: YouTubeConnectionRowProps) {
   };
 
   const handleFetchDemographics = async () => {
-    await fetchDemographics.mutateAsync(creatorId);
+    try {
+      await fetchDemographics.mutateAsync(creatorId);
+    } catch (error) {
+      console.error('Demographics fetch error:', error);
+    }
   };
+
+  // Format last synced time
+  const lastSynced = connection?.last_synced_at 
+    ? new Date(connection.last_synced_at).toLocaleDateString()
+    : 'Never';
 
   return (
     <div className="flex items-center justify-between py-2 px-3 rounded-md border bg-card">
@@ -31,10 +40,15 @@ export function YouTubeConnectionRow({ creatorId }: YouTubeConnectionRowProps) {
       </div>
       
       {connection ? (
-        <div className="flex items-center gap-1">
-          <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
-            Connected
-          </Badge>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col items-end gap-0.5">
+            <Badge variant="default" className="bg-green-500 hover:bg-green-600 text-xs">
+              Connected
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">
+              Synced: {lastSynced}
+            </span>
+          </div>
           
           <TooltipProvider>
             <Tooltip>
@@ -50,7 +64,7 @@ export function YouTubeConnectionRow({ creatorId }: YouTubeConnectionRowProps) {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Refresh demographics</p>
+                <p>Refresh demographics (Last: {lastSynced})</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

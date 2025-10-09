@@ -110,24 +110,33 @@ Deno.serve(async (req) => {
       }
     );
 
-    if (!ageResponse.ok || !genderResponse.ok || !countryResponse.ok) {
-      const ageError = ageResponse.ok ? null : await ageResponse.text();
-      const genderError = genderResponse.ok ? null : await genderResponse.text();
-      const countryError = countryResponse.ok ? null : await countryResponse.text();
-      
-      console.error('Failed to fetch demographics:', {
-        age: ageError,
-        gender: genderError,
-        country: countryError,
-      });
-      
-      // If channel is too small or has insufficient data, return empty but valid structure
-      if (ageError?.includes('insufficient data') || countryError?.includes('not supported')) {
-        console.log('Channel has insufficient data for demographics, returning empty structure');
-      } else {
-        throw new Error('Failed to fetch demographics from YouTube Analytics');
+    // Check for errors and log detailed information
+    const errors: any = {};
+    if (!ageResponse.ok) {
+      const ageError = await ageResponse.text();
+      errors.age = { status: ageResponse.status, error: ageError };
+      console.error('Age demographics error:', errors.age);
+    }
+    if (!genderResponse.ok) {
+      const genderError = await genderResponse.text();
+      errors.gender = { status: genderResponse.status, error: genderError };
+      console.error('Gender demographics error:', errors.gender);
+    }
+    if (!countryResponse.ok) {
+      const countryError = await countryResponse.text();
+      errors.country = { status: countryResponse.status, error: countryError };
+      console.error('Country demographics error:', errors.country);
+    }
+
+    // If all requests failed with permission errors, the scope might be missing
+    if (Object.keys(errors).length === 3) {
+      const allForbidden = Object.values(errors).every((e: any) => e.status === 403);
+      if (allForbidden) {
+        throw new Error('YouTube Analytics API access denied. The channel may need to reconnect with proper analytics permissions.');
       }
     }
+
+    // Continue with empty data if some endpoints fail (channel might be too small)
 
     const ageData = ageResponse.ok ? await ageResponse.json() : { rows: [] };
     const genderData = genderResponse.ok ? await genderResponse.json() : { rows: [] };
@@ -219,6 +228,13 @@ Deno.serve(async (req) => {
       youtube: demographics,
     };
 
+    // Update last_synced_at on the YouTube connection
+    await supabase
+      .from('youtube_channel_connections')
+      .update({ last_synced_at: new Date().toISOString() })
+      .eq('creator_id', creatorId)
+      .eq('organization_id', organizationId);
+
     // Update the creator's demographics
     const { error: updateError } = await supabase
       .from('creators')
@@ -234,6 +250,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('Successfully updated demographics for creator:', creatorId);
+    console.log('Updated demographics structure:', JSON.stringify(demographics, null, 2));
 
     return new Response(
       JSON.stringify({
