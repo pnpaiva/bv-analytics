@@ -128,8 +128,72 @@ Deno.serve(async (req) => {
       console.error('Country demographics error:', errors.country);
     }
 
-    // If all requests failed with permission errors, the scope might be missing
-    if (Object.keys(errors).length === 3) {
+    // If all requests failed with 400 errors, the channel likely doesn't meet minimum requirements
+    if (Object.keys(errors).length >= 2) {
+      const allBadRequest = Object.values(errors).every((e: any) => e.status === 400);
+      if (allBadRequest) {
+        console.log('Demographics unavailable - channel may not meet minimum requirements (views/watch time threshold)');
+        // Return success but with empty data and a note
+        const noteMessage = 'Demographics data is unavailable. YouTube requires channels to meet minimum watch time and subscriber thresholds before demographics become available.';
+        
+        // Store a note in the demographics
+        const emptyDemographicsWithNote = {
+          age: {},
+          gender: {},
+          location: {},
+          _note: noteMessage,
+          _lastAttempt: new Date().toISOString()
+        };
+
+        // Get current creator demographics
+        const { data: creator, error: creatorError } = await supabase
+          .from('creators')
+          .select('demographics')
+          .eq('id', creatorId)
+          .single();
+
+        if (creatorError) {
+          throw new Error('Failed to fetch creator data');
+        }
+
+        // Merge with existing demographics
+        const updatedDemographics = {
+          ...creator.demographics,
+          youtube: emptyDemographicsWithNote,
+        };
+
+        // Update last_synced_at on the YouTube connection
+        await supabase
+          .from('youtube_channel_connections')
+          .update({ last_synced_at: new Date().toISOString() })
+          .eq('creator_id', creatorId)
+          .eq('organization_id', organizationId);
+
+        // Update the creator's demographics
+        const { error: updateError } = await supabase
+          .from('creators')
+          .update({ 
+            demographics: updatedDemographics,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', creatorId);
+
+        if (updateError) {
+          console.error('Failed to update creator demographics:', updateError);
+          throw new Error('Failed to update creator demographics');
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            demographics: updatedDemographics,
+            message: noteMessage,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // If forbidden errors, the scope might be missing
       const allForbidden = Object.values(errors).every((e: any) => e.status === 403);
       if (allForbidden) {
         throw new Error('YouTube Analytics API access denied. The channel may need to reconnect with proper analytics permissions.');

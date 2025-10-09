@@ -40,6 +40,8 @@ interface CreatorProfile {
       gender: { female: number; male: number };
       age: { '18-24': number; '25-34': number; '35-44': number; '45-54': number; '55+': number };
       location: { [country: string]: number };
+      _note?: string;
+      _lastAttempt?: string;
     };
   };
   platformBreakdown: {
@@ -1445,63 +1447,79 @@ export default function CreatorProfiles() {
                         </div>
                         
                         <div className="space-y-4">
-                          <div>
-                            <h4 className="font-medium mb-2">Gender</h4>
-                            <div className="space-y-2">
-                              <div className="flex items-center gap-3">
-                                <User className="h-4 w-4" />
-                                <span className="text-2xl font-bold">{(selectedCreatorProfile?.demographics?.[selectedPlatform]?.gender?.female ?? 0)}%</span>
-                                <span className="text-sm text-muted-foreground">Women</span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <User className="h-4 w-4" />
-                                <span className="text-2xl font-bold">{(selectedCreatorProfile?.demographics?.[selectedPlatform]?.gender?.male ?? 0)}%</span>
-                                <span className="text-sm text-muted-foreground">Men</span>
-                              </div>
+                          {/* Check if demographics data is unavailable */}
+                          {selectedCreatorProfile?.demographics?.[selectedPlatform]?._note ? (
+                            <div className="p-4 bg-muted rounded-lg border border-border">
+                              <p className="text-sm text-muted-foreground">
+                                {selectedCreatorProfile.demographics[selectedPlatform]._note}
+                              </p>
+                              {selectedPlatform === 'youtube' && (
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  YouTube typically requires channels to have at least 1,000 subscribers and 4,000 watch hours to access detailed demographics.
+                                </p>
+                              )}
                             </div>
-                          </div>
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="font-medium mb-2">Age</h4>
-                            <div className="space-y-2">
-                              {Object.entries((selectedCreatorProfile?.demographics?.[selectedPlatform]?.age) || {}).map(([range, percentage]) => (
-                                <div key={range} className="flex items-center gap-3">
-                                  <User className="h-4 w-4" />
-                                  <span className="text-sm font-medium">{range}</span>
-                                  <div className="flex-1 h-2 bg-muted rounded-full">
-                                    <div 
-                                      className="h-2 bg-primary rounded-full" 
-                                      style={{ width: `${percentage}%` }}
-                                    />
+                          ) : (
+                            <>
+                              <div>
+                                <h4 className="font-medium mb-2">Gender</h4>
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-3">
+                                    <User className="h-4 w-4" />
+                                    <span className="text-2xl font-bold">{(selectedCreatorProfile?.demographics?.[selectedPlatform]?.gender?.female ?? 0)}%</span>
+                                    <span className="text-sm text-muted-foreground">Women</span>
                                   </div>
-                                  <span className="text-sm font-bold">{percentage}%</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          <Separator />
-
-                          <div>
-                            <h4 className="font-medium mb-2">Location</h4>
-                            <div className="space-y-2">
-                              {Object.entries((selectedCreatorProfile?.demographics?.[selectedPlatform]?.location) || {}).map(([country, percentage]) => (
-                                <div key={country} className="flex items-center gap-3">
-                                  <MapPin className="h-4 w-4" />
-                                  <span className="text-sm font-medium">{country}</span>
-                                  <div className="flex-1 h-2 bg-muted rounded-full">
-                                    <div 
-                                      className="h-2 bg-primary rounded-full" 
-                                      style={{ width: `${percentage}%` }}
-                                    />
+                                  <div className="flex items-center gap-3">
+                                    <User className="h-4 w-4" />
+                                    <span className="text-2xl font-bold">{(selectedCreatorProfile?.demographics?.[selectedPlatform]?.gender?.male ?? 0)}%</span>
+                                    <span className="text-sm text-muted-foreground">Men</span>
                                   </div>
-                                  <span className="text-sm font-bold">{percentage}%</span>
                                 </div>
-                              ))}
-                            </div>
-                          </div>
+                              </div>
+
+                              <Separator />
+
+                              <div>
+                                <h4 className="font-medium mb-2">Age</h4>
+                                <div className="space-y-2">
+                                  {Object.entries((selectedCreatorProfile?.demographics?.[selectedPlatform]?.age) || {}).map(([range, percentage]) => (
+                                    <div key={range} className="flex items-center gap-3">
+                                      <User className="h-4 w-4" />
+                                      <span className="text-sm font-medium">{range}</span>
+                                      <div className="flex-1 h-2 bg-muted rounded-full">
+                                        <div 
+                                          className="h-2 bg-primary rounded-full" 
+                                          style={{ width: `${percentage}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-sm font-bold">{percentage}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <Separator />
+
+                              <div>
+                                <h4 className="font-medium mb-2">Location</h4>
+                                <div className="space-y-2">
+                                  {Object.entries((selectedCreatorProfile?.demographics?.[selectedPlatform]?.location) || {}).map(([country, percentage]) => (
+                                    <div key={country} className="flex items-center gap-3">
+                                      <MapPin className="h-4 w-4" />
+                                      <span className="text-sm font-medium">{country}</span>
+                                      <div className="flex-1 h-2 bg-muted rounded-full">
+                                        <div 
+                                          className="h-2 bg-primary rounded-full" 
+                                          style={{ width: `${percentage}%` }}
+                                        />
+                                      </div>
+                                      <span className="text-sm font-bold">{percentage}%</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
