@@ -17,6 +17,11 @@ import { CampaignManagementDialog } from './CampaignManagementDialog';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -210,6 +215,23 @@ export function CampaignCard({
     }
   };
 
+  const getEmbedUrl = (url: string, platform: string): string | null => {
+    try {
+      if (platform === 'youtube') {
+        const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
+        if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+      } else if (platform === 'tiktok') {
+        const videoId = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/)?.[1];
+        if (videoId) return `https://www.tiktok.com/embed/v2/${videoId}`;
+      } else if (platform === 'instagram') {
+        return `${url}embed`;
+      }
+    } catch (e) {
+      console.error('Error parsing embed URL:', e);
+    }
+    return null;
+  };
+
   const renderContentUrls = () => {
     // Get URLs from campaign creators instead of campaign.content_urls
     if (campaignCreators.length === 0) return null;
@@ -259,27 +281,41 @@ export function CampaignCard({
             const displayText = item.platform === 'youtube' && item.title !== item.url 
               ? item.title 
               : item.url.replace(/^https?:\/\//, '');
+            const embedUrl = getEmbedUrl(item.url, item.platform);
             
             return (
-              <a
-                key={index}
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
-              >
-                <IconComponent className="h-4 w-4 flex-shrink-0" />
-                <div className="flex items-center gap-1">
-                  <span className="capitalize font-medium">{item.platform}:</span>
-                  <span className="text-xs bg-muted px-1 py-0.5 rounded">
-                    {item.creatorName}
-                  </span>
-                </div>
-                <span className="truncate group-hover:underline flex-1" title={item.platform === 'youtube' ? item.title : item.url}>
-                  {displayText}
-                </span>
-                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-              </a>
+              <HoverCard key={index} openDelay={200}>
+                <HoverCardTrigger asChild>
+                  <a
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                  >
+                    <IconComponent className="h-4 w-4 flex-shrink-0" />
+                    <div className="flex items-center gap-1">
+                      <span className="capitalize font-medium">{item.platform}:</span>
+                      <span className="text-xs bg-muted px-1 py-0.5 rounded">
+                        {item.creatorName}
+                      </span>
+                    </div>
+                    <span className="truncate group-hover:underline flex-1" title={item.platform === 'youtube' ? item.title : item.url}>
+                      {displayText}
+                    </span>
+                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                  </a>
+                </HoverCardTrigger>
+                {embedUrl && (
+                  <HoverCardContent side="right" className="w-96 p-2" sideOffset={10}>
+                    <iframe
+                      src={embedUrl}
+                      className="w-full aspect-video rounded-md border-0"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </HoverCardContent>
+                )}
+              </HoverCard>
             );
           })}
         </div>
