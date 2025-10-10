@@ -2,6 +2,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
+import QRCode from 'qrcode';
 
 export interface ExportOptions {
   includeLogo?: boolean;
@@ -95,6 +96,63 @@ export class EnhancedPDFExporter {
     this.doc.setFont('helvetica', 'normal');
     this.doc.text(value, this.margin + indent + 40, this.currentY);
     this.currentY += 6;
+  }
+
+  private async getVideoThumbnail(url: string, platform: string): Promise<string | null> {
+    try {
+      if (platform === 'youtube') {
+        const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
+        if (videoId) {
+          // Try to fetch the thumbnail
+          const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+          try {
+            const response = await fetch(thumbnailUrl, { mode: 'cors' });
+            if (response.ok) {
+              const blob = await response.blob();
+              return await this.blobToDataUrl(blob);
+            }
+          } catch {
+            // Fallback to standard quality thumbnail
+            const fallbackUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            const response = await fetch(fallbackUrl, { mode: 'cors' });
+            if (response.ok) {
+              const blob = await response.blob();
+              return await this.blobToDataUrl(blob);
+            }
+          }
+        }
+      }
+      // For other platforms, we can't easily get thumbnails without API access
+      return null;
+    } catch (error) {
+      console.error('Error fetching video thumbnail:', error);
+      return null;
+    }
+  }
+
+  private async blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  private async generateQRCode(url: string): Promise<string> {
+    try {
+      return await QRCode.toDataURL(url, {
+        width: 200,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      return '';
+    }
   }
 
   private async addBrandLogoIfAny(campaign: Campaign, yTop: number, maxWidthMm: number = 18, maxHeightMm: number = 12) {
@@ -438,28 +496,76 @@ export class EnhancedPDFExporter {
         this.doc.text('Content Links:', this.margin, this.currentY);
         this.currentY += 6;
 
-        Object.entries(allContentUrls).forEach(([platform, urlData]) => {
+        for (const [platform, urlData] of Object.entries(allContentUrls)) {
           if (urlData.length > 0) {
             this.doc.setFont('helvetica', 'bold');
             this.doc.text(`${platform.charAt(0).toUpperCase() + platform.slice(1)}:`, this.margin + 10, this.currentY);
             this.currentY += 5;
 
-            urlData.forEach((item, index) => {
-              this.checkPageBreak();
+            for (const item of urlData) {
+              this.checkPageBreak(70); // More space needed for thumbnails and QR codes
+              const startY = this.currentY;
+              
+              // Try to fetch thumbnail and generate QR code
+              const thumbnail = await this.getVideoThumbnail(item.url, platform);
+              const qrCode = await this.generateQRCode(item.url);
+              
+              // Layout: [Thumbnail] [QR Code] [Text Info]
+              const thumbnailWidth = 40;
+              const thumbnailHeight = 22.5; // 16:9 aspect ratio
+              const qrSize = 22;
+              const leftMargin = this.margin + 20;
+              
+              // Add thumbnail if available
+              if (thumbnail) {
+                try {
+                  this.doc.addImage(thumbnail, 'JPEG', leftMargin, startY, thumbnailWidth, thumbnailHeight);
+                  // Make thumbnail clickable
+                  this.doc.link(leftMargin, startY, thumbnailWidth, thumbnailHeight, { url: item.url });
+                } catch (error) {
+                  console.error('Error adding thumbnail to PDF:', error);
+                }
+              }
+              
+              // Add QR code
+              if (qrCode) {
+                const qrX = leftMargin + thumbnailWidth + 5;
+                try {
+                  this.doc.addImage(qrCode, 'PNG', qrX, startY, qrSize, qrSize);
+                  // Make QR code clickable
+                  this.doc.link(qrX, startY, qrSize, qrSize, { url: item.url });
+                } catch (error) {
+                  console.error('Error adding QR code to PDF:', error);
+                }
+              }
+              
+              // Add text info to the right
+              const textX = leftMargin + thumbnailWidth + qrSize + 10;
               this.doc.setFont('helvetica', 'normal');
-              this.doc.setTextColor(0, 0, 255);
-              this.doc.text(`${index + 1}. ${item.url}`, this.margin + 20, this.currentY);
-              this.doc.setTextColor(0, 0, 0);
+              this.doc.setFontSize(9);
+              this.doc.text('Scan QR or click to view', textX, startY + 5);
+              
               if (item.creatorName) {
                 this.doc.setFont('helvetica', 'italic');
-                this.doc.text(`Creator: ${item.creatorName}`, this.margin + 20, this.currentY + 5);
-                this.currentY += 10;
-              } else {
-                this.currentY += 6;
+                this.doc.setFontSize(8);
+                this.doc.text(`Creator: ${item.creatorName}`, textX, startY + 10);
               }
-            });
+              
+              // Add clickable URL at bottom
+              this.doc.setFont('helvetica', 'normal');
+              this.doc.setFontSize(7);
+              this.doc.setTextColor(0, 0, 255);
+              const urlText = item.url.length > 60 ? item.url.substring(0, 57) + '...' : item.url;
+              this.doc.textWithLink(urlText, textX, startY + 16, { url: item.url });
+              this.doc.setTextColor(0, 0, 0);
+              
+              // Move cursor down past the largest element
+              this.currentY = startY + Math.max(thumbnailHeight, qrSize) + 8;
+            }
+            
+            this.currentY += 5;
           }
-        });
+        }
       }
     }
 
