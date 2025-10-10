@@ -44,14 +44,30 @@ export function ContentUrlDropdown({ contentUrls }: ContentUrlDropdownProps) {
   }
 
   if (allUrls.length === 1) {
+    const embedUrl = getEmbedUrl(allUrls[0].url, allUrls[0].platform);
+    
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => window.open(allUrls[0].url, '_blank')}
-      >
-        <ExternalLink className="h-4 w-4" />
-      </Button>
+      <HoverCard openDelay={200}>
+        <HoverCardTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(allUrls[0].url, '_blank')}
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        </HoverCardTrigger>
+        {embedUrl && (
+          <HoverCardContent side="left" className="w-96 p-2">
+            <iframe
+              src={embedUrl}
+              className="w-full aspect-video rounded-md border-0"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+            />
+          </HoverCardContent>
+        )}
+      </HoverCard>
     );
   }
 
@@ -63,31 +79,32 @@ export function ContentUrlDropdown({ contentUrls }: ContentUrlDropdownProps) {
           <ChevronDown className="h-3 w-3" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className="w-56">
         {allUrls.map((item, index) => {
           const embedUrl = getEmbedUrl(item.url, item.platform);
           
           return (
-            <HoverCard key={`${item.platform}-${index}`} openDelay={300}>
+            <HoverCard key={`${item.platform}-${index}`} openDelay={200}>
               <HoverCardTrigger asChild>
-                <DropdownMenuItem
-                  onClick={() => window.open(item.url, '_blank')}
-                  className="cursor-pointer"
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <div className="flex flex-col items-start">
-                    <span className="font-medium capitalize">{item.platform}</span>
-                    <span className="text-xs text-muted-foreground truncate max-w-full">
-                      {item.url}
-                    </span>
-                  </div>
-                </DropdownMenuItem>
+                <div>
+                  <DropdownMenuItem
+                    onClick={() => window.open(item.url, '_blank')}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex flex-col items-start w-full">
+                      <span className="font-medium capitalize">{item.platform}</span>
+                      <span className="text-xs text-muted-foreground truncate w-full">
+                        {item.url}
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </div>
               </HoverCardTrigger>
               {embedUrl && (
-                <HoverCardContent side="left" className="w-80 p-0">
+                <HoverCardContent side="left" className="w-96 p-2" sideOffset={10}>
                   <iframe
                     src={embedUrl}
-                    className="w-full aspect-video rounded-md"
+                    className="w-full aspect-video rounded-md border-0"
                     allow="autoplay; encrypted-media"
                     allowFullScreen
                   />
