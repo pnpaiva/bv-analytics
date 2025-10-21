@@ -10,13 +10,15 @@ import { useAggregateCampaignSentiment } from '@/hooks/useCampaignSentiment';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users, MessageCircle, Smile, Frown, Meh, Sparkles } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users, MessageCircle, Smile, Frown, Meh, Sparkles, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
 import { CampaignManagementDialog } from './CampaignManagementDialog';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
+import { useVideoScriptAnalysis } from '@/hooks/useVideoScriptAnalysis';
+import { VideoScriptAnalysisDialog } from './VideoScriptAnalysisDialog';
 import {
   HoverCard,
   HoverCardContent,
@@ -57,6 +59,9 @@ export function CampaignCard({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
   const [managementDialogOpen, setManagementDialogOpen] = useState(false);
+  const [scriptAnalysisDialogOpen, setScriptAnalysisDialogOpen] = useState(false);
+  const [currentAnalysis, setCurrentAnalysis] = useState<string | null>(null);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
@@ -64,6 +69,7 @@ export function CampaignCard({
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign.id);
   const { aggregate: sentimentData } = useAggregateCampaignSentiment(campaign.id);
   const { canEdit, canDelete } = useUserPermissions();
+  const { mutateAsync: analyzeScript, isPending: isAnalyzingScript } = useVideoScriptAnalysis();
 
   // Use campaign totals as the single source of truth
   // URL analytics are only used for individual URL breakdowns, not totals
@@ -261,6 +267,18 @@ export function CampaignCard({
     }
   };
 
+  const handleAnalyzeScript = async (videoUrl: string, platform: string) => {
+    setCurrentVideoUrl(videoUrl);
+    setScriptAnalysisDialogOpen(true);
+    try {
+      const result = await analyzeScript({ videoUrl, platform });
+      setCurrentAnalysis(result.analysis);
+    } catch (error) {
+      console.error('Script analysis error:', error);
+      setCurrentAnalysis(null);
+    }
+  };
+
   const getPlatformIcon = (platform: string) => {
     switch (platform.toLowerCase()) {
       case 'youtube':
@@ -344,38 +362,49 @@ export function CampaignCard({
             const embedUrl = getEmbedUrl(item.url, item.platform);
             
             return (
-              <HoverCard key={index} openDelay={200}>
-                <HoverCardTrigger asChild>
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
-                  >
-                    <IconComponent className="h-4 w-4 flex-shrink-0" />
-                    <div className="flex items-center gap-1">
-                      <span className="capitalize font-medium">{item.platform}:</span>
-                      <span className="text-xs bg-muted px-1 py-0.5 rounded">
-                        {item.creatorName}
+              <div key={index} className="flex items-center gap-2 group">
+                <HoverCard openDelay={200}>
+                  <HoverCardTrigger asChild>
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors flex-1"
+                    >
+                      <IconComponent className="h-4 w-4 flex-shrink-0" />
+                      <div className="flex items-center gap-1">
+                        <span className="capitalize font-medium">{item.platform}:</span>
+                        <span className="text-xs bg-muted px-1 py-0.5 rounded">
+                          {item.creatorName}
+                        </span>
+                      </div>
+                      <span className="truncate group-hover:underline flex-1" title={item.platform === 'youtube' ? item.title : item.url}>
+                        {displayText}
                       </span>
-                    </div>
-                    <span className="truncate group-hover:underline flex-1" title={item.platform === 'youtube' ? item.title : item.url}>
-                      {displayText}
-                    </span>
-                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                  </a>
-                </HoverCardTrigger>
-                {embedUrl && (
-                  <HoverCardContent side="right" className="w-96 p-2" sideOffset={10}>
-                    <iframe
-                      src={embedUrl}
-                      className="w-full aspect-video rounded-md border-0"
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                    />
-                  </HoverCardContent>
-                )}
-              </HoverCard>
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                    </a>
+                  </HoverCardTrigger>
+                  {embedUrl && (
+                    <HoverCardContent side="right" className="w-96 p-2" sideOffset={10}>
+                      <iframe
+                        src={embedUrl}
+                        className="w-full aspect-video rounded-md border-0"
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                      />
+                    </HoverCardContent>
+                  )}
+                </HoverCard>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAnalyzeScript(item.url, item.platform)}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Analyze Script"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </div>
             );
           })}
         </div>
@@ -656,6 +685,20 @@ export function CampaignCard({
       campaign={campaign}
       isOpen={managementDialogOpen}
       onClose={() => setManagementDialogOpen(false)}
+    />
+    
+    <VideoScriptAnalysisDialog
+      open={scriptAnalysisDialogOpen}
+      onOpenChange={(open) => {
+        setScriptAnalysisDialogOpen(open);
+        if (!open) {
+          setCurrentAnalysis(null);
+          setCurrentVideoUrl('');
+        }
+      }}
+      analysis={currentAnalysis}
+      isLoading={isAnalyzingScript}
+      videoUrl={currentVideoUrl}
     />
     </>
   );

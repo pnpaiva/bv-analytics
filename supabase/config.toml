@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.analyze-campaign-sentiment]
 verify_jwt = false
+
+[functions.analyze-video-script]
+verify_jwt = false
