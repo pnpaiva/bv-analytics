@@ -100,6 +100,8 @@ Deno.serve(async (req) => {
         // Extract sample comments if available
         const sampleComments = analytics?.analytics_metadata?.comments || [];
         
+        console.log(`Found ${sampleComments.length} comments for URL:`, item.url);
+        
         if (sampleComments.length === 0) {
           console.log('No comments found for URL:', item.url);
           continue;

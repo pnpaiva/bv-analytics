@@ -150,8 +150,8 @@ Deno.serve(async (req) => {
     
     const views = parseInt(stats.viewCount || '0');
     const likes = parseInt(stats.likeCount || '0');
-    const comments = parseInt(stats.commentCount || '0');
-    const engagement = likes + comments;
+    const commentCount = parseInt(stats.commentCount || '0');
+    const engagement = likes + commentCount;
     const rate = views > 0 ? Number(((engagement / views) * 100).toFixed(2)) : 0;
 
     // Parse ISO 8601 duration (PT4M13S) to seconds
@@ -164,11 +164,31 @@ Deno.serve(async (req) => {
       return hours * 3600 + minutes * 60 + seconds;
     };
 
+    // Fetch actual comments for sentiment analysis (top 100 comments)
+    let commentTexts: string[] = [];
+    try {
+      const commentsUrl = `https://www.googleapis.com/youtube/v3/commentThreads?videoId=${videoId}&part=snippet&maxResults=100&order=relevance&key=${youtubeApiKey}`;
+      const commentsResponse = await fetch(commentsUrl);
+      
+      if (commentsResponse.ok) {
+        const commentsData = await commentsResponse.json();
+        commentTexts = commentsData.items?.map((item: any) => 
+          item.snippet?.topLevelComment?.snippet?.textDisplay || ''
+        ).filter((text: string) => text.length > 0) || [];
+        console.log(`Fetched ${commentTexts.length} comments for video ${videoId}`);
+      } else {
+        console.log('Comments disabled or unavailable for this video');
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      // Continue without comments - not critical
+    }
+
     const result = {
       views,
       engagement,
       likes,
-      comments,
+      comments: commentCount,
       rate,
       metadata: {
         title: snippet?.title || '',
@@ -186,7 +206,8 @@ Deno.serve(async (req) => {
         tags: snippet?.tags || [],
         categoryId: snippet?.categoryId || '',
         defaultLanguage: snippet?.defaultLanguage || '',
-        defaultAudioLanguage: snippet?.defaultAudioLanguage || ''
+        defaultAudioLanguage: snippet?.defaultAudioLanguage || '',
+        comments: commentTexts
       }
     };
 
