@@ -5,6 +5,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// APIFY Actor IDs for comment scraping
+const APIFY_ACTORS = {
+  youtube: 'p7UMdpQnjKmmpR21D',
+  instagram: 'RA9pXL2RPtBbFamco',
+  tiktok: 'BDec00yAmCm1QbMEI',
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,7 +31,17 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    const apifyApiKey = Deno.env.get('APIFY_API_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+    
+    if (!apifyApiKey) {
+      throw new Error('APIFY_API_KEY is not configured');
+    }
+    
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY is not configured');
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get campaign with content URLs
@@ -86,102 +103,23 @@ Deno.serve(async (req) => {
       try {
         console.log(`Analyzing ${item.platform} URL:`, item.url);
 
-        // Fetch comments from the URL analytics metadata
-        const { data: analytics } = await supabase
-          .from('campaign_url_analytics')
-          .select('analytics_metadata')
-          .eq('campaign_id', campaignId)
-          .eq('content_url', item.url)
-          .eq('platform', item.platform)
-          .order('date_recorded', { ascending: false })
-          .limit(1)
-          .single();
-
-        // Extract sample comments if available
-        const sampleComments = analytics?.analytics_metadata?.comments || [];
+        // Scrape comments using APIFY
+        const comments = await scrapeComments(item.url, item.platform, apifyApiKey);
         
-        console.log(`Found ${sampleComments.length} comments for URL:`, item.url);
-        
-        if (sampleComments.length === 0) {
+        if (!comments || comments.length === 0) {
           console.log('No comments found for URL:', item.url);
           continue;
         }
 
-        // Use Lovable AI to analyze sentiment and extract topics
-        const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an expert at analyzing social media comments. Extract sentiment and main topics from comments.'
-              },
-              {
-                role: 'user',
-                content: `Analyze these comments and provide: 
-1. Overall sentiment score (-1 to 1, where -1=negative, 0=neutral, 1=positive)
-2. Sentiment label (positive/neutral/negative)
-3. Top 3-5 main topics discussed
-4. Top 3-5 key themes or sentiments
+        console.log(`Scraped ${comments.length} comments for URL:`, item.url);
 
-Comments: ${JSON.stringify(sampleComments.slice(0, 50))}`
-              }
-            ],
-            tools: [{
-              type: 'function',
-              function: {
-                name: 'analyze_sentiment',
-                description: 'Analyze sentiment and topics from comments',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    sentiment_score: { 
-                      type: 'number',
-                      description: 'Sentiment score from -1 (negative) to 1 (positive)'
-                    },
-                    sentiment_label: { 
-                      type: 'string',
-                      enum: ['positive', 'neutral', 'negative']
-                    },
-                    main_topics: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      description: 'Top 3-5 main topics discussed'
-                    },
-                    key_themes: {
-                      type: 'array',
-                      items: { type: 'string' },
-                      description: 'Top 3-5 key themes or sentiments'
-                    }
-                  },
-                  required: ['sentiment_score', 'sentiment_label', 'main_topics', 'key_themes'],
-                  additionalProperties: false
-                }
-              }
-            }],
-            tool_choice: { type: 'function', function: { name: 'analyze_sentiment' } }
-          })
-        });
-
-        if (!aiResponse.ok) {
-          console.error('AI API error:', await aiResponse.text());
-          continue;
-        }
-
-        const aiData = await aiResponse.json();
-        const toolCall = aiData.choices[0]?.message?.tool_calls?.[0];
+        // Analyze sentiment using ChatGPT
+        const analysis = await analyzeSentiment(comments, openaiApiKey);
         
-        if (!toolCall) {
-          console.error('No tool call in AI response');
+        if (!analysis) {
+          console.log('Failed to analyze sentiment for URL:', item.url);
           continue;
         }
-
-        const analysis = JSON.parse(toolCall.function.arguments);
         
         console.log('Analysis result:', analysis);
 
@@ -192,14 +130,16 @@ Comments: ${JSON.stringify(sampleComments.slice(0, 50))}`
             p_campaign_id: campaignId,
             p_content_url: item.url,
             p_platform: item.platform,
-            p_sentiment_score: analysis.sentiment_score,
-            p_sentiment_label: analysis.sentiment_label,
-            p_main_topics: analysis.main_topics,
-            p_key_themes: analysis.key_themes,
-            p_total_comments_analyzed: sampleComments.length,
+            p_sentiment_score: analysis.sentiment_score || 0,
+            p_sentiment_label: analysis.sentiment_label || 'neutral',
+            p_main_topics: analysis.main_topics || [],
+            p_key_themes: analysis.key_themes || [],
+            p_total_comments_analyzed: comments.length,
             p_analysis_metadata: {
               analyzed_at: new Date().toISOString(),
-              sample_size: sampleComments.length
+              sample_size: comments.length,
+              blurb: analysis.blurb || '',
+              examples: analysis.examples || []
             }
           }
         );
@@ -211,7 +151,12 @@ Comments: ${JSON.stringify(sampleComments.slice(0, 50))}`
             url: item.url,
             platform: item.platform,
             success: true,
-            analysis
+            analysis: {
+              sentiment: analysis.sentiment_label,
+              score: analysis.sentiment_score,
+              blurb: analysis.blurb,
+              comments_analyzed: comments.length
+            }
           });
         }
 
@@ -254,3 +199,178 @@ Comments: ${JSON.stringify(sampleComments.slice(0, 50))}`
     );
   }
 });
+
+// Helper function to scrape comments using APIFY
+async function scrapeComments(url: string, platform: string, apiKey: string): Promise<string[]> {
+  try {
+    let actorId: string;
+    let input: any;
+
+    // Determine which APIFY actor to use based on platform
+    const platformLower = platform.toLowerCase();
+    
+    if (platformLower === 'youtube') {
+      actorId = APIFY_ACTORS.youtube;
+      input = {
+        startUrls: [{ url }],
+        maxComments: 100,
+        maxReplies: 0
+      };
+    } else if (platformLower === 'instagram') {
+      actorId = APIFY_ACTORS.instagram;
+      input = {
+        directUrls: [url],
+        resultsLimit: 100
+      };
+    } else if (platformLower === 'tiktok') {
+      actorId = APIFY_ACTORS.tiktok;
+      input = {
+        postURLs: [url],
+        commentsPerPost: 100
+      };
+    } else {
+      console.log('Unsupported platform:', platform);
+      return [];
+    }
+
+    console.log(`Starting APIFY actor ${actorId} for ${platform}`);
+
+    // Start the APIFY actor
+    const runResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs?token=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+
+    if (!runResponse.ok) {
+      const errorText = await runResponse.text();
+      console.error('Failed to start APIFY actor:', errorText);
+      return [];
+    }
+
+    const runData = await runResponse.json();
+    const runId = runData.data.id;
+    console.log(`APIFY run started: ${runId}`);
+
+    // Poll for completion (max 60 seconds)
+    let status = 'RUNNING';
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (status === 'RUNNING' && attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const statusResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs/${runId}?token=${apiKey}`);
+      const statusData = await statusResponse.json();
+      status = statusData.data.status;
+      attempts++;
+      
+      console.log(`APIFY status check ${attempts}/${maxAttempts}: ${status}`);
+    }
+
+    if (status !== 'SUCCEEDED') {
+      console.error('APIFY actor did not succeed:', status);
+      return [];
+    }
+
+    // Get the results
+    const resultsResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs/${runId}/dataset/items?token=${apiKey}`);
+    
+    if (!resultsResponse.ok) {
+      console.error('Failed to fetch APIFY results');
+      return [];
+    }
+    
+    const results = await resultsResponse.json();
+    console.log(`Retrieved ${results.length} items from APIFY`);
+
+    // Extract comment texts based on platform
+    const comments: string[] = [];
+    
+    if (platformLower === 'youtube') {
+      results.forEach((item: any) => {
+        if (item.text) comments.push(item.text);
+      });
+    } else if (platformLower === 'instagram') {
+      results.forEach((item: any) => {
+        if (item.text) comments.push(item.text);
+      });
+    } else if (platformLower === 'tiktok') {
+      results.forEach((item: any) => {
+        if (item.text) comments.push(item.text);
+      });
+    }
+
+    return comments.filter(c => c && c.length > 0);
+
+  } catch (error) {
+    console.error('Error scraping comments with APIFY:', error);
+    return [];
+  }
+}
+
+// Helper function to analyze sentiment using ChatGPT
+async function analyzeSentiment(comments: string[], apiKey: string): Promise<any> {
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a sentiment analysis expert. Analyze comments and provide structured, detailed sentiment data in JSON format.'
+          },
+          {
+            role: 'user',
+            content: `Analyze these ${comments.length} comments and provide a JSON response with:
+1. sentiment_score: a number between -1 (very negative) and 1 (very positive)
+2. sentiment_label: "positive", "negative", or "neutral"
+3. main_topics: array of top 5 topics discussed (strings)
+4. key_themes: array of 3-5 key themes (strings)
+5. blurb: a 2-3 sentence summary of the overall sentiment and key takeaways
+6. examples: array of 3 example comments that represent the sentiment (objects with "text" and "category" fields where category is positive/neutral/negative)
+
+Comments (showing first 100):
+${comments.slice(0, 100).join('\n---\n')}
+
+Respond ONLY with valid JSON.`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenAI API error:', errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    
+    if (!content) {
+      console.log('No content in OpenAI response');
+      return null;
+    }
+
+    // Parse the JSON response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.log('No JSON found in response');
+      return null;
+    }
+
+    return JSON.parse(jsonMatch[0]);
+
+  } catch (error) {
+    console.error('Error analyzing sentiment with ChatGPT:', error);
+    return null;
+  }
+}

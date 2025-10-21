@@ -13,6 +13,10 @@ export interface CampaignSentiment {
   key_themes: string[];
   total_comments_analyzed: number;
   analyzed_at: string;
+  analysis_metadata?: {
+    blurb?: string;
+    examples?: Array<{ text: string; category: string }>;
+  };
 }
 
 export const useCampaignSentiment = (campaignId: string) => {
@@ -81,13 +85,20 @@ export const useAggregateCampaignSentiment = (campaignId: string) => {
 
     const totalComments = sentiments.reduce((sum, s) => sum + s.total_comments_analyzed, 0);
 
+    // Get the first blurb and examples if available
+    const firstWithBlurb = sentiments.find(s => s.analysis_metadata?.blurb);
+    const blurb = firstWithBlurb?.analysis_metadata?.blurb;
+    const examples = firstWithBlurb?.analysis_metadata?.examples || [];
+
     return {
       avgSentiment,
       overallLabel,
       topTopics,
       topThemes,
       totalComments,
-      urlsAnalyzed: sentiments.length
+      urlsAnalyzed: sentiments.length,
+      blurb,
+      examples
     };
   }, [sentiments]);
 

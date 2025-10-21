@@ -457,11 +457,11 @@ export function CampaignCard({
         {/* Sentiment Analysis Section */}
         {sentimentData && sentimentData.urlsAnalyzed > 0 ? (
           <div className="mt-4 pt-4 border-t">
-            <h4 className="text-sm font-medium mb-2 text-foreground flex items-center gap-2">
+            <h4 className="text-sm font-medium mb-3 text-foreground flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
               Comment Sentiment Analysis
             </h4>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 {sentimentData.overallLabel === 'positive' && <Smile className="h-5 w-5 text-success" />}
                 {sentimentData.overallLabel === 'neutral' && <Meh className="h-5 w-5 text-muted-foreground" />}
@@ -473,6 +473,14 @@ export function CampaignCard({
                   ({sentimentData.totalComments} comments analyzed)
                 </span>
               </div>
+
+              {sentimentData.blurb && (
+                <div className="bg-muted/30 p-3 rounded-lg">
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {sentimentData.blurb}
+                  </p>
+                </div>
+              )}
               
               {sentimentData.topTopics.length > 0 && (
                 <div>
@@ -495,6 +503,26 @@ export function CampaignCard({
                       <Badge key={idx} variant="outline" className="text-xs">
                         {theme}
                       </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {sentimentData.examples && sentimentData.examples.length > 0 && (
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground mb-2 block">Example Comments:</span>
+                  <div className="space-y-2">
+                    {sentimentData.examples.map((example, idx) => (
+                      <div key={idx} className="text-xs bg-card p-2 rounded border border-border">
+                        <span className={`font-medium capitalize ${
+                          example.category === 'positive' ? 'text-success' :
+                          example.category === 'negative' ? 'text-destructive' :
+                          'text-muted-foreground'
+                        }`}>
+                          {example.category}:
+                        </span>
+                        <span className="ml-2 text-muted-foreground italic">"{example.text}"</span>
+                      </div>
                     ))}
                   </div>
                 </div>
