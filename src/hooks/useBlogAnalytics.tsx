@@ -123,7 +123,13 @@ export function useTrackBlogView() {
       timeOnPage?: number;
       referrerSource?: string;
     }) => {
-      const { error } = await supabase.rpc('upsert_blog_analytics', {
+      console.log('Calling upsert_blog_analytics with:', {
+        blogPostId,
+        timeOnPage,
+        referrerSource,
+      });
+
+      const { data, error } = await supabase.rpc('upsert_blog_analytics', {
         p_blog_post_id: blogPostId,
         p_views: 1,
         p_unique_views: 1,
@@ -135,10 +141,14 @@ export function useTrackBlogView() {
         console.error('Error tracking blog view:', error);
         throw error;
       }
+
+      console.log('Blog view tracked successfully:', data);
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blog-analytics-summary'] });
       queryClient.invalidateQueries({ queryKey: ['blog-analytics'] });
+      console.log('Analytics queries invalidated');
     },
     onError: (error) => {
       console.error('Failed to track blog view:', error);

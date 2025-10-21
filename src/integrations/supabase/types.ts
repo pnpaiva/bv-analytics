@@ -1748,15 +1748,23 @@ export type Database = {
         Returns: undefined
       }
       upsert_blog_analytics: {
-        Args: {
-          p_blog_post_id: string
-          p_date_recorded?: string
-          p_organization_id?: string
-          p_referrer_source?: string
-          p_time_on_page?: number
-          p_unique_views?: number
-          p_views?: number
-        }
+        Args:
+          | {
+              p_blog_post_id: string
+              p_date_recorded?: string
+              p_organization_id?: string
+              p_referrer_source?: string
+              p_time_on_page?: number
+              p_unique_views?: number
+              p_views?: number
+            }
+          | {
+              p_blog_post_id: string
+              p_referrer_source?: string
+              p_time_on_page?: number
+              p_unique_views?: number
+              p_views?: number
+            }
         Returns: undefined
       }
       upsert_campaign_url_analytics: {
@@ -1788,7 +1796,7 @@ export type Database = {
               p_shares?: number
               p_views?: number
             }
-        Returns: string
+        Returns: undefined
       }
       upsert_daily_campaign_performance: {
         Args: {

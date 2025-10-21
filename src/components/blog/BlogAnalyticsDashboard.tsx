@@ -36,18 +36,14 @@ export function BlogAnalyticsDashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Loading...</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-muted animate-pulse rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading analytics data...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -60,6 +56,27 @@ export function BlogAnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Info Alert for new users */}
+      {analytics && (analytics.total_views > 0) && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <div className="text-primary">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                  Analytics Tracking Active
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Blog analytics are being tracked automatically. Views are counted when visitors read your published blog posts. Data updates in real-time.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Date Range Filter */}
       <Card>
         <CardHeader>

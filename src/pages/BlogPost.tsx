@@ -19,12 +19,24 @@ export default function BlogPost() {
   // Track page view when post loads
   useEffect(() => {
     if (post && !viewTracked) {
-      const referrer = document.referrer ? new URL(document.referrer).hostname : 'direct';
-      trackView.mutate({
-        blogPostId: post.id,
-        referrerSource: referrer,
-      });
-      setViewTracked(true);
+      console.log('Tracking blog view for post:', post.id);
+      try {
+        const referrer = document.referrer ? new URL(document.referrer).hostname : 'direct';
+        trackView.mutate({
+          blogPostId: post.id,
+          referrerSource: referrer,
+        }, {
+          onSuccess: () => {
+            console.log('Blog view tracked successfully');
+          },
+          onError: (error) => {
+            console.error('Failed to track blog view:', error);
+          }
+        });
+        setViewTracked(true);
+      } catch (error) {
+        console.error('Error tracking blog view:', error);
+      }
     }
   }, [post, viewTracked, trackView]);
 
