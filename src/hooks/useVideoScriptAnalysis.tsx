@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 interface AnalyzeScriptParams {
   videoUrl: string;
   platform: string;
+  campaignId?: string;
 }
 
 interface AnalysisResult {
@@ -17,13 +18,13 @@ interface AnalysisResult {
 
 export const useVideoScriptAnalysis = () => {
   return useMutation({
-    mutationFn: async ({ videoUrl, platform }: AnalyzeScriptParams): Promise<AnalysisResult> => {
+    mutationFn: async ({ videoUrl, platform, campaignId }: AnalyzeScriptParams): Promise<AnalysisResult> => {
       toast.info('Analyzing video script...', {
         description: 'This may take a minute',
       });
 
       const { data, error } = await supabase.functions.invoke('analyze-video-script', {
-        body: { videoUrl, platform },
+        body: { videoUrl, platform, campaignId },
       });
 
       if (error) {

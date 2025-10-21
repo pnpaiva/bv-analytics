@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { videoUrl, platform } = await req.json();
+    const { videoUrl, platform, campaignId } = await req.json();
     
     if (!videoUrl) {
       throw new Error('Video URL is required');
@@ -145,6 +145,43 @@ Please structure your response with clear sections for:
     const analysis = openAIData.choices[0].message.content;
 
     console.log('Analysis completed successfully');
+
+    // Save to database if campaignId is provided
+    if (campaignId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Get organization_id from campaign
+      const { data: campaign } = await supabase
+        .from('campaigns')
+        .select('organization_id')
+        .eq('id', campaignId)
+        .single();
+
+      if (campaign) {
+        const { error: insertError } = await supabase
+          .from('video_script_analysis')
+          .upsert({
+            campaign_id: campaignId,
+            organization_id: campaign.organization_id,
+            content_url: videoUrl,
+            platform: platform,
+            video_id: videoId,
+            transcript: transcriptText,
+            analysis: analysis,
+            analyzed_at: new Date().toISOString()
+          }, {
+            onConflict: 'campaign_id,content_url,platform'
+          });
+
+        if (insertError) {
+          console.error('Error saving script analysis:', insertError);
+        } else {
+          console.log('Script analysis saved to database');
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({

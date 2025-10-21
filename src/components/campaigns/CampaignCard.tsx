@@ -302,7 +302,7 @@ export function CampaignCard({
     setCurrentVideoUrl(videoUrl);
     setScriptAnalysisDialogOpen(true);
     try {
-      const result = await analyzeScript({ videoUrl, platform });
+      const result = await analyzeScript({ videoUrl, platform, campaignId: campaign.id });
       setCurrentAnalysis(result.analysis);
     } catch (error) {
       console.error('Script analysis error:', error);
@@ -602,15 +602,34 @@ export function CampaignCard({
                 <MessageCircle className="h-4 w-4" />
                 Sentiment Analysis
               </h4>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAnalyzeSentiment}
-                disabled={analyzingSentiment}
-              >
-                <Sparkles className={`h-4 w-4 mr-1 ${analyzingSentiment ? 'animate-pulse' : ''}`} />
-                {analyzingSentiment ? 'Analyzing...' : 'Analyze Comments'}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={analyzingSentiment}
+                  >
+                    <Sparkles className={`h-4 w-4 mr-1 ${analyzingSentiment ? 'animate-pulse' : ''}`} />
+                    {analyzingSentiment ? 'Analyzing...' : 'Analyze Comments'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Analyze All Comments?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will analyze the sentiment of comments across all content URLs in this campaign.
+                      <br /><br />
+                      The analysis may take several minutes depending on the number of videos and comments.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleAnalyzeSentiment}>
+                      Start Analysis
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Click to analyze comments and extract sentiment, topics, and themes

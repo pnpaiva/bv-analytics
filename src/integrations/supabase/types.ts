@@ -1408,6 +1408,70 @@ export type Database = {
         }
         Relationships: []
       }
+      video_script_analysis: {
+        Row: {
+          analysis: string
+          analyzed_at: string | null
+          campaign_id: string
+          content_url: string
+          created_at: string | null
+          id: string
+          organization_id: string
+          platform: string
+          transcript: string | null
+          updated_at: string | null
+          video_id: string | null
+        }
+        Insert: {
+          analysis: string
+          analyzed_at?: string | null
+          campaign_id: string
+          content_url: string
+          created_at?: string | null
+          id?: string
+          organization_id: string
+          platform: string
+          transcript?: string | null
+          updated_at?: string | null
+          video_id?: string | null
+        }
+        Update: {
+          analysis?: string
+          analyzed_at?: string | null
+          campaign_id?: string
+          content_url?: string
+          created_at?: string | null
+          id?: string
+          organization_id?: string
+          platform?: string
+          transcript?: string | null
+          updated_at?: string | null
+          video_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_script_analysis_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_script_analysis_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_with_org"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_script_analysis_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waitlist: {
         Row: {
           created_at: string | null
