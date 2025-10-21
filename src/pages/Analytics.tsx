@@ -890,11 +890,47 @@ const NICHE_OPTIONS = [
     return groups;
   }, [videoAnalytics, excludedVideos, usePercentEngagement, bubblePlatformFilter, bubbleCampaignFilter, bubbleCreatorFilter, bubbleNicheFilter, masterCampaignFilters, campaigns, creators, campaignCreators]);
 
+  // Helper to get video thumbnail
+  const getVideoThumbnail = (url: string, platform: string): string | null => {
+    try {
+      const platformLower = platform.toLowerCase();
+      
+      if (platformLower.includes('youtube')) {
+        // Extract YouTube video ID
+        const urlObj = new URL(url);
+        let videoId = '';
+        
+        if (urlObj.hostname.includes('youtu.be')) {
+          videoId = urlObj.pathname.slice(1);
+        } else if (urlObj.pathname === '/watch') {
+          videoId = urlObj.searchParams.get('v') || '';
+        } else if (urlObj.pathname.startsWith('/shorts/')) {
+          videoId = urlObj.pathname.replace('/shorts/', '');
+        }
+        
+        if (videoId) {
+          return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+        }
+      } else if (platformLower.includes('instagram')) {
+        // Instagram thumbnails require API access, use placeholder
+        return null;
+      } else if (platformLower.includes('tiktok')) {
+        // TikTok thumbnails require API access, use placeholder
+        return null;
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   const renderBubbleTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
     const p = payload[0].payload;
     const videoKey = `${p.campaign}-${p.url}`;
     const isExcluded = excludedVideos.has(videoKey);
+    const thumbnail = getVideoThumbnail(p.url, p.platform);
     
     return (
       <div 
@@ -902,6 +938,18 @@ const NICHE_OPTIONS = [
         onMouseEnter={(e) => e.preventDefault()}
         onMouseLeave={(e) => e.preventDefault()}
       >
+        {thumbnail && (
+          <div className="mb-2 -mx-3 -mt-3">
+            <img 
+              src={thumbnail} 
+              alt={p.title || p.campaign}
+              className="w-full h-24 object-cover rounded-t-md"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          </div>
+        )}
         <div className="font-medium text-foreground">{p.campaign}</div>
         <div className="text-muted-foreground mb-2">{p.platform} • {p.creator}</div>
         <div className="space-y-1">
@@ -2246,7 +2294,14 @@ const NICHE_OPTIONS = [
                     <Select onValueChange={(creatorId) => {
                       const creatorName = creatorLookup.get(creatorId);
                       if (creatorName && !comparisonItems.find(item => item.id === creatorId && item.type === 'creator')) {
-                        const creatorCampaigns = campaigns.filter(c => resolveCreatorForCampaign(c).id === creatorId);
+                        // Find campaigns where this creator has content URLs (via campaign_creators)
+                        const creatorCampaignIds = new Set(
+                          campaignCreators
+                            .filter(cc => cc.creator_id === creatorId && cc.content_urls && Object.keys(cc.content_urls).length > 0)
+                            .map(cc => cc.campaign_id)
+                        );
+                        
+                        const creatorCampaigns = campaigns.filter(c => creatorCampaignIds.has(c.id));
                         const totalViews = creatorCampaigns.reduce((sum, c) => sum + (c.total_views || 0), 0);
                         const totalEngagement = creatorCampaigns.reduce((sum, c) => sum + (c.total_engagement || 0), 0);
                         const avgEngagementRate = creatorCampaigns.length > 0 
