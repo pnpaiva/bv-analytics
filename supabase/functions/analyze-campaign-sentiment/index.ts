@@ -219,7 +219,7 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
     } else if (platformLower === 'instagram') {
       actorId = APIFY_ACTORS.instagram;
       input = {
-        directUrls: [url],
+        postUrls: [url],
         resultsLimit: 100
       };
     } else if (platformLower === 'tiktok') {
