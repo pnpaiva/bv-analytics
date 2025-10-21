@@ -199,12 +199,30 @@ export function CampaignCard({
 
   const handleExportPDF = async () => {
     try {
+      // Fetch sentiment data for this campaign
+      const { data: sentimentData, error: sentimentError } = await supabase
+        .from('campaign_sentiment_analysis')
+        .select('*')
+        .eq('campaign_id', campaign.id);
+
+      if (sentimentError) {
+        console.error('Error fetching sentiment data:', sentimentError);
+      }
+
+      // Organize sentiment data by campaign ID
+      const sentimentMap = new Map<string, Array<any>>();
+      if (sentimentData && sentimentData.length > 0) {
+        sentimentMap.set(campaign.id, sentimentData);
+      }
+
       const exporter = new EnhancedPDFExporter();
       await exporter.exportWithCharts([campaign], `${campaign.brand_name} Campaign Report`, {
         includeAnalytics: true,
         includeContentUrls: true,
         includeMasterCampaigns: true,
-        includeCharts: true
+        includeCharts: true,
+        includeSentiment: true,
+        sentimentData: sentimentMap
       });
       
       toast.success('Campaign PDF exported successfully');

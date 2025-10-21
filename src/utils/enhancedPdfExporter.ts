@@ -10,8 +10,22 @@ export interface ExportOptions {
   includeContentUrls?: boolean;
   includeMasterCampaigns?: boolean;
   includeCharts?: boolean;
+  includeSentiment?: boolean;
   getCreatorNameForUrl?: (campaignId: string, url: string) => string | undefined;
   topVideos?: Array<{ title: string; url: string; platform: string; views: number; engagement: number; engagementRate: number }>;
+  sentimentData?: Map<string, Array<{
+    content_url: string;
+    platform: string;
+    sentiment_score: number;
+    sentiment_label: string;
+    main_topics: string[];
+    key_themes: string[];
+    total_comments_analyzed: number;
+    analysis_metadata?: {
+      blurb?: string;
+      examples?: Array<{ text: string; category: string }>;
+    };
+  }>>;
 }
 
 export interface MasterCampaignData {
@@ -566,6 +580,114 @@ export class EnhancedPDFExporter {
             this.currentY += 5;
           }
         }
+      }
+    }
+
+    // Add sentiment analysis data if available
+    if (options.includeSentiment && options.sentimentData) {
+      const campaignSentiments = options.sentimentData.get(campaign.id);
+      if (campaignSentiments && campaignSentiments.length > 0) {
+        this.currentY += 5;
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.text('Comment Sentiment Analysis:', this.margin, this.currentY);
+        this.currentY += 6;
+
+        campaignSentiments.forEach((sentiment) => {
+          this.checkPageBreak(40);
+          
+          // URL and Platform
+          this.doc.setFont('helvetica', 'bold');
+          this.doc.setFontSize(9);
+          this.doc.text(`${sentiment.platform.charAt(0).toUpperCase() + sentiment.platform.slice(1)}:`, this.margin + 10, this.currentY);
+          this.currentY += 5;
+          
+          // Sentiment Overview
+          const sentimentIcon = sentiment.sentiment_label === 'positive' ? '😊' : 
+                               sentiment.sentiment_label === 'negative' ? '😞' : '😐';
+          this.doc.setFont('helvetica', 'normal');
+          this.doc.setFontSize(8);
+          this.doc.text(`${sentimentIcon} ${sentiment.sentiment_label.toUpperCase()} (${sentiment.total_comments_analyzed} comments analyzed)`, this.margin + 15, this.currentY);
+          this.currentY += 5;
+          
+          // Blurb
+          if (sentiment.analysis_metadata?.blurb) {
+            this.doc.setFont('helvetica', 'italic');
+            this.doc.setFontSize(8);
+            const blurbLines = this.doc.splitTextToSize(sentiment.analysis_metadata.blurb, this.pageWidth - this.margin * 2 - 20);
+            blurbLines.forEach((line: string) => {
+              this.checkPageBreak();
+              this.doc.text(line, this.margin + 15, this.currentY);
+              this.currentY += 4;
+            });
+            this.currentY += 2;
+          }
+          
+          // Main Topics
+          if (sentiment.main_topics && sentiment.main_topics.length > 0) {
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.setFontSize(8);
+            this.doc.text('Main Topics:', this.margin + 15, this.currentY);
+            this.currentY += 4;
+            this.doc.setFont('helvetica', 'normal');
+            const topicsText = sentiment.main_topics.join(', ');
+            const topicsLines = this.doc.splitTextToSize(topicsText, this.pageWidth - this.margin * 2 - 20);
+            topicsLines.forEach((line: string) => {
+              this.checkPageBreak();
+              this.doc.text(line, this.margin + 15, this.currentY);
+              this.currentY += 4;
+            });
+            this.currentY += 2;
+          }
+          
+          // Key Themes
+          if (sentiment.key_themes && sentiment.key_themes.length > 0) {
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.setFontSize(8);
+            this.doc.text('Key Themes:', this.margin + 15, this.currentY);
+            this.currentY += 4;
+            this.doc.setFont('helvetica', 'normal');
+            const themesText = sentiment.key_themes.join(', ');
+            const themesLines = this.doc.splitTextToSize(themesText, this.pageWidth - this.margin * 2 - 20);
+            themesLines.forEach((line: string) => {
+              this.checkPageBreak();
+              this.doc.text(line, this.margin + 15, this.currentY);
+              this.currentY += 4;
+            });
+            this.currentY += 2;
+          }
+          
+          // Example Comments
+          if (sentiment.analysis_metadata?.examples && sentiment.analysis_metadata.examples.length > 0) {
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.setFontSize(8);
+            this.doc.text('Example Comments:', this.margin + 15, this.currentY);
+            this.currentY += 4;
+            
+            sentiment.analysis_metadata.examples.slice(0, 3).forEach((example) => {
+              this.checkPageBreak();
+              this.doc.setFont('helvetica', 'bold');
+              this.doc.setFontSize(7);
+              const categoryColor = example.category === 'positive' ? [34, 197, 94] : 
+                                   example.category === 'negative' ? [239, 68, 68] : [100, 100, 100];
+              this.doc.setTextColor(categoryColor[0], categoryColor[1], categoryColor[2]);
+              this.doc.text(`${example.category}:`, this.margin + 15, this.currentY);
+              this.doc.setTextColor(0, 0, 0);
+              this.currentY += 4;
+              
+              this.doc.setFont('helvetica', 'italic');
+              this.doc.setFontSize(7);
+              const commentLines = this.doc.splitTextToSize(`"${example.text}"`, this.pageWidth - this.margin * 2 - 20);
+              commentLines.forEach((line: string) => {
+                this.checkPageBreak();
+                this.doc.text(line, this.margin + 18, this.currentY);
+                this.currentY += 3.5;
+              });
+              this.currentY += 2;
+            });
+          }
+          
+          this.currentY += 5;
+        });
       }
     }
 
