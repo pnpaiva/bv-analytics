@@ -14,7 +14,8 @@ import { Campaign } from '@/hooks/useCampaigns';
 import { useCampaignTimeline } from '@/hooks/useCampaignTimeline';
 import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
 import { useDailyCampaignPerformance } from '@/hooks/useDailyCampaignPerformance';
-import { Eye, Heart, Share2, MessageCircle, Download, ExternalLink } from 'lucide-react';
+import { useAggregateCampaignSentiment } from '@/hooks/useCampaignSentiment';
+import { Eye, Heart, Share2, MessageCircle, Download, ExternalLink, Smile, Meh, Frown } from 'lucide-react';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 
@@ -148,6 +149,7 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
   const { data: dailyPerformanceData = [] } = useDailyCampaignPerformance(campaign?.id || '', 30);
   const { data: timelineData = [] } = useCampaignTimeline(campaign?.id || '', 30);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign?.id || '');
+  const { aggregate: sentimentData } = useAggregateCampaignSentiment(campaign?.id || '');
 
   // Use campaign totals as the single source of truth
   // URL analytics are only used for individual URL breakdowns, not totals
@@ -355,6 +357,93 @@ export function CampaignAnalyticsModal({ campaign, open, onOpenChange }: Campaig
                 </ResponsiveContainer>
               </CardContent>
             </Card>
+
+            {/* Sentiment Analysis Section */}
+            {sentimentData && sentimentData.urlsAnalyzed > 0 && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <MessageCircle className="h-5 w-5" />
+                        Comment Sentiment Analysis
+                      </CardTitle>
+                      <CardDescription>
+                        Analysis of {sentimentData.totalComments} comments from {sentimentData.urlsAnalyzed} URLs
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {sentimentData.overallLabel === 'positive' && <Smile className="h-6 w-6 text-success" />}
+                      {sentimentData.overallLabel === 'neutral' && <Meh className="h-6 w-6 text-muted-foreground" />}
+                      {sentimentData.overallLabel === 'negative' && <Frown className="h-6 w-6 text-destructive" />}
+                      <span className="text-lg capitalize font-medium">
+                        {sentimentData.overallLabel} Sentiment
+                      </span>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {sentimentData.blurb && (
+                    <div className="bg-muted/30 p-4 rounded-lg">
+                      <p className="text-sm text-foreground leading-relaxed">
+                        {sentimentData.blurb}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Main Topics */}
+                    {sentimentData.topTopics.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3">Main Topics</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {sentimentData.topTopics.map((topic, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-sm">
+                              {topic}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Key Themes */}
+                    {sentimentData.topThemes.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3">Key Themes</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {sentimentData.topThemes.map((theme, idx) => (
+                            <Badge key={idx} variant="outline" className="text-sm">
+                              {theme}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Example Comments */}
+                  {sentimentData.examples && sentimentData.examples.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3">Example Comments</h4>
+                      <div className="space-y-3">
+                        {sentimentData.examples.map((example, idx) => (
+                          <div key={idx} className="bg-card p-3 rounded-lg border border-border">
+                            <span className={`font-medium capitalize text-sm ${
+                              example.category === 'positive' ? 'text-success' :
+                              example.category === 'negative' ? 'text-destructive' :
+                              'text-muted-foreground'
+                            }`}>
+                              {example.category}:
+                            </span>
+                            <p className="mt-1 text-sm text-muted-foreground italic">"{example.text}"</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="platforms" className="space-y-6">
