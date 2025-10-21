@@ -6,10 +6,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Campaign, useDeleteCampaign, useUpdateCampaignStatus } from '@/hooks/useCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { useCampaignUrlAnalytics } from '@/hooks/useCampaignUrlAnalytics';
+import { useAggregateCampaignSentiment } from '@/hooks/useCampaignSentiment';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users, MessageCircle, Smile, Frown, Meh } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
@@ -60,6 +61,7 @@ export function CampaignCard({
   const queryClient = useQueryClient();
   const { data: campaignCreators = [] } = useCampaignCreators(campaign.id);
   const { data: urlAnalytics = [] } = useCampaignUrlAnalytics(campaign.id);
+  const { aggregate: sentimentData } = useAggregateCampaignSentiment(campaign.id);
   const { canEdit, canDelete } = useUserPermissions();
 
   // Use campaign totals as the single source of truth
@@ -126,6 +128,16 @@ export function CampaignCard({
         // Collect daily performance data after refresh
         await supabase.functions.invoke('collect-daily-performance', {
           body: { campaignId: campaign.id },
+        });
+
+        // Trigger sentiment analysis
+        supabase.functions.invoke('analyze-campaign-sentiment', {
+          body: { campaignId: campaign.id },
+        }).then(() => {
+          console.log('Sentiment analysis triggered');
+          queryClient.invalidateQueries({ queryKey: ['campaign-sentiment'] });
+        }).catch(err => {
+          console.error('Sentiment analysis error:', err);
         });
       }
     } catch (error) {
@@ -411,6 +423,54 @@ export function CampaignCard({
         </div>
 
         {renderContentUrls()}
+
+        {sentimentData && sentimentData.urlsAnalyzed > 0 && (
+          <div className="mt-4 pt-4 border-t">
+            <h4 className="text-sm font-medium mb-2 text-foreground flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              Comment Sentiment Analysis
+            </h4>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {sentimentData.overallLabel === 'positive' && <Smile className="h-5 w-5 text-success" />}
+                {sentimentData.overallLabel === 'neutral' && <Meh className="h-5 w-5 text-muted-foreground" />}
+                {sentimentData.overallLabel === 'negative' && <Frown className="h-5 w-5 text-destructive" />}
+                <span className="text-sm capitalize font-medium">
+                  {sentimentData.overallLabel} Sentiment
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  ({sentimentData.totalComments} comments analyzed)
+                </span>
+              </div>
+              
+              {sentimentData.topTopics.length > 0 && (
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground">Main Topics:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {sentimentData.topTopics.map((topic, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {topic}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {sentimentData.topThemes.length > 0 && (
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground">Key Themes:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {sentimentData.topThemes.map((theme, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        {theme}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
       
       <CardFooter className="flex flex-col gap-3">

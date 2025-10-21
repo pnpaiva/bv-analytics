@@ -97,6 +97,19 @@ Deno.serve(async (req) => {
         if (response.ok) {
           const result = await response.json();
           console.log(`✓ Successfully refreshed campaign: ${campaign.brand_name}`);
+          
+          // Trigger sentiment analysis for this campaign (don't wait for it)
+          fetch(`${supabaseUrl}/functions/v1/analyze-campaign-sentiment`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({ campaignId: campaign.id }),
+          }).catch(err => {
+            console.log(`Note: Sentiment analysis skipped for ${campaign.brand_name}:`, err.message);
+          });
+          
           results.push({
             campaignId: campaign.id,
             brandName: campaign.brand_name,

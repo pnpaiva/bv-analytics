@@ -632,6 +632,72 @@ export type Database = {
         }
         Relationships: []
       }
+      campaign_sentiment_analysis: {
+        Row: {
+          analysis_metadata: Json | null
+          analyzed_at: string | null
+          campaign_id: string
+          content_url: string
+          created_at: string | null
+          id: string
+          key_themes: Json | null
+          main_topics: Json | null
+          organization_id: string
+          platform: string
+          sentiment_label: string | null
+          sentiment_score: number | null
+          total_comments_analyzed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          analysis_metadata?: Json | null
+          analyzed_at?: string | null
+          campaign_id: string
+          content_url: string
+          created_at?: string | null
+          id?: string
+          key_themes?: Json | null
+          main_topics?: Json | null
+          organization_id: string
+          platform: string
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          total_comments_analyzed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          analysis_metadata?: Json | null
+          analyzed_at?: string | null
+          campaign_id?: string
+          content_url?: string
+          created_at?: string | null
+          id?: string
+          key_themes?: Json | null
+          main_topics?: Json | null
+          organization_id?: string
+          platform?: string
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          total_comments_analyzed?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sentiment_analysis_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_sentiment_analysis_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns_with_org"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_url_analytics: {
         Row: {
           analytics_metadata: Json | null
@@ -1766,6 +1832,20 @@ export type Database = {
               p_views?: number
             }
         Returns: undefined
+      }
+      upsert_campaign_sentiment_analysis: {
+        Args: {
+          p_analysis_metadata?: Json
+          p_campaign_id: string
+          p_content_url: string
+          p_key_themes: Json
+          p_main_topics: Json
+          p_platform: string
+          p_sentiment_label: string
+          p_sentiment_score: number
+          p_total_comments_analyzed: number
+        }
+        Returns: string
       }
       upsert_campaign_url_analytics: {
         Args:
