@@ -393,46 +393,48 @@ export function CampaignCard({
             const embedUrl = getEmbedUrl(item.url, item.platform);
             
             return (
-              <div key={index} className="flex items-center gap-2">
-                <HoverCard openDelay={200}>
-                  <HoverCardTrigger asChild>
-                    <a
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors flex-1 group"
-                    >
-                      <IconComponent className="h-4 w-4 flex-shrink-0" />
-                      <div className="flex items-center gap-1">
-                        <span className="capitalize font-medium">{item.platform}:</span>
-                        <span className="text-xs bg-muted px-1 py-0.5 rounded">
-                          {item.creatorName}
+              <div key={index} className="flex items-start gap-2 w-full">
+                <div className="flex-1 min-w-0">
+                  <HoverCard openDelay={200}>
+                    <HoverCardTrigger asChild>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors group"
+                      >
+                        <IconComponent className="h-4 w-4 flex-shrink-0" />
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <span className="capitalize font-medium">{item.platform}:</span>
+                          <span className="text-xs bg-muted px-1 py-0.5 rounded">
+                            {item.creatorName}
+                          </span>
+                        </div>
+                        <span className="truncate group-hover:underline min-w-0" title={item.platform === 'youtube' ? item.title : item.url}>
+                          {displayText}
                         </span>
-                      </div>
-                      <span className="truncate group-hover:underline flex-1" title={item.platform === 'youtube' ? item.title : item.url}>
-                        {displayText}
-                      </span>
-                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </a>
-                  </HoverCardTrigger>
-                  {embedUrl && (
-                    <HoverCardContent side="right" className="w-96 p-2" sideOffset={10}>
-                      <iframe
-                        src={embedUrl}
-                        className="w-full aspect-video rounded-md border-0"
-                        allow="autoplay; encrypted-media"
-                        allowFullScreen
-                      />
-                    </HoverCardContent>
-                  )}
-                </HoverCard>
+                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                      </a>
+                    </HoverCardTrigger>
+                    {embedUrl && (
+                      <HoverCardContent side="right" className="w-96 p-2" sideOffset={10}>
+                        <iframe
+                          src={embedUrl}
+                          className="w-full aspect-video rounded-md border-0"
+                          allow="autoplay; encrypted-media"
+                          allowFullScreen
+                        />
+                      </HoverCardContent>
+                    )}
+                  </HoverCard>
+                </div>
                 <div className="flex gap-1 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleAnalyzeScript(item.url, item.platform)}
                     title="Analyze Script"
-                    className="h-8"
+                    className="h-8 w-8 p-0"
                   >
                     <FileText className="h-4 w-4" />
                   </Button>
@@ -442,7 +444,7 @@ export function CampaignCard({
                         variant="outline"
                         size="sm"
                         title="Analyze Comments Sentiment"
-                        className="h-8"
+                        className="h-8 w-8 p-0"
                       >
                         <MessageCircle className="h-4 w-4" />
                       </Button>

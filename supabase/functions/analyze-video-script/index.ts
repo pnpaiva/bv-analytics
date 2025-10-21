@@ -53,10 +53,15 @@ serve(async (req) => {
       throw new Error('SEARCHAPI_KEY not configured');
     }
 
-    const transcriptUrl = `https://www.searchapi.io/api/v1/search?engine=youtube_transcripts&video_id=${videoId}&api_key=${searchApiKey}`;
-    console.log('Fetching transcript from SearchAPI...');
+    const transcriptUrl = `https://www.searchapi.io/api/v1/search?api_key=${searchApiKey}&engine=youtube_transcripts&video_id=${videoId}`;
+    console.log('Fetching transcript from SearchAPI:', transcriptUrl.replace(searchApiKey, 'xxx'));
     
-    const transcriptResponse = await fetch(transcriptUrl);
+    const transcriptResponse = await fetch(transcriptUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
     if (!transcriptResponse.ok) {
       const errorText = await transcriptResponse.text();
       console.error('SearchAPI error:', transcriptResponse.status, errorText);
