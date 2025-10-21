@@ -298,8 +298,9 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
     const comments: string[] = [];
     
     if (platformLower === 'youtube') {
+      // YouTube uses 'comment' field
       results.forEach((item: any) => {
-        if (item.text) comments.push(item.text);
+        if (item.comment) comments.push(item.comment);
       });
     } else if (platformLower === 'instagram') {
       // Instagram actor returns comments with 'message' field
