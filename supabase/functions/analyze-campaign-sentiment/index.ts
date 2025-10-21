@@ -285,10 +285,13 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
     
     const results = await resultsResponse.json();
     console.log(`Retrieved ${results.length} items from APIFY for ${platform}`);
+    console.log(`Results is array: ${Array.isArray(results)}`);
     
     // Log first item to see structure
     if (results.length > 0) {
-      console.log('First item structure:', JSON.stringify(results[0], null, 2).substring(0, 500));
+      console.log('First item keys:', Object.keys(results[0]).join(', '));
+      console.log('First item message field:', results[0].message);
+      console.log('First item type:', results[0].type);
     }
 
     // Extract comment texts based on platform
