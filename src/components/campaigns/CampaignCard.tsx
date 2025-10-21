@@ -426,21 +426,23 @@ export function CampaignCard({
                     </HoverCardContent>
                   )}
                 </HoverCard>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-shrink-0">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleAnalyzeScript(item.url, item.platform)}
                     title="Analyze Script"
+                    className="h-8"
                   >
                     <FileText className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         title="Analyze Comments Sentiment"
+                        className="h-8"
                       >
                         <MessageCircle className="h-4 w-4" />
                       </Button>
