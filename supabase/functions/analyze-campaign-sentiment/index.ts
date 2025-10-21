@@ -274,8 +274,8 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
       return [];
     }
 
-    // Get the results
-    const resultsResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs/${runId}/dataset/items?token=${apiKey}`);
+    // Get the results from the default dataset
+    const resultsResponse = await fetch(`https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${apiKey}`);
     
     if (!resultsResponse.ok) {
       const errorText = await resultsResponse.text();
