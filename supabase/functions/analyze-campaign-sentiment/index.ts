@@ -278,12 +278,18 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
     const resultsResponse = await fetch(`https://api.apify.com/v2/acts/${actorId}/runs/${runId}/dataset/items?token=${apiKey}`);
     
     if (!resultsResponse.ok) {
-      console.error('Failed to fetch APIFY results');
+      const errorText = await resultsResponse.text();
+      console.error('Failed to fetch APIFY results:', resultsResponse.status, errorText);
       return [];
     }
     
     const results = await resultsResponse.json();
-    console.log(`Retrieved ${results.length} items from APIFY`);
+    console.log(`Retrieved ${results.length} items from APIFY for ${platform}`);
+    
+    // Log first item to see structure
+    if (results.length > 0) {
+      console.log('First item structure:', JSON.stringify(results[0], null, 2).substring(0, 500));
+    }
 
     // Extract comment texts based on platform
     const comments: string[] = [];
@@ -293,8 +299,13 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
         if (item.text) comments.push(item.text);
       });
     } else if (platformLower === 'instagram') {
+      // Instagram actor returns comments with 'text' field
       results.forEach((item: any) => {
-        if (item.text) comments.push(item.text);
+        // Check multiple possible fields for comment text
+        const text = item.text || item.comment || item.caption || item.ownerUsername;
+        if (text && typeof text === 'string' && text.trim().length > 0) {
+          comments.push(text);
+        }
       });
     } else if (platformLower === 'tiktok') {
       results.forEach((item: any) => {
@@ -302,6 +313,7 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
       });
     }
 
+    console.log(`Extracted ${comments.length} comments from ${results.length} items for ${platform}`);
     return comments.filter(c => c && c.length > 0);
 
   } catch (error) {
