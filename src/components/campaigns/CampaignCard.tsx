@@ -267,6 +267,37 @@ export function CampaignCard({
     }
   };
 
+  const handleAnalyzeSingleVideo = async (videoUrl: string, platform: string) => {
+    try {
+      toast.info('Analyzing comments...', {
+        description: 'This may take a few minutes',
+      });
+
+      const { data, error } = await supabase.functions.invoke('analyze-campaign-sentiment', {
+        body: { 
+          campaignId: campaign.id,
+          specificUrl: videoUrl,
+          specificPlatform: platform
+        },
+      });
+
+      if (error) {
+        console.error('Error analyzing video sentiment:', error);
+        toast.error('Failed to analyze comments');
+      } else {
+        if (data?.analyzed > 0) {
+          toast.success('Comments analyzed successfully!');
+          queryClient.invalidateQueries({ queryKey: ['campaign-sentiment', campaign.id] });
+        } else {
+          toast.info('No comments found to analyze');
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing video sentiment:', error);
+      toast.error('Failed to analyze comments');
+    }
+  };
+
   const handleAnalyzeScript = async (videoUrl: string, platform: string) => {
     setCurrentVideoUrl(videoUrl);
     setScriptAnalysisDialogOpen(true);
@@ -362,14 +393,14 @@ export function CampaignCard({
             const embedUrl = getEmbedUrl(item.url, item.platform);
             
             return (
-              <div key={index} className="flex items-center gap-2 group">
+              <div key={index} className="flex items-center gap-2">
                 <HoverCard openDelay={200}>
                   <HoverCardTrigger asChild>
                     <a
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors flex-1"
+                      className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-primary transition-colors flex-1 group"
                     >
                       <IconComponent className="h-4 w-4 flex-shrink-0" />
                       <div className="flex items-center gap-1">
@@ -395,15 +426,43 @@ export function CampaignCard({
                     </HoverCardContent>
                   )}
                 </HoverCard>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleAnalyzeScript(item.url, item.platform)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Analyze Script"
-                >
-                  <FileText className="h-4 w-4" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleAnalyzeScript(item.url, item.platform)}
+                    title="Analyze Script"
+                  >
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Analyze Comments Sentiment"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Analyze Comments?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will analyze the comments sentiment for this video. It may take a few minutes depending on the number of comments.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleAnalyzeSingleVideo(item.url, item.platform)}
+                        >
+                          Analyze
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </div>
             );
           })}

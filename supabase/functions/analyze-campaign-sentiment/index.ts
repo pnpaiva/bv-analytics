@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { campaignId } = await req.json();
+    const { campaignId, specificUrl, specificPlatform } = await req.json();
     
     if (!campaignId) {
       return new Response(
@@ -28,6 +28,9 @@ Deno.serve(async (req) => {
     }
 
     console.log('Analyzing sentiment for campaign:', campaignId);
+    if (specificUrl) {
+      console.log('Analyzing specific video:', specificUrl, 'Platform:', specificPlatform);
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -64,20 +67,26 @@ Deno.serve(async (req) => {
     // Collect all URLs from campaign creators
     const urlsToAnalyze: Array<{ url: string; platform: string }> = [];
     
-    if (campaign.campaign_creators) {
-      for (const creator of campaign.campaign_creators) {
-        if (creator.content_urls && typeof creator.content_urls === 'object') {
-          const urls = creator.content_urls as Record<string, string[]>;
-          
-          Object.entries(urls).forEach(([platform, urlList]) => {
-            if (Array.isArray(urlList)) {
-              urlList.forEach(url => {
-                if (url && url.trim()) {
-                  urlsToAnalyze.push({ url: url.trim(), platform });
-                }
-              });
-            }
-          });
+    // If specific URL is provided, only analyze that one
+    if (specificUrl && specificPlatform) {
+      urlsToAnalyze.push({ url: specificUrl, platform: specificPlatform });
+    } else {
+      // Otherwise analyze all URLs in the campaign
+      if (campaign.campaign_creators) {
+        for (const creator of campaign.campaign_creators) {
+          if (creator.content_urls && typeof creator.content_urls === 'object') {
+            const urls = creator.content_urls as Record<string, string[]>;
+            
+            Object.entries(urls).forEach(([platform, urlList]) => {
+              if (Array.isArray(urlList)) {
+                urlList.forEach(url => {
+                  if (url && url.trim()) {
+                    urlsToAnalyze.push({ url: url.trim(), platform });
+                  }
+                });
+              }
+            });
+          }
         }
       }
     }
