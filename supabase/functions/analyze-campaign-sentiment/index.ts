@@ -348,21 +348,24 @@ async function analyzeSentiment(comments: string[], apiKey: string): Promise<any
         messages: [
           {
             role: 'system',
-            content: 'You are a sentiment analysis expert. Analyze comments and provide structured, detailed sentiment data in JSON format.'
+            content: 'You are a sentiment analysis expert. You MUST always respond in English, regardless of the language of the input comments. Translate all topics, themes, and summaries to English.'
           },
           {
             role: 'user',
-            content: `Analyze these ${comments.length} comments and provide a JSON response with:
+            content: `IMPORTANT: Respond in English, even if the comments are in another language. Translate all topics, themes, and summaries to English.
+
+Analyze these ${comments.length} comments and provide a JSON response with:
 1. sentiment_score: a number between -1 (very negative) and 1 (very positive)
 2. sentiment_label: "positive", "negative", or "neutral"
-3. main_topics: array of top 5 topics discussed (strings)
-4. key_themes: array of 3-5 key themes (strings)
-5. blurb: a 2-3 sentence summary of the overall sentiment and key takeaways
-6. examples: array of 3 example comments that represent the sentiment (objects with "text" and "category" fields where category is positive/neutral/negative)
+3. main_topics: array of top 5 topics discussed (strings in English)
+4. key_themes: array of 3-5 key themes (strings in English)
+5. blurb: a 2-3 sentence summary in English of the overall sentiment and key takeaways
+6. examples: array of 3 example comments that represent the sentiment (objects with "text" field showing the original comment and "category" field where category is positive/neutral/negative)
 
 Comments (showing first 100):
 ${comments.slice(0, 100).join('\n---\n')}
 
+Remember: All your analysis (topics, themes, blurb) must be in English.
 Respond ONLY with valid JSON.`
           }
         ],

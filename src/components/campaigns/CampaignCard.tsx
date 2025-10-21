@@ -449,9 +449,11 @@ export function CampaignCard({
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Analyze Comments?</AlertDialogTitle>
+                        <AlertDialogTitle>Analyze Comments Sentiment?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will analyze the comments sentiment for this video. It may take a few minutes depending on the number of comments.
+                          This will analyze the comments sentiment for this video: <strong>{displayText}</strong>
+                          <br /><br />
+                          The analysis may take a few minutes depending on the number of comments.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -459,7 +461,7 @@ export function CampaignCard({
                         <AlertDialogAction
                           onClick={() => handleAnalyzeSingleVideo(item.url, item.platform)}
                         >
-                          Analyze
+                          Start Analysis
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
