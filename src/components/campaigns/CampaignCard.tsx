@@ -18,6 +18,7 @@ import { CampaignManagementDialog } from './CampaignManagementDialog';
 import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
 import { useVideoScriptAnalysis } from '@/hooks/useVideoScriptAnalysis';
+import { useStoredScriptAnalysis } from '@/hooks/useStoredScriptAnalysis';
 import { VideoScriptAnalysisDialog } from './VideoScriptAnalysisDialog';
 import {
   HoverCard,
@@ -62,6 +63,8 @@ export function CampaignCard({
   const [scriptAnalysisDialogOpen, setScriptAnalysisDialogOpen] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<string | null>(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
+  const [currentPlatform, setCurrentPlatform] = useState<string>('');
+  const [checkingForAnalysis, setCheckingForAnalysis] = useState(false);
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
   const queryClient = useQueryClient();
@@ -299,14 +302,41 @@ export function CampaignCard({
   };
 
   const handleAnalyzeScript = async (videoUrl: string, platform: string) => {
+    setCheckingForAnalysis(true);
     setCurrentVideoUrl(videoUrl);
-    setScriptAnalysisDialogOpen(true);
+    setCurrentPlatform(platform);
+    
     try {
-      const result = await analyzeScript({ videoUrl, platform, campaignId: campaign.id });
-      setCurrentAnalysis(result.analysis);
+      // Check if analysis already exists
+      const { data, error } = await supabase
+        .from('video_script_analysis')
+        .select('*')
+        .eq('campaign_id', campaign.id)
+        .eq('content_url', videoUrl)
+        .order('analyzed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking for existing analysis:', error);
+      }
+
+      if (data) {
+        // Found existing analysis, show it directly
+        setCurrentAnalysis(data.analysis);
+        setScriptAnalysisDialogOpen(true);
+        setCheckingForAnalysis(false);
+      } else {
+        // No existing analysis, run new one
+        setScriptAnalysisDialogOpen(true);
+        setCheckingForAnalysis(false);
+        const result = await analyzeScript({ videoUrl, platform, campaignId: campaign.id });
+        setCurrentAnalysis(result.analysis);
+      }
     } catch (error) {
       console.error('Script analysis error:', error);
       setCurrentAnalysis(null);
+      setCheckingForAnalysis(false);
     }
   };
 
@@ -433,8 +463,9 @@ export function CampaignCard({
                     variant="outline"
                     size="sm"
                     onClick={() => handleAnalyzeScript(item.url, item.platform)}
-                    title="Analyze Script"
+                    title="View/Analyze Script"
                     className="h-8 w-8 p-0"
+                    disabled={checkingForAnalysis}
                   >
                     <FileText className="h-4 w-4" />
                   </Button>
@@ -778,10 +809,11 @@ export function CampaignCard({
         if (!open) {
           setCurrentAnalysis(null);
           setCurrentVideoUrl('');
+          setCurrentPlatform('');
         }
       }}
       analysis={currentAnalysis}
-      isLoading={isAnalyzingScript}
+      isLoading={isAnalyzingScript || checkingForAnalysis}
       videoUrl={currentVideoUrl}
     />
     </>

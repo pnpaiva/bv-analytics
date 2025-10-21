@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -17,6 +17,8 @@ interface AnalysisResult {
 }
 
 export const useVideoScriptAnalysis = () => {
+  const queryClient = useQueryClient();
+  
   return useMutation({
     mutationFn: async ({ videoUrl, platform, campaignId }: AnalyzeScriptParams): Promise<AnalysisResult> => {
       toast.info('Analyzing video script...', {
@@ -38,8 +40,12 @@ export const useVideoScriptAnalysis = () => {
 
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       toast.success('Video script analyzed successfully!');
+      // Invalidate the stored analysis query so it shows up immediately
+      queryClient.invalidateQueries({ 
+        queryKey: ['script-analysis', variables.campaignId, variables.videoUrl] 
+      });
     },
     onError: (error: Error) => {
       console.error('Video script analysis error:', error);
