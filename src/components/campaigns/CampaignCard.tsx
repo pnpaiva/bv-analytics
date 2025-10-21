@@ -481,52 +481,6 @@ export function CampaignCard({
                   </p>
                 </div>
               )}
-              
-              {sentimentData.topTopics.length > 0 && (
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground">Main Topics:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {sentimentData.topTopics.map((topic, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {topic}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {sentimentData.topThemes.length > 0 && (
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground">Key Themes:</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {sentimentData.topThemes.map((theme, idx) => (
-                      <Badge key={idx} variant="outline" className="text-xs">
-                        {theme}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {sentimentData.examples && sentimentData.examples.length > 0 && (
-                <div>
-                  <span className="text-xs font-medium text-muted-foreground mb-2 block">Example Comments:</span>
-                  <div className="space-y-2">
-                    {sentimentData.examples.map((example, idx) => (
-                      <div key={idx} className="text-xs bg-card p-2 rounded border border-border">
-                        <span className={`font-medium capitalize ${
-                          example.category === 'positive' ? 'text-success' :
-                          example.category === 'negative' ? 'text-destructive' :
-                          'text-muted-foreground'
-                        }`}>
-                          {example.category}:
-                        </span>
-                        <span className="ml-2 text-muted-foreground italic">"{example.text}"</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         ) : (
