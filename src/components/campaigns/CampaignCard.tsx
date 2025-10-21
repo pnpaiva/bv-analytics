@@ -10,7 +10,7 @@ import { useAggregateCampaignSentiment } from '@/hooks/useCampaignSentiment';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users, MessageCircle, Smile, Frown, Meh } from 'lucide-react';
+import { Eye, Heart, Trash2, BarChart3, RefreshCw, Edit3, ExternalLink, Youtube, Instagram, Link2, Download, Users, MessageCircle, Smile, Frown, Meh, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
@@ -53,6 +53,7 @@ export function CampaignCard({
 }: CampaignCardProps) {
   
   const [refreshing, setRefreshing] = useState(false);
+  const [analyzingSentiment, setAnalyzingSentiment] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
   const [managementDialogOpen, setManagementDialogOpen] = useState(false);
@@ -210,6 +211,35 @@ export function CampaignCard({
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export campaign PDF');
+    }
+  };
+
+  const handleAnalyzeSentiment = async () => {
+    setAnalyzingSentiment(true);
+    try {
+      console.log('Triggering sentiment analysis for campaign:', campaign.id);
+      const { data, error } = await supabase.functions.invoke('analyze-campaign-sentiment', {
+        body: { campaignId: campaign.id },
+      });
+
+      if (error) {
+        console.error('Error analyzing sentiment:', error);
+        toast.error('Failed to analyze sentiment');
+      } else {
+        console.log('Sentiment analysis result:', data);
+        if (data?.analyzed > 0) {
+          toast.success(`Analyzed ${data.analyzed} URLs successfully`);
+          // Invalidate sentiment query to refresh data
+          queryClient.invalidateQueries({ queryKey: ['campaign-sentiment', campaign.id] });
+        } else {
+          toast.info('No comments found to analyze');
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing sentiment:', error);
+      toast.error('Failed to analyze sentiment');
+    } finally {
+      setAnalyzingSentiment(false);
     }
   };
 
@@ -424,7 +454,8 @@ export function CampaignCard({
 
         {renderContentUrls()}
 
-        {sentimentData && sentimentData.urlsAnalyzed > 0 && (
+        {/* Sentiment Analysis Section */}
+        {sentimentData && sentimentData.urlsAnalyzed > 0 ? (
           <div className="mt-4 pt-4 border-t">
             <h4 className="text-sm font-medium mb-2 text-foreground flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
@@ -469,6 +500,27 @@ export function CampaignCard({
                 </div>
               )}
             </div>
+          </div>
+        ) : (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <MessageCircle className="h-4 w-4" />
+                Sentiment Analysis
+              </h4>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAnalyzeSentiment}
+                disabled={analyzingSentiment}
+              >
+                <Sparkles className={`h-4 w-4 mr-1 ${analyzingSentiment ? 'animate-pulse' : ''}`} />
+                {analyzingSentiment ? 'Analyzing...' : 'Analyze Comments'}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Click to analyze comments and extract sentiment, topics, and themes
+            </p>
           </div>
         )}
       </CardContent>
