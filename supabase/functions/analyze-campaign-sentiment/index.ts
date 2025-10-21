@@ -299,10 +299,9 @@ async function scrapeComments(url: string, platform: string, apiKey: string): Pr
         if (item.text) comments.push(item.text);
       });
     } else if (platformLower === 'instagram') {
-      // Instagram actor returns comments with 'text' field
+      // Instagram actor returns comments with 'message' field
       results.forEach((item: any) => {
-        // Check multiple possible fields for comment text
-        const text = item.text || item.comment || item.caption || item.ownerUsername;
+        const text = item.message || item.text;
         if (text && typeof text === 'string' && text.trim().length > 0) {
           comments.push(text);
         }
