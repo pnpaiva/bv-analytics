@@ -96,25 +96,65 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not configured');
     }
 
-    const systemPrompt = `You are a professional content strategist specializing in video content analysis. Analyze the provided video transcript and evaluate it based on proven content best practices.
+    const systemPrompt = `You are a YouTube content strategist with the combined expertise of Paddy Galloway (YouTube strategist known for deep-dive video breakdowns and data-driven insights) and Colin & Samir (YouTubers known for creator economy analysis and storytelling expertise). 
 
-Focus on three key elements:
-1. **Hook** (First 3-5 seconds): Does it grab attention immediately? Is it compelling?
-2. **Intro** (First 15-30 seconds): Does it establish value proposition? Does it promise what viewers will get?
-3. **Story Development**: Is there a clear narrative arc? Are there engaging moments? Is pacing good?
+Analyze video transcripts using their framework: focus on audience retention psychology, narrative structure, and what makes content click-worthy and watch-worthy.
 
-Provide specific, actionable feedback on what worked well and what could be improved for each element.`;
+Your analysis should be:
+- Data-informed but human-focused (like Paddy's approach)
+- Story-driven and creator-centric (like Colin & Samir's perspective)
+- Actionable with specific timestamps and examples
+- Focused on viewer psychology and retention
 
-    const userPrompt = `Analyze this video transcript and provide detailed feedback on the hook, intro, and story development:
+Always maintain this consistent format for every analysis.`;
+
+    const userPrompt = `Analyze this video transcript using the combined lens of Paddy Galloway's strategic breakdown approach and Colin & Samir's storytelling expertise:
 
 TRANSCRIPT:
 ${transcriptText}
 
-Please structure your response with clear sections for:
-1. Hook Analysis (What worked / What could be improved)
-2. Intro Analysis (What worked / What could be improved)
-3. Story Development (What worked / What could be improved)
-4. Overall Recommendations`;
+Structure your response exactly as follows:
+
+## 🎣 HOOK ANALYSIS (First 3-5 seconds)
+**What Worked:**
+- [Specific observations]
+
+**What Could Be Improved:**
+- [Actionable recommendations]
+
+**Paddy's Take:** [Data-driven insight]
+**Colin & Samir's Take:** [Storytelling perspective]
+
+---
+
+## 🚀 INTRO ANALYSIS (First 15-30 seconds)
+**What Worked:**
+- [Specific observations]
+
+**What Could Be Improved:**
+- [Actionable recommendations]
+
+**Value Proposition:** [How clearly it establishes viewer benefit]
+
+---
+
+## 📖 STORY DEVELOPMENT
+**Narrative Arc:**
+- [Analysis of story structure]
+
+**Pacing & Engagement:**
+- [Key engaging moments and retention risks]
+
+**What Worked:**
+- [Specific observations]
+
+**What Could Be Improved:**
+- [Actionable recommendations]
+
+---
+
+## 💡 OVERALL RECOMMENDATIONS
+[3-5 prioritized, actionable takeaways that blend Paddy's strategic insights with Colin & Samir's creator perspective]`;
 
     console.log('Sending to OpenAI for analysis...');
 
