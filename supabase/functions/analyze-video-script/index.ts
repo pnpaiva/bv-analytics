@@ -62,33 +62,41 @@ serve(async (req) => {
         'Accept': 'application/json',
       }
     });
+    
     if (!transcriptResponse.ok) {
       const errorText = await transcriptResponse.text();
-      console.error('SearchAPI error:', transcriptResponse.status, errorText);
-      throw new Error(`Failed to fetch transcript: ${transcriptResponse.status} ${errorText}`);
+      console.error('SearchAPI HTTP error:', transcriptResponse.status, errorText);
+      throw new Error(`SearchAPI returned ${transcriptResponse.status}. The service may be temporarily unavailable. Please try again in a few moments.`);
     }
 
     const transcriptData = await transcriptResponse.json();
-    console.log('Transcript data received:', JSON.stringify(transcriptData).substring(0, 500));
+    console.log('Full SearchAPI response:', JSON.stringify(transcriptData));
 
-    // Extract transcript text
+    // Extract transcript text - check multiple possible response structures
     let transcriptText = '';
+    
+    // Check if transcripts array exists and has content
     if (transcriptData.transcripts && Array.isArray(transcriptData.transcripts) && transcriptData.transcripts.length > 0) {
-      // Join all transcript segments
+      console.log('Found transcripts array with', transcriptData.transcripts.length, 'segments');
       transcriptText = transcriptData.transcripts
         .map((segment: any) => segment.text || '')
+        .filter((text: string) => text.length > 0)
         .join(' ');
-    } else if (transcriptData.error) {
-      throw new Error(`Transcript error: ${transcriptData.error}`);
+    }
+    
+    // If we have valid transcript text, proceed
+    if (transcriptText && transcriptText.trim().length > 0) {
+      console.log('Transcript extracted successfully, length:', transcriptText.length, 'characters');
     } else {
-      throw new Error('No transcript available for this video');
+      // Check for error message from SearchAPI
+      if (transcriptData.error) {
+        console.error('SearchAPI returned error:', transcriptData.error);
+        throw new Error(`This video does not have captions/transcripts available. Error from API: ${transcriptData.error}`);
+      }
+      
+      console.error('No transcript data found in response. Response structure:', Object.keys(transcriptData));
+      throw new Error('This video does not have captions/transcripts available. Please ensure the video has captions enabled on YouTube.');
     }
-
-    if (!transcriptText || transcriptText.trim().length === 0) {
-      throw new Error('Transcript is empty');
-    }
-
-    console.log('Transcript extracted, length:', transcriptText.length, 'characters');
 
     // Analyze with OpenAI
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
