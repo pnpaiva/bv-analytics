@@ -113,48 +113,56 @@ Always maintain this consistent format for every analysis.`;
 TRANSCRIPT:
 ${transcriptText}
 
+IMPORTANT: Format your response for readability. Use proper spacing, natural paragraph breaks, and avoid overusing bold text. Only use bold for section headers. Write in clear, conversational paragraphs with bullet points where appropriate.
+
 Structure your response exactly as follows:
 
 ## 🎣 HOOK ANALYSIS (First 3-5 seconds)
-**What Worked:**
-- [Specific observations]
 
-**What Could Be Improved:**
-- [Actionable recommendations]
+What Worked:
+[Write 2-3 sentences in a natural paragraph explaining specific observations]
 
-**Paddy's Take:** [Data-driven insight]
-**Colin & Samir's Take:** [Storytelling perspective]
+What Could Be Improved:
+[Write 2-3 sentences with actionable recommendations]
+
+Paddy's Take: [1-2 sentences with data-driven insight]
+
+Colin & Samir's Take: [1-2 sentences with storytelling perspective]
 
 ---
 
 ## 🚀 INTRO ANALYSIS (First 15-30 seconds)
-**What Worked:**
-- [Specific observations]
 
-**What Could Be Improved:**
-- [Actionable recommendations]
+What Worked:
+[Write 2-3 sentences explaining what's effective]
 
-**Value Proposition:** [How clearly it establishes viewer benefit]
+What Could Be Improved:
+[Write 2-3 sentences with specific recommendations]
+
+Value Proposition:
+[Write 2-3 sentences analyzing how clearly it establishes viewer benefit]
 
 ---
 
 ## 📖 STORY DEVELOPMENT
-**Narrative Arc:**
-- [Analysis of story structure]
 
-**Pacing & Engagement:**
-- [Key engaging moments and retention risks]
+Narrative Arc:
+[Write a paragraph analyzing the story structure and flow]
 
-**What Worked:**
-- [Specific observations]
+Pacing & Engagement:
+[Write a paragraph about key engaging moments and potential retention risks]
 
-**What Could Be Improved:**
-- [Actionable recommendations]
+What Worked:
+[Write 2-3 sentences highlighting strengths]
+
+What Could Be Improved:
+[Write 2-3 sentences with actionable improvements]
 
 ---
 
 ## 💡 OVERALL RECOMMENDATIONS
-[3-5 prioritized, actionable takeaways that blend Paddy's strategic insights with Colin & Samir's creator perspective]`;
+
+[Write 3-5 prioritized takeaways as separate paragraphs or bullet points, blending Paddy's strategic insights with Colin & Samir's creator perspective. Keep each recommendation concise and actionable.]`;
 
     console.log('Sending to OpenAI for analysis...');
 
