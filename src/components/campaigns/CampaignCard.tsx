@@ -139,16 +139,6 @@ export function CampaignCard({
         await supabase.functions.invoke('collect-daily-performance', {
           body: { campaignId: campaign.id },
         });
-
-        // Trigger sentiment analysis
-        supabase.functions.invoke('analyze-campaign-sentiment', {
-          body: { campaignId: campaign.id },
-        }).then(() => {
-          console.log('Sentiment analysis triggered');
-          queryClient.invalidateQueries({ queryKey: ['campaign-sentiment'] });
-        }).catch(err => {
-          console.error('Sentiment analysis error:', err);
-        });
       }
     } catch (error) {
       console.error('Error refreshing campaign:', error);
