@@ -6,6 +6,7 @@ import { useClients } from '@/hooks/useClients';
 import { useMasterCampaigns } from '@/hooks/useMasterCampaigns';
 import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { useDealValueVisibility } from '@/hooks/useDealValueVisibility';
+import { supabase } from '@/integrations/supabase/client';
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -1066,6 +1067,19 @@ const NICHE_OPTIONS = [
         return;
       }
 
+      // Fetch sentiment data for all campaigns
+      const sentimentMap = new Map<string, Array<any>>();
+      for (const campaign of campaignsToExport) {
+        const { data: sentimentData } = await supabase
+          .from('campaign_sentiment_analysis')
+          .select('*')
+          .eq('campaign_id', campaign.id);
+        
+        if (sentimentData && sentimentData.length > 0) {
+          sentimentMap.set(campaign.id, sentimentData);
+        }
+      }
+
       // Enrich campaigns with resolved creator names for accurate reporting
       const enrichedCampaigns = campaignsToExport.map((c) => ({
         ...c,
@@ -1088,6 +1102,8 @@ const NICHE_OPTIONS = [
         includeContentUrls: options.includeContentUrls,
         includeCharts: options.includeCharts,
         includeLogo: true,
+        includeSentiment: true,
+        sentimentData: sentimentMap,
         getCreatorNameForUrl: (campaignId: string, url: string) => {
           const cid = getCreatorIdForUrl(campaignId, url);
           if (!cid) return undefined;
