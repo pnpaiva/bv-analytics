@@ -39,6 +39,7 @@ interface ProjectManagementRowProps {
     engagement_rate?: number;
     fixed_deal_value?: number;
     logo_url?: string;
+    master_campaign_logo_url?: string;
     clients?: { name: string };
   };
   creator: {
@@ -137,9 +138,9 @@ export function ProjectManagementRow({ campaign, creator, campaignCreator }: Pro
         
         <TableCell>
           <div className="flex items-center gap-3">
-            {campaign.logo_url && (
+            {(campaign.master_campaign_logo_url || campaign.logo_url) && (
               <Avatar className="h-8 w-8">
-                <AvatarImage src={campaign.logo_url} alt={campaign.brand_name} />
+                <AvatarImage src={campaign.master_campaign_logo_url || campaign.logo_url} alt={campaign.brand_name} />
                 <AvatarFallback>{campaign.brand_name.charAt(0)}</AvatarFallback>
               </Avatar>
             )}

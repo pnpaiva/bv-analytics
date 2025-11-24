@@ -165,7 +165,7 @@ export default function CreatorProfiles() {
         // Add brand collaboration
         brandCollaborations.push({
           brandName: campaign.brand_name,
-          logoUrl: campaign.logo_url,
+          logoUrl: (campaign as any).master_campaign_logo_url || campaign.logo_url,
           views: campaignViews,
           engagement: campaignEngagement,
           engagementRate: campaignEngagementRate,

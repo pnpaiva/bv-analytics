@@ -1733,10 +1733,7 @@ export type Database = {
         Args: { org_id: string; user_id: string }
         Returns: boolean
       }
-      generate_blog_slug: {
-        Args: { title_text: string }
-        Returns: string
-      }
+      generate_blog_slug: { Args: { title_text: string }; Returns: string }
       generate_creator_invitation: {
         Args: { p_creator_id: string; p_organization_id: string }
         Returns: string
@@ -1800,10 +1797,7 @@ export type Database = {
           campaign_id: string
         }[]
       }
-      get_user_organization: {
-        Args: { user_id: string }
-        Returns: string
-      }
+      get_user_organization: { Args: { user_id: string }; Returns: string }
       get_user_profile: {
         Args: { user_id: string }
         Returns: {
@@ -1822,14 +1816,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin_user: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
-      is_master_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      is_admin_user: { Args: { user_id: string }; Returns: boolean }
+      is_master_admin: { Args: { user_id: string }; Returns: boolean }
       log_project_activity: {
         Args: {
           p_activity_type?: string
@@ -1845,10 +1833,7 @@ export type Database = {
         }
         Returns: undefined
       }
-      mark_invitation_used: {
-        Args: { p_token: string }
-        Returns: boolean
-      }
+      mark_invitation_used: { Args: { p_token: string }; Returns: boolean }
       publish_public_media_kit: {
         Args: { p_creator_id: string; p_user_id: string }
         Returns: {
@@ -1859,14 +1844,7 @@ export type Database = {
         Args: { p_campaign_id: string; p_status: string }
         Returns: undefined
       }
-      unaccent: {
-        Args: { "": string }
-        Returns: string
-      }
-      unaccent_init: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
+      unaccent: { Args: { "": string }; Returns: string }
       update_campaign_analytics: {
         Args: {
           p_analytics_data?: Json
@@ -1877,9 +1855,19 @@ export type Database = {
         }
         Returns: undefined
       }
-      upsert_blog_analytics: {
-        Args:
-          | {
+      upsert_blog_analytics:
+        | {
+            Args: {
+              p_blog_post_id: string
+              p_referrer_source?: string
+              p_time_on_page?: number
+              p_unique_views?: number
+              p_views?: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
               p_blog_post_id: string
               p_date_recorded?: string
               p_organization_id?: string
@@ -1888,15 +1876,8 @@ export type Database = {
               p_unique_views?: number
               p_views?: number
             }
-          | {
-              p_blog_post_id: string
-              p_referrer_source?: string
-              p_time_on_page?: number
-              p_unique_views?: number
-              p_views?: number
-            }
-        Returns: undefined
-      }
+            Returns: undefined
+          }
       upsert_campaign_sentiment_analysis: {
         Args: {
           p_analysis_metadata?: Json
@@ -1911,9 +1892,25 @@ export type Database = {
         }
         Returns: string
       }
-      upsert_campaign_url_analytics: {
-        Args:
-          | {
+      upsert_campaign_url_analytics:
+        | {
+            Args: {
+              p_analytics_metadata?: Json
+              p_campaign_id: string
+              p_comments?: number
+              p_content_url: string
+              p_date_recorded: string
+              p_engagement?: number
+              p_engagement_rate?: number
+              p_likes?: number
+              p_platform: string
+              p_shares?: number
+              p_views?: number
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
               p_analytics_metadata: Json
               p_campaign_id: string
               p_comments: number
@@ -1927,21 +1924,8 @@ export type Database = {
               p_shares: number
               p_views: number
             }
-          | {
-              p_analytics_metadata?: Json
-              p_campaign_id: string
-              p_comments?: number
-              p_content_url: string
-              p_date_recorded: string
-              p_engagement?: number
-              p_engagement_rate?: number
-              p_likes?: number
-              p_platform: string
-              p_shares?: number
-              p_views?: number
-            }
-        Returns: undefined
-      }
+            Returns: string
+          }
       upsert_daily_campaign_performance: {
         Args: {
           p_campaign_id: string
