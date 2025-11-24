@@ -511,9 +511,9 @@ export function CampaignCard({
                 className="mt-1"
               />
             )}
-            {campaign.logo_url && (
+            {(campaign.master_campaign_logo_url || campaign.logo_url) && (
               <img 
-                src={campaign.logo_url} 
+                src={campaign.master_campaign_logo_url || campaign.logo_url} 
                 alt={`${campaign.brand_name} logo`}
                 className="w-10 h-10 object-contain rounded border bg-white p-1 flex-shrink-0"
               />
