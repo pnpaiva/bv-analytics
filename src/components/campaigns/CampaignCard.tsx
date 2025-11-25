@@ -19,7 +19,9 @@ import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
 import { toast } from 'sonner';
 import { useVideoScriptAnalysis } from '@/hooks/useVideoScriptAnalysis';
 import { useStoredScriptAnalysis } from '@/hooks/useStoredScriptAnalysis';
+import { useVideoTranscription } from '@/hooks/useVideoTranscription';
 import { VideoScriptAnalysisDialog } from './VideoScriptAnalysisDialog';
+import { VideoTranscriptDialog } from './VideoTranscriptDialog';
 import {
   HoverCard,
   HoverCardContent,
@@ -61,9 +63,13 @@ export function CampaignCard({
   const [masterCampaignDialogOpen, setMasterCampaignDialogOpen] = useState(false);
   const [managementDialogOpen, setManagementDialogOpen] = useState(false);
   const [scriptAnalysisDialogOpen, setScriptAnalysisDialogOpen] = useState(false);
+  const [transcriptDialogOpen, setTranscriptDialogOpen] = useState(false);
   const [currentAnalysis, setCurrentAnalysis] = useState<string | null>(null);
+  const [currentTranscript, setCurrentTranscript] = useState<any>(null);
   const [currentVideoUrl, setCurrentVideoUrl] = useState<string>('');
   const [currentPlatform, setCurrentPlatform] = useState<string>('');
+  const [currentInsertionStart, setCurrentInsertionStart] = useState<string>('');
+  const [currentInsertionEnd, setCurrentInsertionEnd] = useState<string>('');
   const [checkingForAnalysis, setCheckingForAnalysis] = useState(false);
   const deleteCampaign = useDeleteCampaign();
   const updateStatus = useUpdateCampaignStatus();
@@ -73,6 +79,7 @@ export function CampaignCard({
   const { aggregate: sentimentData } = useAggregateCampaignSentiment(campaign.id);
   const { canEdit, canDelete } = useUserPermissions();
   const { mutateAsync: analyzeScript, isPending: isAnalyzingScript } = useVideoScriptAnalysis();
+  const { mutateAsync: transcribeVideo, isPending: isTranscribing } = useVideoTranscription();
 
   // Use campaign totals as the single source of truth
   // URL analytics are only used for individual URL breakdowns, not totals
@@ -291,42 +298,37 @@ export function CampaignCard({
     }
   };
 
-  const handleAnalyzeScript = async (videoUrl: string, platform: string) => {
-    setCheckingForAnalysis(true);
+  const handleViewTranscript = async (videoUrl: string, platform: string, insertionStart?: string, insertionEnd?: string) => {
     setCurrentVideoUrl(videoUrl);
     setCurrentPlatform(platform);
+    setCurrentInsertionStart(insertionStart || '');
+    setCurrentInsertionEnd(insertionEnd || '');
+    setCurrentTranscript(null);
+    setTranscriptDialogOpen(true);
     
     try {
-      // Check if analysis already exists
-      const { data, error } = await supabase
-        .from('video_script_analysis')
-        .select('*')
-        .eq('campaign_id', campaign.id)
-        .eq('content_url', videoUrl)
-        .order('analyzed_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const result = await transcribeVideo({ videoUrl, platform });
+      setCurrentTranscript(result.transcript);
+    } catch (error) {
+      console.error('Transcription error:', error);
+      setCurrentTranscript(null);
+    }
+  };
 
-      if (error) {
-        console.error('Error checking for existing analysis:', error);
-      }
-
-      if (data) {
-        // Found existing analysis, show it directly
-        setCurrentAnalysis(data.analysis);
-        setScriptAnalysisDialogOpen(true);
-        setCheckingForAnalysis(false);
-      } else {
-        // No existing analysis, run new one
-        setScriptAnalysisDialogOpen(true);
-        setCheckingForAnalysis(false);
-        const result = await analyzeScript({ videoUrl, platform, campaignId: campaign.id });
-        setCurrentAnalysis(result.analysis);
-      }
+  const handleAnalyzeScriptFromTranscript = async () => {
+    try {
+      const result = await analyzeScript({ 
+        videoUrl: currentVideoUrl, 
+        platform: currentPlatform, 
+        campaignId: campaign.id,
+        insertionStart: currentInsertionStart || undefined,
+        insertionEnd: currentInsertionEnd || undefined
+      });
+      setCurrentAnalysis(result.analysis);
+      setTranscriptDialogOpen(false);
+      setScriptAnalysisDialogOpen(true);
     } catch (error) {
       console.error('Script analysis error:', error);
-      setCurrentAnalysis(null);
-      setCheckingForAnalysis(false);
     }
   };
 
@@ -365,32 +367,47 @@ export function CampaignCard({
     // Get URLs from campaign creators instead of campaign.content_urls
     if (campaignCreators.length === 0) return null;
 
-    const allUrls: Array<{ platform: string; url: string; creatorName: string; title?: string; metadata?: any }> = [];
+    const allUrls: Array<{ 
+      platform: string; 
+      url: string; 
+      creatorName: string; 
+      title?: string; 
+      metadata?: any;
+      insertionStart?: string;
+      insertionEnd?: string;
+    }> = [];
     
     campaignCreators.forEach((campaignCreator) => {
       const contentUrls = campaignCreator.content_urls;
       if (contentUrls && typeof contentUrls === 'object') {
         Object.entries(contentUrls).forEach(([platform, urls]) => {
           if (Array.isArray(urls)) {
-            urls.forEach((url) => {
-              if (url && url.trim()) {
+            urls.forEach((urlData: any) => {
+              // Handle both old string format and new object format
+              const urlStr = typeof urlData === 'string' ? urlData : urlData?.url;
+              const insertionStart = typeof urlData === 'object' && urlData !== null ? urlData?.insertionStart : undefined;
+              const insertionEnd = typeof urlData === 'object' && urlData !== null ? urlData?.insertionEnd : undefined;
+              
+              if (urlStr && urlStr.trim()) {
                 // Find matching analytics data for this URL
                 const analyticsData = urlAnalytics.find(analytics => 
-                  analytics.content_url === url.trim() && analytics.platform === platform
+                  analytics.content_url === urlStr.trim() && analytics.platform === platform
                 );
                 
                 // Extract title from metadata for YouTube videos
-                let title = url.trim();
+                let title = urlStr.trim();
                 if (platform === 'youtube' && analyticsData?.analytics_metadata?.title) {
                   title = analyticsData.analytics_metadata.title;
                 }
                 
                 allUrls.push({ 
                   platform, 
-                  url: url.trim(),
+                  url: urlStr.trim(),
                   creatorName: campaignCreator.creators?.name || 'Unknown Creator',
                   title,
-                  metadata: analyticsData?.analytics_metadata
+                  metadata: analyticsData?.analytics_metadata,
+                  insertionStart,
+                  insertionEnd
                 });
               }
             });
@@ -452,10 +469,10 @@ export function CampaignCard({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleAnalyzeScript(item.url, item.platform)}
-                    title="View/Analyze Script"
+                    onClick={() => handleViewTranscript(item.url, item.platform, item.insertionStart, item.insertionEnd)}
+                    title="View Transcript"
                     className="h-8 w-8 p-0"
-                    disabled={checkingForAnalysis}
+                    disabled={isTranscribing}
                   >
                     <FileText className="h-4 w-4" />
                   </Button>
@@ -790,6 +807,16 @@ export function CampaignCard({
       campaign={campaign}
       isOpen={managementDialogOpen}
       onClose={() => setManagementDialogOpen(false)}
+    />
+    
+    <VideoTranscriptDialog
+      open={transcriptDialogOpen}
+      onOpenChange={setTranscriptDialogOpen}
+      transcript={currentTranscript}
+      isLoading={isTranscribing}
+      videoUrl={currentVideoUrl}
+      onAnalyzeScript={handleAnalyzeScriptFromTranscript}
+      isAnalyzingScript={isAnalyzingScript}
     />
     
     <VideoScriptAnalysisDialog

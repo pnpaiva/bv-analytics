@@ -6,6 +6,8 @@ interface AnalyzeScriptParams {
   videoUrl: string;
   platform: string;
   campaignId?: string;
+  insertionStart?: string;
+  insertionEnd?: string;
 }
 
 interface AnalysisResult {
@@ -20,13 +22,13 @@ export const useVideoScriptAnalysis = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async ({ videoUrl, platform, campaignId }: AnalyzeScriptParams): Promise<AnalysisResult> => {
+    mutationFn: async ({ videoUrl, platform, campaignId, insertionStart, insertionEnd }: AnalyzeScriptParams): Promise<AnalysisResult> => {
       toast.info('Analyzing video script...', {
         description: 'This may take a minute',
       });
 
       const { data, error } = await supabase.functions.invoke('analyze-video-script', {
-        body: { videoUrl, platform, campaignId },
+        body: { videoUrl, platform, campaignId, insertionStart, insertionEnd },
       });
 
       if (error) {
