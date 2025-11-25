@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
             .select(`
               id,
               brand_name,
-              campaign_creators!campaign_creators_campaign_id_fkey (
+              campaign_creators!fk_campaign_creators_campaign (
                 creator_id,
                 content_urls
               )
