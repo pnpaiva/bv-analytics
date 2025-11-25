@@ -71,9 +71,11 @@ export function CampaignCreatorManager({ creators, onChange }: CampaignCreatorMa
     
     if (typeof currentUrl === 'string') {
       // Convert old format to new format
-      if (field === 'url') {
-        updatedCreators[creatorIndex].content_urls[platform][urlIndex] = { url: value, insertionStart: '', insertionEnd: '' };
-      }
+      updatedCreators[creatorIndex].content_urls[platform][urlIndex] = { 
+        url: field === 'url' ? value : currentUrl, 
+        insertionStart: field === 'insertionStart' ? value : '', 
+        insertionEnd: field === 'insertionEnd' ? value : '' 
+      };
     } else {
       // Update the specific field
       updatedCreators[creatorIndex].content_urls[platform][urlIndex] = { ...currentUrl, [field]: value };
