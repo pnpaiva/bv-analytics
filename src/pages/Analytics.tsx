@@ -219,7 +219,7 @@ const NICHE_OPTIONS = [
       
       return u.toString().replace(/\/$/, '');
     } catch {
-      return url.trim().replace(/\/$/, '');
+      return typeof url === 'string' ? url.trim().replace(/\/$/, '') : '';
     }
   };
 
