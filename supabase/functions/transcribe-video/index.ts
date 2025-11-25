@@ -41,15 +41,48 @@ async function fetchYouTubeTranscript(videoId: string): Promise<any> {
 
   const html = await pageResponse.text();
   
-  // Extract the captions tracks from the page
-  const captionsRegex = /"captionTracks":(\[.*?\])/;
-  const match = html.match(captionsRegex);
+  // Try multiple patterns to find caption tracks
+  let captionTracks = null;
   
-  if (!match) {
-    throw new Error('No captions available for this video');
+  // Pattern 1: Standard captionTracks
+  let match = html.match(/"captionTracks":(\[.*?\])/);
+  if (match) {
+    try {
+      captionTracks = JSON.parse(match[1]);
+    } catch (e) {
+      console.log('Failed to parse captionTracks with pattern 1');
+    }
+  }
+  
+  // Pattern 2: More flexible pattern that handles escaped quotes
+  if (!captionTracks) {
+    match = html.match(/"captionTracks":\s*(\[[\s\S]*?\])\s*[,}]/);
+    if (match) {
+      try {
+        captionTracks = JSON.parse(match[1]);
+      } catch (e) {
+        console.log('Failed to parse captionTracks with pattern 2');
+      }
+    }
+  }
+  
+  // Pattern 3: Look for captions in playerCaptionsTracklistRenderer
+  if (!captionTracks) {
+    match = html.match(/"playerCaptionsTracklistRenderer":\s*\{[^}]*"captionTracks":\s*(\[[\s\S]*?\])/);
+    if (match) {
+      try {
+        captionTracks = JSON.parse(match[1]);
+      } catch (e) {
+        console.log('Failed to parse captionTracks with pattern 3');
+      }
+    }
+  }
+  
+  if (!captionTracks || captionTracks.length === 0) {
+    throw new Error('No captions available for this video. The video may not have subtitles enabled.');
   }
 
-  const captionTracks = JSON.parse(match[1]);
+  console.log(`Found ${captionTracks.length} caption tracks`);
   
   if (captionTracks.length === 0) {
     throw new Error('No caption tracks found');
