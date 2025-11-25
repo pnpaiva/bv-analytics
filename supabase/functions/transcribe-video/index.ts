@@ -78,11 +78,13 @@ serve(async (req) => {
 
     // Get the results
     const resultsResponse = await fetch(
-      `https://api.apify.com/v2/acts/${actorId}/runs/${runId}/dataset/items?token=${apifyApiKey}`
+      `https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${apifyApiKey}`
     );
 
     if (!resultsResponse.ok) {
-      throw new Error('Failed to fetch transcription results');
+      const errorText = await resultsResponse.text();
+      console.error('Failed to fetch results:', resultsResponse.status, errorText);
+      throw new Error(`Failed to fetch transcription results: ${resultsResponse.status}`);
     }
 
     const results = await resultsResponse.json();
