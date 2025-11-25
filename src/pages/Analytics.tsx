@@ -446,7 +446,7 @@ const NICHE_OPTIONS = [
         const contentUrls = cc.content_urls || {};
         Object.values(contentUrls).forEach((urls: any) => {
           if (Array.isArray(urls)) {
-            contentCount += urls.filter(url => url && url.trim()).length;
+            contentCount += urls.filter(url => typeof url === 'string' && url.trim()).length;
           }
         });
       });
