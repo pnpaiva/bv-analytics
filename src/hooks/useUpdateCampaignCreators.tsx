@@ -47,14 +47,14 @@ export function useUpdateCampaignCreators() {
           organization_id: campaign.organization_id,
           content_urls: {
             youtube: creator.content_urls.youtube
-              .map(item => typeof item === 'string' ? item : item.url)
-              .filter(url => url.trim() !== ''),
+              .map(item => typeof item === 'string' ? { url: item } : item)
+              .filter(item => item.url.trim() !== ''),
             instagram: creator.content_urls.instagram
-              .map(item => typeof item === 'string' ? item : item.url)
-              .filter(url => url.trim() !== ''),
+              .map(item => typeof item === 'string' ? { url: item } : item)
+              .filter(item => item.url.trim() !== ''),
             tiktok: creator.content_urls.tiktok
-              .map(item => typeof item === 'string' ? item : item.url)
-              .filter(url => url.trim() !== ''),
+              .map(item => typeof item === 'string' ? { url: item } : item)
+              .filter(item => item.url.trim() !== ''),
           },
         }));
 
