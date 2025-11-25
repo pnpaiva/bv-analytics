@@ -175,8 +175,17 @@ Deno.serve(async (req) => {
 
             const pushAll = (arr: unknown[], platform: 'youtube'|'instagram'|'tiktok', predicate: (u: string) => boolean) => {
               for (const raw of arr) {
-                if (!raw || typeof raw !== 'string') continue;
-                const clean = raw.trim();
+                // Handle both string URLs and objects with url property
+                let urlString: string;
+                if (typeof raw === 'string') {
+                  urlString = raw;
+                } else if (raw && typeof raw === 'object' && 'url' in raw && typeof (raw as any).url === 'string') {
+                  urlString = (raw as any).url;
+                } else {
+                  continue;
+                }
+                
+                const clean = urlString.trim();
                 if (predicate(clean)) collected.push({ url: normalizeUrl(platform, clean), platform });
               }
             };
