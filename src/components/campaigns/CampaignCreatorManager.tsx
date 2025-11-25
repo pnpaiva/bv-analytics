@@ -189,6 +189,7 @@ export function CampaignCreatorManager({ creators, onChange }: CampaignCreatorMa
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">Insertion Start (MM:SS)</Label>
                             <Input
+                              type="text"
                               placeholder="00:00"
                               value={urlObj.insertionStart || ''}
                               onChange={(e) => updateUrlForCreator(creatorIndex, platform, urlIndex, 'insertionStart', e.target.value)}
@@ -198,6 +199,7 @@ export function CampaignCreatorManager({ creators, onChange }: CampaignCreatorMa
                           <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">Insertion End (MM:SS)</Label>
                             <Input
+                              type="text"
                               placeholder="00:00"
                               value={urlObj.insertionEnd || ''}
                               onChange={(e) => updateUrlForCreator(creatorIndex, platform, urlIndex, 'insertionEnd', e.target.value)}

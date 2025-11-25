@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, FileText } from 'lucide-react';
 
 interface VideoTranscriptDialogProps {
   open: boolean;
@@ -16,6 +16,8 @@ interface VideoTranscriptDialogProps {
   transcript: any;
   isLoading: boolean;
   videoUrl: string;
+  onAnalyzeScript?: () => void;
+  isAnalyzingScript?: boolean;
 }
 
 export function VideoTranscriptDialog({
@@ -24,6 +26,8 @@ export function VideoTranscriptDialog({
   transcript,
   isLoading,
   videoUrl,
+  onAnalyzeScript,
+  isAnalyzingScript = false,
 }: VideoTranscriptDialogProps) {
   const handleDownloadTranscript = () => {
     if (!transcript) return;
@@ -133,11 +137,30 @@ export function VideoTranscriptDialog({
             <ScrollArea className="h-[50vh] w-full rounded-md border p-4">
               {renderTranscript()}
             </ScrollArea>
-            <div className="flex justify-end">
+            <div className="flex justify-between items-center">
               <Button onClick={handleDownloadTranscript} variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Download Transcript
               </Button>
+              {onAnalyzeScript && (
+                <Button 
+                  onClick={onAnalyzeScript} 
+                  disabled={isAnalyzingScript}
+                  className="gap-2"
+                >
+                  {isAnalyzingScript ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4" />
+                      Analyze Script
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           </>
         ) : (
