@@ -37,7 +37,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        videoUrl: videoUrl,
+        start_urls: videoUrl,
       }),
     });
 
