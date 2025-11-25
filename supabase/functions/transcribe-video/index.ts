@@ -23,125 +23,93 @@ function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
-// Fetch transcript from YouTube
-async function fetchYouTubeTranscript(videoId: string): Promise<any> {
-  console.log('Fetching YouTube page for video:', videoId);
+// Fetch transcript using SearchAPI (which provides YouTube transcripts)
+async function fetchTranscriptFromSearchAPI(videoId: string, searchApiKey: string): Promise<any> {
+  console.log('Fetching transcript from SearchAPI for video:', videoId);
   
-  // Fetch the YouTube page to get the initial data
-  const pageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-  });
-
-  if (!pageResponse.ok) {
-    throw new Error('Failed to fetch YouTube page');
+  const searchApiUrl = `https://www.searchapi.io/api/v1/search?engine=youtube_transcripts&video_id=${videoId}&api_key=${searchApiKey}`;
+  
+  const response = await fetch(searchApiUrl);
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('SearchAPI error:', errorText);
+    throw new Error('Failed to fetch transcript from SearchAPI');
   }
 
-  const html = await pageResponse.text();
+  const data = await response.json();
   
-  // Try multiple patterns to find caption tracks
-  let captionTracks = null;
-  
-  // Pattern 1: Standard captionTracks
-  let match = html.match(/"captionTracks":(\[.*?\])/);
-  if (match) {
-    try {
-      captionTracks = JSON.parse(match[1]);
-    } catch (e) {
-      console.log('Failed to parse captionTracks with pattern 1');
-    }
-  }
-  
-  // Pattern 2: More flexible pattern that handles escaped quotes
-  if (!captionTracks) {
-    match = html.match(/"captionTracks":\s*(\[[\s\S]*?\])\s*[,}]/);
-    if (match) {
-      try {
-        captionTracks = JSON.parse(match[1]);
-      } catch (e) {
-        console.log('Failed to parse captionTracks with pattern 2');
-      }
-    }
-  }
-  
-  // Pattern 3: Look for captions in playerCaptionsTracklistRenderer
-  if (!captionTracks) {
-    match = html.match(/"playerCaptionsTracklistRenderer":\s*\{[^}]*"captionTracks":\s*(\[[\s\S]*?\])/);
-    if (match) {
-      try {
-        captionTracks = JSON.parse(match[1]);
-      } catch (e) {
-        console.log('Failed to parse captionTracks with pattern 3');
-      }
-    }
-  }
-  
-  if (!captionTracks || captionTracks.length === 0) {
-    throw new Error('No captions available for this video. The video may not have subtitles enabled.');
+  if (!data.transcripts || data.transcripts.length === 0) {
+    throw new Error('No transcripts found via SearchAPI');
   }
 
-  console.log(`Found ${captionTracks.length} caption tracks`);
-  
-  if (captionTracks.length === 0) {
-    throw new Error('No caption tracks found');
-  }
+  // Get the first transcript (prefer English or Portuguese)
+  const transcript = data.transcripts.find((t: any) => 
+    t.language_code === 'en' || t.language_code === 'pt'
+  ) || data.transcripts[0];
 
-  // Get the first available caption track (prefer English or Portuguese)
-  let selectedTrack = captionTracks.find((track: any) => 
-    track.languageCode === 'en' || track.languageCode === 'pt'
-  ) || captionTracks[0];
-
-  console.log('Using caption track:', selectedTrack.languageCode);
-
-  // Fetch the actual transcript
-  const transcriptResponse = await fetch(selectedTrack.baseUrl);
-  
-  if (!transcriptResponse.ok) {
-    throw new Error('Failed to fetch transcript data');
-  }
-
-  const transcriptXml = await transcriptResponse.text();
-  
-  // Parse the XML to extract text and timestamps
-  const textRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]+)<\/text>/g;
-  const segments: Array<{ start: number; duration: number; text: string }> = [];
-  
-  let xmlMatch;
-  while ((xmlMatch = textRegex.exec(transcriptXml)) !== null) {
-    const start = parseFloat(xmlMatch[1]);
-    const duration = parseFloat(xmlMatch[2]);
-    const text = xmlMatch[3]
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/\n/g, ' ')
-      .trim();
-    
-    if (text) {
-      segments.push({ start, duration, text });
-    }
-  }
-
-  if (segments.length === 0) {
-    throw new Error('No transcript segments found');
-  }
-
-  // Format transcript with timestamps like the Apify format
-  const formattedTranscript = segments.map(segment => {
-    const startTime = segment.start.toFixed(2);
-    const endTime = (segment.start + segment.duration).toFixed(2);
-    return `[${startTime}s - ${endTime}s] ${segment.text}`;
-  }).join(' ');
+  console.log('Found transcript with language:', transcript.language_code);
 
   return {
-    segments,
-    formattedTranscript,
-    languageCode: selectedTrack.languageCode,
+    formattedTranscript: transcript.text,
+    languageCode: transcript.language_code,
   };
+}
+
+// Transcribe audio using OpenAI Whisper API
+async function transcribeWithWhisper(audioUrl: string, openaiKey: string): Promise<string> {
+  console.log('Transcribing with OpenAI Whisper...');
+  
+  // Download the audio
+  const audioResponse = await fetch(audioUrl);
+  if (!audioResponse.ok) {
+    throw new Error('Failed to download audio');
+  }
+
+  const audioBlob = await audioResponse.blob();
+  
+  // Check file size (Whisper has a 25MB limit)
+  if (audioBlob.size > 25 * 1024 * 1024) {
+    throw new Error('Audio file too large for Whisper API (max 25MB)');
+  }
+
+  // Create form data for Whisper API
+  const formData = new FormData();
+  formData.append('file', audioBlob, 'audio.mp3');
+  formData.append('model', 'whisper-1');
+  formData.append('language', 'pt'); // Portuguese
+  formData.append('response_format', 'verbose_json'); // Get timestamps
+
+  // Send to OpenAI Whisper API
+  const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiKey}`,
+    },
+    body: formData,
+  });
+
+  if (!whisperResponse.ok) {
+    const errorText = await whisperResponse.text();
+    console.error('Whisper API error:', errorText);
+    throw new Error('Failed to transcribe with Whisper API');
+  }
+
+  const whisperData = await whisperResponse.json();
+  
+  // Format transcript with timestamps
+  let formattedTranscript = '';
+  if (whisperData.segments && whisperData.segments.length > 0) {
+    formattedTranscript = whisperData.segments.map((segment: any) => {
+      const startTime = segment.start.toFixed(2);
+      const endTime = segment.end.toFixed(2);
+      return `[${startTime}s - ${endTime}s] ${segment.text.trim()}`;
+    }).join(' ');
+  } else {
+    formattedTranscript = whisperData.text;
+  }
+
+  return formattedTranscript;
 }
 
 serve(async (req) => {
@@ -160,7 +128,7 @@ serve(async (req) => {
 
     // Only support YouTube for now
     if (platform !== 'youtube') {
-      throw new Error('Only YouTube videos are supported with the native transcript API');
+      throw new Error('Only YouTube videos are currently supported');
     }
 
     // Extract video ID
@@ -171,21 +139,49 @@ serve(async (req) => {
 
     console.log('Extracted video ID:', videoId);
 
-    // Fetch transcript
-    const transcriptData = await fetchYouTubeTranscript(videoId);
+    // Get API keys
+    const searchApiKey = Deno.env.get('SEARCHAPI_KEY');
+    const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
-    console.log('Transcription completed successfully');
-    console.log('Language:', transcriptData.languageCode);
-    console.log('Segments:', transcriptData.segments.length);
+    let transcriptData;
+    let method = 'unknown';
+
+    // Try SearchAPI first (faster and cheaper)
+    if (searchApiKey) {
+      try {
+        console.log('Attempting to fetch transcript via SearchAPI...');
+        transcriptData = await fetchTranscriptFromSearchAPI(videoId, searchApiKey);
+        method = 'searchapi';
+        console.log('Successfully fetched transcript via SearchAPI');
+      } catch (searchApiError) {
+        console.log('SearchAPI failed:', searchApiError);
+        transcriptData = null;
+      }
+    }
+
+    // If SearchAPI failed and we have OpenAI key, try Whisper
+    // Note: This requires audio URL which we don't have yet
+    // This is a placeholder for future implementation
+    if (!transcriptData && openaiKey) {
+      console.log('SearchAPI unavailable, would need to implement audio extraction for Whisper');
+      throw new Error('Video has no captions. Full Whisper implementation requires audio extraction which is not yet implemented.');
+    }
+
+    // If neither worked, throw error
+    if (!transcriptData) {
+      throw new Error('No transcript available. Video may not have captions and required API keys are not configured.');
+    }
+
+    console.log('Transcription completed successfully via', method);
 
     return new Response(
       JSON.stringify({
         success: true,
         transcript: transcriptData.formattedTranscript,
-        segments: transcriptData.segments,
         languageCode: transcriptData.languageCode,
         videoUrl: videoUrl,
         videoId: videoId,
+        method: method,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
