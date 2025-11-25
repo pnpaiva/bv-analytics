@@ -6,6 +6,111 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Extract YouTube video ID from various URL formats
+function extractYouTubeVideoId(url: string): string | null {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+    /youtube\.com\/shorts\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
+// Fetch transcript from YouTube
+async function fetchYouTubeTranscript(videoId: string): Promise<any> {
+  console.log('Fetching YouTube page for video:', videoId);
+  
+  // Fetch the YouTube page to get the initial data
+  const pageResponse = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
+
+  if (!pageResponse.ok) {
+    throw new Error('Failed to fetch YouTube page');
+  }
+
+  const html = await pageResponse.text();
+  
+  // Extract the captions tracks from the page
+  const captionsRegex = /"captionTracks":(\[.*?\])/;
+  const match = html.match(captionsRegex);
+  
+  if (!match) {
+    throw new Error('No captions available for this video');
+  }
+
+  const captionTracks = JSON.parse(match[1]);
+  
+  if (captionTracks.length === 0) {
+    throw new Error('No caption tracks found');
+  }
+
+  // Get the first available caption track (prefer English or Portuguese)
+  let selectedTrack = captionTracks.find((track: any) => 
+    track.languageCode === 'en' || track.languageCode === 'pt'
+  ) || captionTracks[0];
+
+  console.log('Using caption track:', selectedTrack.languageCode);
+
+  // Fetch the actual transcript
+  const transcriptResponse = await fetch(selectedTrack.baseUrl);
+  
+  if (!transcriptResponse.ok) {
+    throw new Error('Failed to fetch transcript data');
+  }
+
+  const transcriptXml = await transcriptResponse.text();
+  
+  // Parse the XML to extract text and timestamps
+  const textRegex = /<text start="([^"]+)" dur="([^"]+)"[^>]*>([^<]+)<\/text>/g;
+  const segments: Array<{ start: number; duration: number; text: string }> = [];
+  
+  let xmlMatch;
+  while ((xmlMatch = textRegex.exec(transcriptXml)) !== null) {
+    const start = parseFloat(xmlMatch[1]);
+    const duration = parseFloat(xmlMatch[2]);
+    const text = xmlMatch[3]
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n/g, ' ')
+      .trim();
+    
+    if (text) {
+      segments.push({ start, duration, text });
+    }
+  }
+
+  if (segments.length === 0) {
+    throw new Error('No transcript segments found');
+  }
+
+  // Format transcript with timestamps like the Apify format
+  const formattedTranscript = segments.map(segment => {
+    const startTime = segment.start.toFixed(2);
+    const endTime = (segment.start + segment.duration).toFixed(2);
+    return `[${startTime}s - ${endTime}s] ${segment.text}`;
+  }).join(' ');
+
+  return {
+    segments,
+    formattedTranscript,
+    languageCode: selectedTrack.languageCode,
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -20,88 +125,34 @@ serve(async (req) => {
 
     console.log('Transcribing video:', videoUrl, 'Platform:', platform);
 
-    const apifyApiKey = Deno.env.get('APIFY_API_KEY');
-    if (!apifyApiKey) {
-      throw new Error('APIFY_API_KEY not configured');
+    // Only support YouTube for now
+    if (platform !== 'youtube') {
+      throw new Error('Only YouTube videos are supported with the native transcript API');
     }
 
-    // Call Apify actor
-    const actorId = 'CVQmx5Se22zxPaWc1'; // tictechid/anoxvanzi-Transcriber
-    const apifyUrl = `https://api.apify.com/v2/acts/${actorId}/runs?token=${apifyApiKey}`;
-    
-    console.log('Starting Apify actor run...');
-    
-    const actorResponse = await fetch(apifyUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        start_urls: videoUrl,
-      }),
-    });
-
-    if (!actorResponse.ok) {
-      const errorText = await actorResponse.text();
-      console.error('Apify API error:', actorResponse.status, errorText);
-      throw new Error(`Apify API returned ${actorResponse.status}: ${errorText}`);
+    // Extract video ID
+    const videoId = extractYouTubeVideoId(videoUrl);
+    if (!videoId) {
+      throw new Error('Invalid YouTube URL');
     }
 
-    const actorData = await actorResponse.json();
-    const runId = actorData.data.id;
-    console.log('Actor run started:', runId);
+    console.log('Extracted video ID:', videoId);
 
-    // Wait for the run to complete (with timeout)
-    const maxAttempts = 60; // 60 attempts * 2 seconds = 2 minutes timeout
-    let attempts = 0;
-    let runStatus = 'RUNNING';
-    
-    while (runStatus === 'RUNNING' && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-      
-      const statusResponse = await fetch(
-        `https://api.apify.com/v2/acts/${actorId}/runs/${runId}?token=${apifyApiKey}`
-      );
-      
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        runStatus = statusData.data.status;
-        console.log('Run status:', runStatus);
-      }
-      
-      attempts++;
-    }
+    // Fetch transcript
+    const transcriptData = await fetchYouTubeTranscript(videoId);
 
-    if (runStatus !== 'SUCCEEDED') {
-      throw new Error(`Transcription failed or timed out. Status: ${runStatus}`);
-    }
-
-    // Get the results
-    const resultsResponse = await fetch(
-      `https://api.apify.com/v2/actor-runs/${runId}/dataset/items?token=${apifyApiKey}`
-    );
-
-    if (!resultsResponse.ok) {
-      const errorText = await resultsResponse.text();
-      console.error('Failed to fetch results:', resultsResponse.status, errorText);
-      throw new Error(`Failed to fetch transcription results: ${resultsResponse.status}`);
-    }
-
-    const results = await resultsResponse.json();
     console.log('Transcription completed successfully');
+    console.log('Language:', transcriptData.languageCode);
+    console.log('Segments:', transcriptData.segments.length);
 
-    if (!results || results.length === 0) {
-      throw new Error('No transcription data received from Apify');
-    }
-
-    // Extract transcript with timestamps
-    const transcriptData = results[0];
-    
     return new Response(
       JSON.stringify({
         success: true,
-        transcript: transcriptData.transcript || transcriptData,
+        transcript: transcriptData.formattedTranscript,
+        segments: transcriptData.segments,
+        languageCode: transcriptData.languageCode,
         videoUrl: videoUrl,
+        videoId: videoId,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
