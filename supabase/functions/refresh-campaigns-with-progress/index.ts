@@ -145,11 +145,33 @@ Deno.serve(async (req) => {
 
         const collectUrls = (campaign: any): { url: string; platform: 'youtube'|'instagram'|'tiktok' }[] => {
           const collected: { url: string; platform: 'youtube'|'instagram'|'tiktok' }[] = [];
-          if (!campaign.campaign_creators) return collected;
+          
+          console.log('collectUrls - campaign structure:', {
+            id: campaign.id,
+            brand_name: campaign.brand_name,
+            has_campaign_creators: !!campaign.campaign_creators,
+            campaign_creators_length: Array.isArray(campaign.campaign_creators) ? campaign.campaign_creators.length : 'not array',
+            campaign_creators_data: JSON.stringify(campaign.campaign_creators)
+          });
+          
+          if (!campaign.campaign_creators) {
+            console.log('No campaign_creators found for campaign:', campaign.id);
+            return collected;
+          }
 
           for (const creator of campaign.campaign_creators) {
+            console.log('Processing creator:', {
+              creator_id: creator?.creator_id,
+              has_content_urls: !!creator?.content_urls,
+              content_urls_type: typeof creator?.content_urls,
+              content_urls_data: JSON.stringify(creator?.content_urls)
+            });
+            
             const urls = creator?.content_urls as Record<string, unknown> | null;
-            if (!urls || typeof urls !== 'object') continue;
+            if (!urls || typeof urls !== 'object') {
+              console.log('Skipping creator - invalid content_urls');
+              continue;
+            }
 
             const pushAll = (arr: unknown[], platform: 'youtube'|'instagram'|'tiktok', predicate: (u: string) => boolean) => {
               for (const raw of arr) {
@@ -171,7 +193,16 @@ Deno.serve(async (req) => {
 
           // Deduplicate by normalized URL
           const seen = new Set<string>();
-          return collected.filter(({ url }) => (seen.has(url) ? false : (seen.add(url), true)));
+          const deduped = collected.filter(({ url }) => (seen.has(url) ? false : (seen.add(url), true)));
+          
+          console.log('collectUrls result:', {
+            campaign_id: campaign.id,
+            collected_count: collected.length,
+            deduped_count: deduped.length,
+            urls: deduped.map(u => ({ platform: u.platform, url: u.url.substring(0, 50) + '...' }))
+          });
+          
+          return deduped;
         };
 
         try {
@@ -181,7 +212,7 @@ Deno.serve(async (req) => {
             .select(`
               id,
               brand_name,
-              campaign_creators (
+              campaign_creators!campaign_creators_campaign_id_fkey (
                 creator_id,
                 content_urls
               )
@@ -191,6 +222,7 @@ Deno.serve(async (req) => {
           if (campaignError || !campaigns) throw new Error(`Failed to fetch campaigns: ${campaignError?.message}`);
 
           console.log(`Processing ${campaigns.length} campaigns`);
+          console.log('Campaign data structure:', JSON.stringify(campaigns, null, 2));
           
           // Pre-calculate resource usage for all campaigns to determine optimal batching
           const campaignResourceEstimates = campaigns.map(campaign => {
