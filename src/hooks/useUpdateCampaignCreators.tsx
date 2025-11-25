@@ -8,9 +8,9 @@ export interface UpdateCampaignCreatorsData {
     id?: string; // For existing creators
     creator_id: string;
     content_urls: {
-      youtube: string[];
-      instagram: string[];
-      tiktok: string[];
+      youtube: (string | { url: string; insertionStart?: string; insertionEnd?: string })[];
+      instagram: (string | { url: string; insertionStart?: string; insertionEnd?: string })[];
+      tiktok: (string | { url: string; insertionStart?: string; insertionEnd?: string })[];
     };
   }>;
 }
@@ -46,9 +46,15 @@ export function useUpdateCampaignCreators() {
           creator_id: creator.creator_id,
           organization_id: campaign.organization_id,
           content_urls: {
-            youtube: creator.content_urls.youtube.filter(url => url.trim() !== ''),
-            instagram: creator.content_urls.instagram.filter(url => url.trim() !== ''),
-            tiktok: creator.content_urls.tiktok.filter(url => url.trim() !== ''),
+            youtube: creator.content_urls.youtube
+              .map(item => typeof item === 'string' ? item : item.url)
+              .filter(url => url.trim() !== ''),
+            instagram: creator.content_urls.instagram
+              .map(item => typeof item === 'string' ? item : item.url)
+              .filter(url => url.trim() !== ''),
+            tiktok: creator.content_urls.tiktok
+              .map(item => typeof item === 'string' ? item : item.url)
+              .filter(url => url.trim() !== ''),
           },
         }));
 

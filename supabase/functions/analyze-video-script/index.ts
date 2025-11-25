@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { videoUrl, platform, campaignId } = await req.json();
+    const { videoUrl, platform, campaignId, insertionStart, insertionEnd } = await req.json();
     
     if (!videoUrl) {
       throw new Error('Video URL is required');
@@ -116,10 +116,39 @@ Your analysis should be:
 
 Always maintain this consistent format for every analysis.`;
 
+    // Highlight insertion section if timestamps are provided
+    let highlightedTranscript = transcriptText;
+    if (insertionStart && insertionEnd) {
+      // Parse timestamps (format: "MM:SS" or "HH:MM:SS")
+      const parseTime = (timeStr: string) => {
+        const parts = timeStr.split(':').map(Number);
+        if (parts.length === 2) return parts[0] * 60 + parts[1]; // MM:SS
+        if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
+        return 0;
+      };
+      
+      const startSeconds = parseTime(insertionStart);
+      const endSeconds = parseTime(insertionEnd);
+      
+      highlightedTranscript = `${transcriptText}
+
+---
+📍 INSERTION SECTION: ${insertionStart} - ${insertionEnd} (${startSeconds}s - ${endSeconds}s)
+---`;
+    }
+
     const userPrompt = `Analyze this video transcript using the combined lens of Paddy Galloway's strategic breakdown approach and Colin & Samir's storytelling expertise:
 
 TRANSCRIPT:
-${transcriptText}
+${highlightedTranscript}
+
+${insertionStart && insertionEnd ? `
+🎯 SPECIAL FOCUS: There is a product/brand insertion from ${insertionStart} to ${insertionEnd}. Pay special attention to:
+- How the insertion is introduced and integrated into the content
+- The exact wording and framing used
+- How natural or forced it feels in the context
+- Whether it disrupts or enhances the viewer experience
+` : ''}
 
 IMPORTANT: Format your response for readability. Use proper spacing, natural paragraph breaks, and avoid overusing bold text. Only use bold for section headers. Write in clear, conversational paragraphs with bullet points where appropriate.
 
@@ -170,7 +199,27 @@ What Could Be Improved:
 
 ## 💡 OVERALL RECOMMENDATIONS
 
-[Write 3-5 prioritized takeaways as separate paragraphs or bullet points, blending Paddy's strategic insights with Colin & Samir's creator perspective. Keep each recommendation concise and actionable.]`;
+[Write 3-5 prioritized takeaways as separate paragraphs or bullet points, blending Paddy's strategic insights with Colin & Samir's creator perspective. Keep each recommendation concise and actionable.]
+
+${insertionStart && insertionEnd ? `
+---
+
+## 🎯 INSERTION ANALYSIS (${insertionStart} - ${insertionEnd})
+
+Identify and analyze the exact section where the product/brand insertion occurs:
+
+Exact Wording:
+[Quote the exact words used in the insertion section]
+
+Integration Quality:
+[Write 2-3 sentences analyzing how well the insertion fits into the content flow]
+
+What Worked:
+[Write 2-3 sentences highlighting effective aspects of the insertion]
+
+What Could Be Improved:
+[Write 2-3 sentences with actionable recommendations for the insertion]
+` : ''}`;
 
     console.log('Sending to OpenAI for analysis...');
 

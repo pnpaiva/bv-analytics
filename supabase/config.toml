@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.analyze-video-script]
 verify_jwt = false
+
+[functions.transcribe-video]
+verify_jwt = false

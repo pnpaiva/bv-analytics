@@ -54,12 +54,18 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface UrlWithTimestamps {
+  url: string;
+  insertionStart?: string;
+  insertionEnd?: string;
+}
+
 interface CreatorWithUrls {
   creator_id: string;
   content_urls: {
-    youtube: string[];
-    instagram: string[];
-    tiktok: string[];
+    youtube: (string | UrlWithTimestamps)[];
+    instagram: (string | UrlWithTimestamps)[];
+    tiktok: (string | UrlWithTimestamps)[];
   };
 }
 
@@ -109,13 +115,13 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       const mappedCreators = campaignCreators.map(cc => ({
         creator_id: cc.creator_id,
         content_urls: cc.content_urls as {
-          youtube: string[];
-          instagram: string[];
-          tiktok: string[];
+          youtube: (string | UrlWithTimestamps)[];
+          instagram: (string | UrlWithTimestamps)[];
+          tiktok: (string | UrlWithTimestamps)[];
         } || {
-          youtube: [''],
-          instagram: [''],
-          tiktok: [''],
+          youtube: [{ url: '', insertionStart: '', insertionEnd: '' }],
+          instagram: [{ url: '', insertionStart: '', insertionEnd: '' }],
+          tiktok: [{ url: '', insertionStart: '', insertionEnd: '' }],
         },
       }));
       setCreators(mappedCreators);
@@ -124,9 +130,9 @@ export function EditCampaignDialog({ campaign, isOpen, onClose, onSave }: EditCa
       setCreators([{
         creator_id: '',
         content_urls: {
-          youtube: [''],
-          instagram: [''],
-          tiktok: [''],
+          youtube: [{ url: '', insertionStart: '', insertionEnd: '' }],
+          instagram: [{ url: '', insertionStart: '', insertionEnd: '' }],
+          tiktok: [{ url: '', insertionStart: '', insertionEnd: '' }],
         },
       }]);
     }

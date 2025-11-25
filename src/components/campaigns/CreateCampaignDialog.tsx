@@ -27,6 +27,21 @@ import { ImageUpload } from '@/components/ui/image-upload';
 import { CampaignCreatorManager } from './CampaignCreatorManager';
 import { Plus, Loader2 } from 'lucide-react';
 
+interface UrlWithTimestamps {
+  url: string;
+  insertionStart?: string;
+  insertionEnd?: string;
+}
+
+interface CreatorWithUrls {
+  creator_id: string;
+  content_urls: {
+    youtube: (string | UrlWithTimestamps)[];
+    instagram: (string | UrlWithTimestamps)[];
+    tiktok: (string | UrlWithTimestamps)[];
+  };
+}
+
 export function CreateCampaignDialog() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -40,13 +55,13 @@ export function CreateCampaignDialog() {
     logo_url: '',
   });
 
-  const [creators, setCreators] = useState([
+  const [creators, setCreators] = useState<CreatorWithUrls[]>([
     {
       creator_id: '',
       content_urls: {
-        youtube: [''],
-        instagram: [''],
-        tiktok: [''],
+        youtube: [{ url: '', insertionStart: '', insertionEnd: '' }],
+        instagram: [{ url: '', insertionStart: '', insertionEnd: '' }],
+        tiktok: [{ url: '', insertionStart: '', insertionEnd: '' }],
       },
     },
   ]);
@@ -62,9 +77,15 @@ export function CreateCampaignDialog() {
     const cleanedCreators = creators.map(creator => ({
       creator_id: creator.creator_id,
       content_urls: {
-        youtube: creator.content_urls.youtube.filter(url => url.trim() !== ''),
-        instagram: creator.content_urls.instagram.filter(url => url.trim() !== ''),
-        tiktok: creator.content_urls.tiktok.filter(url => url.trim() !== ''),
+        youtube: creator.content_urls.youtube
+          .map(urlData => typeof urlData === 'string' ? urlData : urlData.url)
+          .filter(url => url.trim() !== ''),
+        instagram: creator.content_urls.instagram
+          .map(urlData => typeof urlData === 'string' ? urlData : urlData.url)
+          .filter(url => url.trim() !== ''),
+        tiktok: creator.content_urls.tiktok
+          .map(urlData => typeof urlData === 'string' ? urlData : urlData.url)
+          .filter(url => url.trim() !== ''),
       },
     })).filter(creator => creator.creator_id); // Only include creators with selected creator_id
 
@@ -95,9 +116,9 @@ export function CreateCampaignDialog() {
       {
         creator_id: '',
         content_urls: {
-          youtube: [''],
-          instagram: [''],
-          tiktok: [''],
+          youtube: [{ url: '', insertionStart: '', insertionEnd: '' }],
+          instagram: [{ url: '', insertionStart: '', insertionEnd: '' }],
+          tiktok: [{ url: '', insertionStart: '', insertionEnd: '' }],
         },
       },
     ]);

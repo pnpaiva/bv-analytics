@@ -9,12 +9,18 @@ import { Badge } from '@/components/ui/badge';
 import { useCreators } from '@/hooks/useCreators';
 import { Trash2, Plus } from 'lucide-react';
 
+interface UrlWithTimestamps {
+  url: string;
+  insertionStart?: string;
+  insertionEnd?: string;
+}
+
 interface CreatorWithUrls {
   creator_id: string;
   content_urls: {
-    youtube: string[];
-    instagram: string[];
-    tiktok: string[];
+    youtube: (string | UrlWithTimestamps)[];
+    instagram: (string | UrlWithTimestamps)[];
+    tiktok: (string | UrlWithTimestamps)[];
   };
 }
 
@@ -30,9 +36,9 @@ export function CampaignCreatorManager({ creators, onChange }: CampaignCreatorMa
     const newCreator: CreatorWithUrls = {
       creator_id: '',
       content_urls: {
-        youtube: [''],
-        instagram: [''],
-        tiktok: [''],
+        youtube: [{ url: '', insertionStart: '', insertionEnd: '' }],
+        instagram: [{ url: '', insertionStart: '', insertionEnd: '' }],
+        tiktok: [{ url: '', insertionStart: '', insertionEnd: '' }],
       },
     };
     onChange([...creators, newCreator]);
@@ -55,13 +61,23 @@ export function CampaignCreatorManager({ creators, onChange }: CampaignCreatorMa
     if (!updatedCreators[creatorIndex].content_urls[platform]) {
       updatedCreators[creatorIndex].content_urls[platform] = [];
     }
-    updatedCreators[creatorIndex].content_urls[platform].push('');
+    updatedCreators[creatorIndex].content_urls[platform].push({ url: '', insertionStart: '', insertionEnd: '' });
     onChange(updatedCreators);
   };
 
-  const updateUrlForCreator = (creatorIndex: number, platform: string, urlIndex: number, url: string) => {
+  const updateUrlForCreator = (creatorIndex: number, platform: string, urlIndex: number, field: string, value: string) => {
     const updatedCreators = [...creators];
-    updatedCreators[creatorIndex].content_urls[platform][urlIndex] = url;
+    const currentUrl = updatedCreators[creatorIndex].content_urls[platform][urlIndex];
+    
+    if (typeof currentUrl === 'string') {
+      // Convert old format to new format
+      if (field === 'url') {
+        updatedCreators[creatorIndex].content_urls[platform][urlIndex] = { url: value, insertionStart: '', insertionEnd: '' };
+      }
+    } else {
+      // Update the specific field
+      updatedCreators[creatorIndex].content_urls[platform][urlIndex] = { ...currentUrl, [field]: value };
+    }
     onChange(updatedCreators);
   };
 
@@ -146,26 +162,52 @@ export function CampaignCreatorManager({ creators, onChange }: CampaignCreatorMa
                     </Button>
                   </div>
                   
-                  {(creator.content_urls[platform] || ['']).map((url, urlIndex) => (
-                    <div key={urlIndex} className="flex items-center space-x-2">
-                      <Input
-                        placeholder={`Enter ${platform} URL`}
-                        value={url}
-                        onChange={(e) => updateUrlForCreator(creatorIndex, platform, urlIndex, e.target.value)}
-                        className="flex-1"
-                      />
-                      {(creator.content_urls[platform]?.length || 0) > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeUrlFromCreator(creatorIndex, platform, urlIndex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
+                  {(creator.content_urls[platform] || [{ url: '', insertionStart: '', insertionEnd: '' }]).map((urlData, urlIndex) => {
+                    const urlObj = typeof urlData === 'string' ? { url: urlData, insertionStart: '', insertionEnd: '' } : urlData;
+                    
+                    return (
+                      <div key={urlIndex} className="space-y-2 p-3 border rounded-lg bg-muted/30">
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            placeholder={`Enter ${platform} URL`}
+                            value={urlObj.url}
+                            onChange={(e) => updateUrlForCreator(creatorIndex, platform, urlIndex, 'url', e.target.value)}
+                            className="flex-1"
+                          />
+                          {(creator.content_urls[platform]?.length || 0) > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeUrlFromCreator(creatorIndex, platform, urlIndex)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Insertion Start (MM:SS)</Label>
+                            <Input
+                              placeholder="00:00"
+                              value={urlObj.insertionStart || ''}
+                              onChange={(e) => updateUrlForCreator(creatorIndex, platform, urlIndex, 'insertionStart', e.target.value)}
+                              className="text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Insertion End (MM:SS)</Label>
+                            <Input
+                              placeholder="00:00"
+                              value={urlObj.insertionEnd || ''}
+                              onChange={(e) => updateUrlForCreator(creatorIndex, platform, urlIndex, 'insertionEnd', e.target.value)}
+                              className="text-sm"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </CardContent>
