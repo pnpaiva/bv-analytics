@@ -184,8 +184,8 @@ const NICHE_OPTIONS = [
   // Get campaign creators data using the hook (already defined above)
 
   // Build URL -> creator mapping per campaign
-  const normalizeUrl = (url?: string) => {
-    if (!url) return '';
+  const normalizeUrl = (url?: string | any) => {
+    if (!url || typeof url !== 'string') return '';
     try {
       const u = new URL(url);
       
