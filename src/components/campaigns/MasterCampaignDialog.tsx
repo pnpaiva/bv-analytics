@@ -147,15 +147,27 @@ export function MasterCampaignDialog({ campaign, isOpen, onClose, onSave }: Mast
             master_campaign_name: data.masterCampaignName,
             master_campaign_start_date: data.masterCampaignStartDate?.toISOString().split('T')[0],
             master_campaign_end_date: data.masterCampaignEndDate?.toISOString().split('T')[0],
+            master_campaign_logo_url: null, // New master campaigns start without a logo set here
           };
           break;
         
         case 'link':
+          // When linking to an existing master campaign, fetch its logo
+          const { data: existingCampaigns, error: fetchError } = await supabase
+            .from('campaigns')
+            .select('master_campaign_logo_url')
+            .eq('master_campaign_name', data.existingMasterCampaign)
+            .not('master_campaign_logo_url', 'is', null)
+            .limit(1);
+          
+          if (fetchError) throw fetchError;
+          
           updateData = {
             ...updateData,
             master_campaign_name: data.existingMasterCampaign,
             master_campaign_start_date: null,
             master_campaign_end_date: null,
+            master_campaign_logo_url: existingCampaigns?.[0]?.master_campaign_logo_url || null,
           };
           break;
         
@@ -165,6 +177,7 @@ export function MasterCampaignDialog({ campaign, isOpen, onClose, onSave }: Mast
             master_campaign_name: null,
             master_campaign_start_date: null,
             master_campaign_end_date: null,
+            master_campaign_logo_url: null,
           };
           break;
       }
