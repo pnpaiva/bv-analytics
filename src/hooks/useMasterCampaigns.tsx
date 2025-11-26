@@ -142,7 +142,8 @@ export function useUpdateMasterCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // RLS policies handle organization-based access control automatically
+      // Update ALL campaigns with this master campaign name
+      // This ensures the logo and dates are replicated across all associated campaigns
       const { error } = await supabase
         .from('campaigns')
         .update({
@@ -152,14 +153,17 @@ export function useUpdateMasterCampaign() {
           master_campaign_logo_url: data.logo_url,
           updated_at: new Date().toISOString(),
         })
-        .eq('master_campaign_name', data.id); // data.id is the old name
+        .eq('master_campaign_name', data.id); // data.id is the old name - updates ALL campaigns with this name
 
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['master-campaigns'] });
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast.success('Master campaign updated successfully');
+      queryClient.invalidateQueries({ 
+        predicate: (query) => query.queryKey[0] === 'accessible-campaigns'
+      });
+      toast.success('Master campaign and all associated campaigns updated successfully');
     },
     onError: (error) => {
       toast.error('Failed to update master campaign');
