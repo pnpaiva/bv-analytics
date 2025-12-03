@@ -30,12 +30,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { CreateAdminAccount } from '@/components/CreateAdminAccount';
 import { usePublishedBlogPosts } from '@/hooks/useBlogPosts';
 import { format } from 'date-fns';
+import {
+  UnifiedDashboardMockup,
+  CreatorProfilesMockup,
+  CampaignAnalyticsMockup,
+  ClientDashboardMockup,
+  PdfReportMockup,
+  AlertsMockup,
+} from '@/components/landing/FeatureMockups';
 
 const Index = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedFeature, setSelectedFeature] = useState(null);
+  const [selectedFeature, setSelectedFeature] = useState<any>(null);
   const { data: blogPosts = [] } = usePublishedBlogPosts();
 
 
@@ -100,37 +108,37 @@ const Index = () => {
       icon: BarChart3,
       title: "Finally, All Your Data in One Place",
       description: "Imagine waking up to a single dashboard that shows you exactly how your creators are performing across YouTube, Instagram, and TikTok. No more switching between platforms, no more missing data, no more headaches.",
-      gif: "https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif"
+      MockupComponent: UnifiedDashboardMockup
     },
     {
       icon: Users,
       title: "Know Your Creators Like Never Before",
       description: "Every creator has a story, and now you can tell it. See their growth trajectory, understand their audience, and make data-driven decisions about who to work with and when.",
-      gif: "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif"
+      MockupComponent: CreatorProfilesMockup
     },
     {
       icon: Target,
       title: "Campaigns That Actually Work",
       description: "Stop guessing what will resonate. Our AI analyzes patterns across thousands of successful campaigns to help you create content strategies that drive real results for your clients.",
-      gif: "https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif"
+      MockupComponent: CampaignAnalyticsMockup
     },
     {
       icon: Building2,
       title: "Clients Who Actually Trust You",
       description: "Give your clients the transparency they crave with beautiful, real-time dashboards. Show them exactly where their investment is going and why it's working.",
-      gif: "https://media.giphy.com/media/3o7TKSjR3gPFN1dkxi/giphy.gif"
+      MockupComponent: ClientDashboardMockup
     },
     {
       icon: FileText,
       title: "Reports That Write Themselves",
       description: "Remember those Sunday nights spent formatting reports? Those are over. Generate stunning, branded reports in minutes, not hours. Your clients will be impressed, and you'll have your life back.",
-      gif: "https://media.giphy.com/media/3o7TKSjR3gPFN1dkxi/giphy.gif"
+      MockupComponent: PdfReportMockup
     },
     {
       icon: Zap,
       title: "Never Miss a Moment Again",
       description: "Get instant alerts when your creators go viral, when engagement spikes, or when campaigns hit milestones. Be the first to know, and the first to capitalize on success.",
-      gif: "https://media.giphy.com/media/3o7TKSjR3gPFN1dkxi/giphy.gif"
+      MockupComponent: AlertsMockup
     }
   ];
 
@@ -402,12 +410,18 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Feature GIF Modal */}
+      {/* Feature Mockup Modal */}
       {selectedFeature && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-hidden">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedFeature(null)}
+        >
+          <div 
+            className="bg-card rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-2xl font-bold">{selectedFeature.title}</h3>
+              <h3 className="text-xl font-bold text-foreground">{selectedFeature.title}</h3>
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -417,15 +431,11 @@ const Index = () => {
                 ✕
               </Button>
             </div>
-            <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-              <img 
-                src={selectedFeature.gif} 
-                alt={selectedFeature.title}
-                className="w-full h-full object-cover"
-              />
+            <div className="rounded-lg overflow-hidden">
+              {selectedFeature.MockupComponent && <selectedFeature.MockupComponent />}
             </div>
-            <p className="text-muted-foreground mt-4 text-center">
-              See how this feature works in practice
+            <p className="text-muted-foreground mt-4 text-center text-sm">
+              Preview of the {selectedFeature.title.toLowerCase()} feature
             </p>
           </div>
         </div>
