@@ -72,6 +72,9 @@ export default function Campaigns() {
 
   const handleExportPDF = async (options: ExportCustomizationOptions) => {
     try {
+      console.log('Starting PDF export with options:', options);
+      console.log('Campaigns to export:', sortedCampaigns.length);
+      
       const exporter = new EnhancedPDFExporter();
       const exportTitle = options.customTitle || (searchTerm 
         ? `Filtered Campaigns Report` 
@@ -88,7 +91,8 @@ export default function Campaigns() {
       toast.success('Premium PDF report exported successfully');
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      toast.error('Failed to export PDF report');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to export PDF: ${errorMessage}`);
     }
   };
 
