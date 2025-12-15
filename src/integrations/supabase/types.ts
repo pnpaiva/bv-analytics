@@ -1859,6 +1859,8 @@ export type Database = {
         | {
             Args: {
               p_blog_post_id: string
+              p_date_recorded?: string
+              p_organization_id?: string
               p_referrer_source?: string
               p_time_on_page?: number
               p_unique_views?: number
@@ -1869,8 +1871,6 @@ export type Database = {
         | {
             Args: {
               p_blog_post_id: string
-              p_date_recorded?: string
-              p_organization_id?: string
               p_referrer_source?: string
               p_time_on_page?: number
               p_unique_views?: number
