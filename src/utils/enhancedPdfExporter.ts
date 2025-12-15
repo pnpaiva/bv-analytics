@@ -140,7 +140,8 @@ export class EnhancedPDFExporter {
   private async getVideoThumbnail(url: string, platform: string): Promise<string | null> {
     try {
       if (platform === 'youtube') {
-        const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
+        // Handle regular videos, shorts, and youtu.be links
+        const videoId = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([^&\s?]+)/)?.[1];
         if (videoId) {
           // Try to fetch the thumbnail
           const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
