@@ -56,6 +56,7 @@ export class EnhancedPDFExporter {
   private margin: number;
   private pageWidth: number;
   private pageHeight: number;
+  private lineHeight: number;
 
   private normalizeUrl(input: ContentUrlLike): string | null {
     const url = typeof input === 'string' ? input : input?.url;
@@ -66,37 +67,38 @@ export class EnhancedPDFExporter {
 
   constructor() {
     this.doc = new jsPDF('p', 'mm', 'a4', true); // Enable Unicode support
-    this.currentY = 20;
-    this.margin = 20;
+    this.currentY = 15;
+    this.margin = 15; // Reduced margins for more space
+    this.lineHeight = 5; // Compact line height
     this.pageWidth = this.doc.internal.pageSize.getWidth();
     this.pageHeight = this.doc.internal.pageSize.getHeight();
   }
 
   private addHeader(title: string, subtitle?: string) {
-    this.doc.setFontSize(24);
+    this.doc.setFontSize(20);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(title, this.margin, this.currentY);
-    this.currentY += 12;
+    this.currentY += 8;
 
     if (subtitle) {
-      this.doc.setFontSize(14);
+      this.doc.setFontSize(11);
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(100, 100, 100);
       this.doc.text(subtitle, this.margin, this.currentY);
-      this.currentY += 8;
+      this.currentY += 5;
     }
 
-    // Add generation date
-    this.doc.setFontSize(10);
+    // Add generation date inline
+    this.doc.setFontSize(9);
     this.doc.setTextColor(120, 120, 120);
-    this.doc.text(`Generated on ${format(new Date(), 'MMMM d, yyyy \'at\' h:mm a')}`, this.margin, this.currentY);
-    this.currentY += 15;
+    this.doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, this.margin, this.currentY);
+    this.currentY += 8;
 
     // Add line separator
-    this.doc.setLineWidth(0.5);
+    this.doc.setLineWidth(0.3);
     this.doc.setDrawColor(200, 200, 200);
     this.doc.line(this.margin, this.currentY, this.pageWidth - this.margin, this.currentY);
-    this.currentY += 10;
+    this.currentY += 6;
 
     this.resetTextStyle();
   }
@@ -104,32 +106,35 @@ export class EnhancedPDFExporter {
   private resetTextStyle() {
     this.doc.setTextColor(0, 0, 0);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.setFontSize(10);
+    this.doc.setFontSize(9);
   }
 
-  private checkPageBreak(requiredSpace: number = 20) {
+  private checkPageBreak(requiredSpace: number = 15) {
     if (this.currentY + requiredSpace > this.pageHeight - this.margin) {
       this.doc.addPage();
       this.currentY = this.margin;
+      return true;
     }
+    return false;
   }
 
   private addSectionHeader(title: string) {
-    this.checkPageBreak(25);
-    this.doc.setFontSize(16);
+    this.checkPageBreak(20);
+    this.doc.setFontSize(14);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(title, this.margin, this.currentY);
-    this.currentY += 10;
+    this.currentY += 7;
     this.resetTextStyle();
   }
 
   private addKeyValuePair(key: string, value: string, indent: number = 0) {
-    this.checkPageBreak();
+    this.checkPageBreak(5);
     this.doc.setFont('helvetica', 'bold');
+    this.doc.setFontSize(8);
     this.doc.text(`${key}:`, this.margin + indent, this.currentY);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text(value, this.margin + indent + 40, this.currentY);
-    this.currentY += 6;
+    this.doc.text(value, this.margin + indent + 30, this.currentY);
+    this.currentY += this.lineHeight;
   }
 
   private async getVideoThumbnail(url: string, platform: string): Promise<string | null> {
@@ -277,107 +282,98 @@ export class EnhancedPDFExporter {
       ? campaigns.reduce((sum, c) => sum + (c.engagement_rate || 0), 0) / campaigns.length 
       : 0;
 
-    // Get all individual posts from campaigns
-    const allPosts: Array<{url: string, views: number, engagement: number, engagementRate: number, platform: string, campaignName: string}> = [];
-    
+    // Count content URLs
+    let totalContent = 0;
     campaigns.forEach(campaign => {
-      if (campaign.analytics_data) {
-        Object.entries(campaign.analytics_data).forEach(([platform, data]) => {
-          if (Array.isArray(data)) {
-            data.forEach((item: any) => {
-              if (item.content_url && item.views) {
-                allPosts.push({
-                  url: item.content_url,
-                  views: item.views || 0,
-                  engagement: item.engagement || 0,
-                  engagementRate: item.engagement_rate || 0,
-                  platform: platform,
-                  campaignName: campaign.brand_name
-                });
-              }
-            });
-          }
-        });
-      }
-      // Also consider declared content_urls when analytics_data is absent
-      const pushUrls = (urlsMap?: Record<string, any[]>) => {
-        if (!urlsMap) return;
-        Object.entries(urlsMap).forEach(([platform, urls]) => {
-          if (Array.isArray(urls)) {
-            urls.forEach((u) => {
-              const normalized = this.normalizeUrl(u as any);
-              if (normalized) {
-                allPosts.push({
-                  url: normalized,
-                  views: 0,
-                  engagement: 0,
-                  engagementRate: 0,
-                  platform,
-                  campaignName: campaign.brand_name,
-                });
-              }
-            });
-          }
-        });
-      };
-
-      // Prefer nested campaign_creators content urls if available
       if (Array.isArray((campaign as any).campaign_creators) && (campaign as any).campaign_creators.length > 0) {
-        (campaign as any).campaign_creators.forEach((cc: any) => pushUrls(cc?.content_urls));
-      } else {
-        pushUrls(campaign.content_urls as any);
+        (campaign as any).campaign_creators.forEach((cc: any) => {
+          if (cc?.content_urls) {
+            Object.values(cc.content_urls).forEach((urls: any) => {
+              if (Array.isArray(urls)) totalContent += urls.length;
+            });
+          }
+        });
+      } else if (campaign.content_urls) {
+        Object.values(campaign.content_urls).forEach((urls: any) => {
+          if (Array.isArray(urls)) totalContent += urls.length;
+        });
       }
     });
 
-    // Find top performing posts
-    const topPosts = [...allPosts]
-      .sort((a, b) => b.views - a.views)
-      .slice(0, 3);
-
-    // Replace verbose details with compact metric cards only
-    this.currentY += 6;
-
-    // Summary metric cards (visual, compact)
-    const spacing = 6;
-    const cols = 3;
-    const cardWidth = (this.pageWidth - this.margin * 2 - spacing * (cols - 1));
-    const unitWidth = cardWidth / cols;
-    const cardHeight = 18;
-
-    const totalContent = allPosts.length;
     const uniqueCreators = new Set(campaigns.flatMap(c => 
       c.campaign_creators?.map(cc => cc.creators?.name) || [c.creators?.name]
     ).filter(Boolean));
 
+    // Compact metric cards - single row of 6
+    const cols = 6;
+    const spacing = 3;
+    const cardWidth = (this.pageWidth - this.margin * 2 - spacing * (cols - 1)) / cols;
+    const cardHeight = 14;
+
     const metrics = [
-      { title: 'Total Campaigns', value: campaigns.length.toString() },
-      { title: 'Total Views', value: totalViews.toLocaleString() },
-      { title: 'Total Engagement', value: totalEngagement.toLocaleString() },
-      { title: 'Avg Engagement Rate', value: `${avgEngagementRate.toFixed(2)}%` },
-      { title: 'Total Content', value: totalContent.toString() },
-      { title: 'Unique Creators', value: uniqueCreators.size.toString() },
+      { title: 'Campaigns', value: campaigns.length.toString() },
+      { title: 'Views', value: this.formatNumber(totalViews) },
+      { title: 'Engagement', value: this.formatNumber(totalEngagement) },
+      { title: 'Avg Rate', value: `${avgEngagementRate.toFixed(1)}%` },
+      { title: 'Content', value: totalContent.toString() },
+      { title: 'Creators', value: uniqueCreators.size.toString() },
     ];
 
-    // two rows of 3 -> we'll render first 3, then remaining
-    let startY = this.currentY;
-    this.checkPageBreak(cardHeight + 10);
+    this.checkPageBreak(cardHeight + 8);
+    const startY = this.currentY;
+    
     metrics.forEach((m, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const x = this.margin + col * (unitWidth + spacing);
-      const y = startY + row * (cardHeight + 6);
-      this.doc.setDrawColor(200, 200, 200);
-      this.doc.setLineWidth(0.5);
-      this.doc.roundedRect(x, y, unitWidth, cardHeight, 2, 2, 'S');
+      const x = this.margin + i * (cardWidth + spacing);
+      this.doc.setDrawColor(180, 180, 180);
+      this.doc.setLineWidth(0.3);
+      this.doc.roundedRect(x, startY, cardWidth, cardHeight, 1.5, 1.5, 'S');
       this.doc.setFont('helvetica', 'normal');
-      this.doc.setFontSize(8);
-      this.doc.text(m.title, x + 3, y + 6);
+      this.doc.setFontSize(6);
+      this.doc.text(m.title, x + 2, startY + 4);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.setFontSize(12);
-      this.doc.text(m.value, x + 3, y + 13);
+      this.doc.setFontSize(9);
+      this.doc.text(m.value, x + 2, startY + 10);
     });
 
-    this.currentY = startY + Math.ceil(metrics.length / cols) * (cardHeight + 6) + 6;
+    this.currentY = startY + cardHeight + 8;
+  }
+
+  private formatNumber(num: number): string {
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+    return num.toLocaleString();
+  }
+
+  // Estimate how much vertical space a campaign card will need
+  private estimateCampaignCardHeight(campaign: Campaign, options: ExportOptions): number {
+    let height = 25; // Base height for header + basic info
+    
+    if (options.includeAnalytics) height += 18;
+    
+    if (options.includeContentUrls) {
+      let urlCount = 0;
+      if (campaign.campaign_creators && campaign.campaign_creators.length > 0) {
+        campaign.campaign_creators.forEach((cc: any) => {
+          if (cc?.content_urls) {
+            Object.values(cc.content_urls).forEach((urls: any) => {
+              if (Array.isArray(urls)) urlCount += urls.length;
+            });
+          }
+        });
+      } else if (campaign.content_urls) {
+        Object.values(campaign.content_urls).forEach((urls: any) => {
+          if (Array.isArray(urls)) urlCount += urls.length;
+        });
+      }
+      // Each URL with thumbnail/QR takes ~25mm
+      height += urlCount * 25 + 8;
+    }
+    
+    if (options.includeSentiment && options.sentimentData?.get(campaign.id)) {
+      height += 40; // Sentiment section
+    }
+    
+    return height;
   }
 
   async exportWithCharts(
@@ -457,51 +453,54 @@ export class EnhancedPDFExporter {
   }
 
   private async addCampaignCard(campaign: Campaign, options: ExportOptions) {
-    // Prevent card from splitting across pages by ensuring minimum space
-    const minCardSpace = 90; // a bit larger to accommodate logos/links
-    if (this.currentY + minCardSpace > this.pageHeight - this.margin) {
+    // Estimate card height and check if we need a new page
+    const estimatedHeight = this.estimateCampaignCardHeight(campaign, options);
+    const availableSpace = this.pageHeight - this.margin - this.currentY;
+    
+    // If card won't fit and we have less than 40% of page left, start new page
+    if (estimatedHeight > availableSpace && availableSpace < (this.pageHeight - this.margin * 2) * 0.4) {
       this.doc.addPage();
       this.currentY = this.margin;
     }
     
-    // Campaign header with border
+    // Campaign header - compact
     const cardStartY = this.currentY;
-    this.doc.setDrawColor(200, 200, 200);
-    this.doc.setLineWidth(0.3);
+    this.doc.setDrawColor(180, 180, 180);
+    this.doc.setLineWidth(0.2);
     
-    this.doc.setFontSize(12);
+    this.doc.setFontSize(11);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text(campaign.brand_name, this.margin, this.currentY);
-    // Try to add brand logo on the right (inside card bounds)
+    this.doc.text(campaign.brand_name, this.margin + 3, this.currentY);
+    
+    // Add brand logo on the right
     if (options.includeLogo) {
-      await this.addBrandLogoIfAny(campaign, cardStartY);
+      await this.addBrandLogoIfAny(campaign, cardStartY, 15, 10);
     }
-    this.currentY += 8;
+    this.currentY += 6;
     
-    // Basic info - use helper method to get creator name
-    this.addKeyValuePair('Creator', this.getCreatorName(campaign));
-    if (campaign.clients?.name) {
-      this.addKeyValuePair('Client', campaign.clients.name);
-    }
-    this.addKeyValuePair('Status', campaign.status.toUpperCase());
-    this.addKeyValuePair('Campaign Date', format(new Date(campaign.campaign_date), 'MMMM d, yyyy'));
-    
-    // Handle both old deal_value and new fixed/variable deal values
+    // Compact info row - put multiple fields on same line
+    this.doc.setFontSize(8);
+    const creatorName = this.getCreatorName(campaign);
+    const dateStr = format(new Date(campaign.campaign_date), 'MMM d, yyyy');
     const dealValue = campaign.deal_value ?? ((campaign.fixed_deal_value || 0) + (campaign.variable_deal_value || 0));
-    if (dealValue) {
-      this.addKeyValuePair('Deal Value', `$${dealValue.toLocaleString()}`);
-    }
+    
+    let infoLine = `Creator: ${creatorName}  •  ${dateStr}  •  ${campaign.status.toUpperCase()}`;
+    if (dealValue) infoLine += `  •  $${this.formatNumber(dealValue)}`;
+    if (campaign.clients?.name) infoLine += `  •  Client: ${campaign.clients.name}`;
+    
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text(infoLine, this.margin + 3, this.currentY);
+    this.currentY += 5;
 
-    // Analytics data
+    // Analytics data - compact single line
     if (options.includeAnalytics) {
-      this.currentY += 5;
+      this.doc.setFontSize(8);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('Analytics:', this.margin, this.currentY);
-      this.currentY += 6;
-      
-      this.addKeyValuePair('Total Views', (campaign.total_views ?? 0).toLocaleString(), 10);
-      this.addKeyValuePair('Total Engagement', (campaign.total_engagement ?? 0).toLocaleString(), 10);
-      this.addKeyValuePair('Engagement Rate', `${(campaign.engagement_rate ?? 0).toFixed(2)}%`, 10);
+      const views = this.formatNumber(campaign.total_views ?? 0);
+      const engagement = this.formatNumber(campaign.total_engagement ?? 0);
+      const rate = `${(campaign.engagement_rate ?? 0).toFixed(1)}%`;
+      this.doc.text(`Views: ${views}  •  Engagement: ${engagement}  •  Rate: ${rate}`, this.margin + 3, this.currentY);
+      this.currentY += 5;
     }
 
     // Content URLs with per-URL creator annotation
@@ -546,79 +545,65 @@ export class EnhancedPDFExporter {
 
       // Render content URLs if we have any
       if (Object.keys(allContentUrls).length > 0) {
-        this.currentY += 5;
+        this.currentY += 3;
         this.doc.setFont('helvetica', 'bold');
-        this.doc.text('Content Links:', this.margin, this.currentY);
-        this.currentY += 6;
+        this.doc.setFontSize(8);
+        this.doc.text('Content:', this.margin + 3, this.currentY);
+        this.currentY += 4;
 
         for (const [platform, urlData] of Object.entries(allContentUrls)) {
           if (urlData.length > 0) {
-            this.doc.setFont('helvetica', 'bold');
-            this.doc.text(`${platform.charAt(0).toUpperCase() + platform.slice(1)}:`, this.margin + 10, this.currentY);
-            this.currentY += 5;
-
             for (const item of urlData) {
-              this.checkPageBreak(70); // More space needed for thumbnails and QR codes
+              this.checkPageBreak(22);
               const startY = this.currentY;
               
-              // Try to fetch thumbnail and generate QR code
+              // Compact layout: [Thumbnail] [QR Code] [Text Info]
               const thumbnail = await this.getVideoThumbnail(item.url, platform);
               const qrCode = await this.generateQRCode(item.url);
               
-              // Layout: [Thumbnail] [QR Code] [Text Info]
-              const thumbnailWidth = 40;
-              const thumbnailHeight = 22.5; // 16:9 aspect ratio
-              const qrSize = 22;
-              const leftMargin = this.margin + 20;
+              const thumbnailWidth = 32;
+              const thumbnailHeight = 18;
+              const qrSize = 18;
+              const leftMargin = this.margin + 5;
               
-              // Add thumbnail if available
               if (thumbnail) {
                 try {
                   this.doc.addImage(thumbnail, 'JPEG', leftMargin, startY, thumbnailWidth, thumbnailHeight);
-                  // Make thumbnail clickable
                   this.doc.link(leftMargin, startY, thumbnailWidth, thumbnailHeight, { url: item.url });
                 } catch (error) {
                   console.error('Error adding thumbnail to PDF:', error);
                 }
               }
               
-              // Add QR code
               if (qrCode) {
-                const qrX = leftMargin + thumbnailWidth + 5;
+                const qrX = leftMargin + thumbnailWidth + 3;
                 try {
                   this.doc.addImage(qrCode, 'PNG', qrX, startY, qrSize, qrSize);
-                  // Make QR code clickable
                   this.doc.link(qrX, startY, qrSize, qrSize, { url: item.url });
                 } catch (error) {
                   console.error('Error adding QR code to PDF:', error);
                 }
               }
               
-              // Add text info to the right
-              const textX = leftMargin + thumbnailWidth + qrSize + 10;
-              this.doc.setFont('helvetica', 'normal');
-              this.doc.setFontSize(9);
-              this.doc.text('Scan QR or click to view', textX, startY + 5);
+              const textX = leftMargin + thumbnailWidth + qrSize + 8;
+              this.doc.setFont('helvetica', 'bold');
+              this.doc.setFontSize(7);
+              this.doc.text(platform.charAt(0).toUpperCase() + platform.slice(1), textX, startY + 4);
               
               if (item.creatorName) {
-                this.doc.setFont('helvetica', 'italic');
-                this.doc.setFontSize(8);
-                this.doc.text(`Creator: ${item.creatorName}`, textX, startY + 10);
+                this.doc.setFont('helvetica', 'normal');
+                this.doc.setFontSize(6);
+                this.doc.text(item.creatorName, textX, startY + 8);
               }
               
-              // Add clickable URL at bottom
-              this.doc.setFont('helvetica', 'normal');
-              this.doc.setFontSize(7);
+              this.doc.setFontSize(6);
               this.doc.setTextColor(0, 0, 255);
-              const urlText = item.url.length > 60 ? item.url.substring(0, 57) + '...' : item.url;
-              this.doc.textWithLink(urlText, textX, startY + 16, { url: item.url });
+              const urlText = item.url.length > 50 ? item.url.substring(0, 47) + '...' : item.url;
+              this.doc.textWithLink(urlText, textX, startY + 12, { url: item.url });
               this.doc.setTextColor(0, 0, 0);
               
-              // Move cursor down past the largest element
-              this.currentY = startY + Math.max(thumbnailHeight, qrSize) + 8;
+              this.currentY = startY + Math.max(thumbnailHeight, qrSize) + 3;
             }
-            
-            this.currentY += 5;
           }
         }
       }
@@ -732,13 +717,13 @@ export class EnhancedPDFExporter {
       }
     }
 
-    // Add card border
-    const cardEndY = this.currentY + 5;
+    // Add card border - compact
+    const cardEndY = this.currentY + 2;
     this.doc.setDrawColor(220, 220, 220);
-    this.doc.setLineWidth(0.5);
-    this.doc.rect(this.margin - 5, cardStartY - 5, this.pageWidth - this.margin * 2 + 10, cardEndY - cardStartY + 5);
+    this.doc.setLineWidth(0.3);
+    this.doc.rect(this.margin, cardStartY - 3, this.pageWidth - this.margin * 2, cardEndY - cardStartY + 3);
     
-    this.currentY = cardEndY + 10;
+    this.currentY = cardEndY + 5;
     this.resetTextStyle();
   }
 }
