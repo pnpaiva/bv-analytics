@@ -324,7 +324,9 @@ export class EnhancedPDFExporter {
     const cardHeight = 18;
 
     const totalContent = allPosts.length;
-    const uniqueCreators = new Set(campaigns.map(c => c.creators?.name).filter(Boolean));
+    const uniqueCreators = new Set(campaigns.flatMap(c => 
+      c.campaign_creators?.map(cc => cc.creators?.name) || [c.creators?.name]
+    ).filter(Boolean));
 
     const metrics = [
       { title: 'Total Campaigns', value: campaigns.length.toString() },
@@ -419,6 +421,20 @@ export class EnhancedPDFExporter {
     this.doc.save(`${filename}.pdf`);
   }
 
+  private getCreatorName(campaign: Campaign): string {
+    // Try to get creator name from campaign_creators first
+    if (campaign.campaign_creators && campaign.campaign_creators.length > 0) {
+      const names = campaign.campaign_creators
+        .map(cc => cc.creators?.name)
+        .filter(Boolean);
+      if (names.length > 0) {
+        return names.join(', ');
+      }
+    }
+    // Fallback to legacy creators field
+    return campaign.creators?.name || 'Unknown Creator';
+  }
+
   private async addCampaignCard(campaign: Campaign, options: ExportOptions) {
     // Prevent card from splitting across pages by ensuring minimum space
     const minCardSpace = 90; // a bit larger to accommodate logos/links
@@ -441,16 +457,18 @@ export class EnhancedPDFExporter {
     }
     this.currentY += 8;
     
-    // Basic info
-    this.addKeyValuePair('Creator', campaign.creators?.name || 'Unknown Creator');
+    // Basic info - use helper method to get creator name
+    this.addKeyValuePair('Creator', this.getCreatorName(campaign));
     if (campaign.clients?.name) {
       this.addKeyValuePair('Client', campaign.clients.name);
     }
     this.addKeyValuePair('Status', campaign.status.toUpperCase());
     this.addKeyValuePair('Campaign Date', format(new Date(campaign.campaign_date), 'MMMM d, yyyy'));
     
-    if (campaign.deal_value) {
-      this.addKeyValuePair('Deal Value', `$${campaign.deal_value.toLocaleString()}`);
+    // Handle both old deal_value and new fixed/variable deal values
+    const dealValue = campaign.deal_value ?? ((campaign.fixed_deal_value || 0) + (campaign.variable_deal_value || 0));
+    if (dealValue) {
+      this.addKeyValuePair('Deal Value', `$${dealValue.toLocaleString()}`);
     }
 
     // Analytics data
@@ -460,9 +478,9 @@ export class EnhancedPDFExporter {
       this.doc.text('Analytics:', this.margin, this.currentY);
       this.currentY += 6;
       
-      this.addKeyValuePair('Total Views', campaign.total_views?.toLocaleString() || '0', 10);
-      this.addKeyValuePair('Total Engagement', campaign.total_engagement?.toLocaleString() || '0', 10);
-      this.addKeyValuePair('Engagement Rate', `${campaign.engagement_rate?.toFixed(2) || '0'}%`, 10);
+      this.addKeyValuePair('Total Views', (campaign.total_views ?? 0).toLocaleString(), 10);
+      this.addKeyValuePair('Total Engagement', (campaign.total_engagement ?? 0).toLocaleString(), 10);
+      this.addKeyValuePair('Engagement Rate', `${(campaign.engagement_rate ?? 0).toFixed(2)}%`, 10);
     }
 
     // Content URLs with per-URL creator annotation
