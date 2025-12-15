@@ -4,6 +4,19 @@ import { Campaign } from '@/hooks/useCampaigns';
 import { format } from 'date-fns';
 import QRCode from 'qrcode';
 
+// content_urls can be either string[] (legacy) or objects like { url, insertionStart, insertionEnd }.
+// Normalize everything to a string URL before trimming/printing.
+type ContentUrlLike =
+  | string
+  | {
+      url?: string;
+      insertionStart?: string;
+      insertionEnd?: string;
+      [key: string]: unknown;
+    }
+  | null
+  | undefined;
+
 export interface ExportOptions {
   includeLogo?: boolean;
   includeAnalytics?: boolean;
@@ -43,6 +56,13 @@ export class EnhancedPDFExporter {
   private margin: number;
   private pageWidth: number;
   private pageHeight: number;
+
+  private normalizeUrl(input: ContentUrlLike): string | null {
+    const url = typeof input === 'string' ? input : input?.url;
+    if (typeof url !== 'string') return null;
+    const trimmed = url.trim();
+    return trimmed.length ? trimmed : null;
+  }
 
   constructor() {
     this.doc = new jsPDF('p', 'mm', 'a4', true); // Enable Unicode support
@@ -280,14 +300,15 @@ export class EnhancedPDFExporter {
         });
       }
       // Also consider declared content_urls when analytics_data is absent
-      const pushUrls = (urlsMap?: Record<string, string[]>) => {
+      const pushUrls = (urlsMap?: Record<string, any[]>) => {
         if (!urlsMap) return;
         Object.entries(urlsMap).forEach(([platform, urls]) => {
           if (Array.isArray(urls)) {
             urls.forEach((u) => {
-              if (u && u.trim()) {
+              const normalized = this.normalizeUrl(u as any);
+              if (normalized) {
                 allPosts.push({
-                  url: u,
+                  url: normalized,
                   views: 0,
                   engagement: 0,
                   engagementRate: 0,
@@ -486,38 +507,40 @@ export class EnhancedPDFExporter {
     // Content URLs with per-URL creator annotation
     if (options.includeContentUrls) {
       // Aggregate content URLs from campaign creators or fallback to campaign.content_urls
-      let allContentUrls: Record<string, Array<{url: string; creatorName?: string}>> = {};
-      
+      let allContentUrls: Record<string, Array<{ url: string; creatorName?: string }>> = {};
+
       // First, try to get URLs from campaign_creators (preferred method)
       if (campaign.campaign_creators && campaign.campaign_creators.length > 0) {
-        campaign.campaign_creators.forEach(campaignCreator => {
+        campaign.campaign_creators.forEach((campaignCreator: any) => {
           const creatorName = campaignCreator.creators?.name || 'Unknown Creator';
-          const contentUrls = campaignCreator.content_urls || {};
-          
+          const contentUrls = (campaignCreator.content_urls || {}) as Record<string, ContentUrlLike[]>;
+
           Object.entries(contentUrls).forEach(([platform, urls]) => {
-            if (Array.isArray(urls) && urls.length > 0) {
-              if (!allContentUrls[platform]) {
-                allContentUrls[platform] = [];
-              }
-              urls.forEach(url => {
-                if (url && url.trim()) {
-                  allContentUrls[platform].push({ url, creatorName });
-                }
-              });
-            }
+            if (!Array.isArray(urls) || urls.length === 0) return;
+            if (!allContentUrls[platform]) allContentUrls[platform] = [];
+
+            urls.forEach((urlData) => {
+              const normalized = this.normalizeUrl(urlData);
+              if (!normalized) return;
+              allContentUrls[platform].push({ url: normalized, creatorName });
+            });
           });
         });
       }
-      
+
       // Fallback to campaign.content_urls if no campaign_creators data
       if (Object.keys(allContentUrls).length === 0 && campaign.content_urls) {
-        Object.entries(campaign.content_urls).forEach(([platform, urls]) => {
-          if (Array.isArray(urls) && urls.length > 0) {
-            allContentUrls[platform] = urls.filter(url => url && url.trim()).map(url => {
-              const creatorName = options.getCreatorNameForUrl ? options.getCreatorNameForUrl(campaign.id, url) : undefined;
-              return { url, creatorName };
-            });
-          }
+        Object.entries(campaign.content_urls as Record<string, ContentUrlLike[]>).forEach(([platform, urls]) => {
+          if (!Array.isArray(urls) || urls.length === 0) return;
+
+          allContentUrls[platform] = urls
+            .map((urlData) => {
+              const normalized = this.normalizeUrl(urlData);
+              if (!normalized) return null;
+              const creatorName = options.getCreatorNameForUrl ? options.getCreatorNameForUrl(campaign.id, normalized) : undefined;
+              return { url: normalized, creatorName };
+            })
+            .filter(Boolean) as Array<{ url: string; creatorName?: string }>;
         });
       }
 
