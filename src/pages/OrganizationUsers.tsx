@@ -440,7 +440,7 @@ const OrganizationUsers = () => {
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
-                          {isLocalAdmin && user.role === 'local_client' && (
+                          {(isLocalAdmin || isMasterAdmin) && user.role === 'local_client' && (
                             <CampaignAssignmentDialog 
                               clientId={user.user_id} 
                               clientEmail={user.user?.email || user.user_id} 
