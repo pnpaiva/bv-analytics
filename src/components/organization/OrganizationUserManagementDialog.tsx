@@ -16,6 +16,7 @@ import { Plus, Trash2, UserPlus } from 'lucide-react';
 import { Organization } from '@/hooks/useOrganizationManagement';
 import { useOrganizationMembers, useCreateOrganizationMember, useDeleteOrganizationMember, useUserEmails } from '@/hooks/useOrganizationManagement';
 import { useUserPermissions } from '@/hooks/useUserRoles';
+import { CampaignAssignmentDialog } from '@/components/campaigns/CampaignAssignmentDialog';
 import { toast } from 'sonner';
 
 interface OrganizationUserManagementDialogProps {
@@ -266,6 +267,12 @@ export function OrganizationUserManagementDialog({
                       <Badge variant={getRoleBadgeVariant(member.role)}>
                         {getRoleDisplayName(member.role)}
                       </Badge>
+                      {member.role === 'local_client' && (
+                        <CampaignAssignmentDialog 
+                          clientId={member.user_id} 
+                          clientEmail={userEmails[member.user_id] || member.user_id} 
+                        />
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
