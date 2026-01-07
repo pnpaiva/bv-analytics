@@ -83,7 +83,7 @@ export default function CreatorProfiles() {
   const { data: campaignCreators = [] } = useCampaignCreators();
   const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const updateCreator = useUpdateCreator();
-  const { canEdit, isAdmin, isLocalAdmin } = useUserPermissions();
+  const { canEdit, isAdmin, isLocalAdmin, isLocalClient } = useUserPermissions();
   
   // Debug logging
   console.log('CreatorProfiles - creators:', creators);
@@ -1232,9 +1232,11 @@ export default function CreatorProfiles() {
                               </Avatar>
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-sm truncate text-[#3333cc]">{creator.name}</p>
-                                <div className="mt-1">
-                                  <PlatformConnectionsManager creatorId={creator.id} />
-                                </div>
+                                {!isLocalClient && (
+                                  <div className="mt-1">
+                                    <PlatformConnectionsManager creatorId={creator.id} />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1251,8 +1253,25 @@ export default function CreatorProfiles() {
               {selectedCreatorProfile ? (
                 <div className="h-full">
                   {embedLoading ? (
-                    <Card className="h-[calc(100vh-12rem)] flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-                      <CardContent>Loading media kit…</CardContent>
+                    <Card className="h-[calc(100vh-12rem)] flex items-center justify-center border-0 shadow-xl bg-white/90 backdrop-blur-sm overflow-hidden">
+                      <CardContent className="flex flex-col items-center justify-center gap-6">
+                        {/* Animated loading skeleton */}
+                        <div className="relative w-32 h-32">
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 animate-pulse" />
+                          <div className="absolute inset-2 rounded-full bg-background flex items-center justify-center">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 animate-pulse" />
+                          </div>
+                          <div className="absolute inset-0 rounded-full border-4 border-primary/20 border-t-primary animate-spin" style={{ animationDuration: '1.5s' }} />
+                        </div>
+                        <div className="space-y-3 text-center animate-fade-in">
+                          <p className="text-lg font-medium text-foreground">Loading Media Kit</p>
+                          <div className="flex items-center gap-2 justify-center">
+                            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        </div>
+                      </CardContent>
                     </Card>
                   ) : embeddedUrl ? (
                     <iframe
@@ -1376,9 +1395,11 @@ export default function CreatorProfiles() {
                             {Number(creator.engagementRate || 0).toFixed(1)}%
                           </span>
                         </div>
-                        <div className="mt-2">
-                          <PlatformConnectionsManager creatorId={creator.id} />
-                        </div>
+                        {!isLocalClient && (
+                          <div className="mt-2">
+                            <PlatformConnectionsManager creatorId={creator.id} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
