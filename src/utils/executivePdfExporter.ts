@@ -36,21 +36,45 @@ export interface ExecutiveExportOptions {
   }>;
 }
 
-// Executive color palette - sophisticated and professional
+// Beyond Views Brand Color Palette (from index.css design system)
 const COLORS = {
-  navy: [15, 23, 42] as [number, number, number],
-  navyLight: [30, 41, 59] as [number, number, number],
-  slate: [71, 85, 105] as [number, number, number],
-  slateLight: [148, 163, 184] as [number, number, number],
-  gold: [180, 142, 61] as [number, number, number],
-  goldLight: [217, 183, 122] as [number, number, number],
-  emerald: [16, 185, 129] as [number, number, number],
-  white: [255, 255, 255] as [number, number, number],
-  lightGray: [248, 250, 252] as [number, number, number],
-  border: [226, 232, 240] as [number, number, number],
-  positive: [34, 197, 94] as [number, number, number],
-  negative: [239, 68, 68] as [number, number, number],
-  neutral: [100, 116, 139] as [number, number, number],
+  // Primary brand colors
+  primary: [51, 51, 204] as [number, number, number],         // #3333CC - brand primary
+  primaryDark: [32, 32, 137] as [number, number, number],     // #202089 - primary dark  
+  primaryLight: [207, 216, 255] as [number, number, number],  // #CFD8FF - primary light
+  
+  // Secondary colors
+  teal: [45, 212, 191] as [number, number, number],           // #2DD4BF - secondary teal
+  orange: [255, 107, 53] as [number, number, number],         // #FF6B35 - secondary orange
+  
+  // Accent colors
+  coral: [255, 144, 143] as [number, number, number],         // #FF908F - accent coral
+  amber: [255, 202, 110] as [number, number, number],         // #FFCA6E - accent amber
+  sky: [125, 178, 254] as [number, number, number],           // #7DB2FE - accent sky
+  mint: [129, 211, 198] as [number, number, number],          // #81D3C6 - accent mint
+  
+  // Neutrals
+  white: [255, 255, 255] as [number, number, number],         // #FFFFFF
+  black: [15, 15, 19] as [number, number, number],            // #0F0F13
+  grayLight: [251, 251, 254] as [number, number, number],     // #FBFBFE
+  grayMedium: [233, 239, 255] as [number, number, number],    // #E9EFFF
+  grayDark: [97, 125, 188] as [number, number, number],       // #617DBC
+  border: [207, 216, 255] as [number, number, number],        // #CFD8FF (primaryLight)
+  
+  // Status colors (mapped to brand)
+  positive: [45, 212, 191] as [number, number, number],       // teal
+  negative: [255, 144, 143] as [number, number, number],      // coral
+  neutral: [97, 125, 188] as [number, number, number],        // grayDark
+  
+  // Legacy aliases for compatibility
+  navy: [51, 51, 204] as [number, number, number],            // mapped to primary
+  navyLight: [207, 216, 255] as [number, number, number],     // mapped to primaryLight
+  slate: [97, 125, 188] as [number, number, number],          // mapped to grayDark
+  slateLight: [129, 211, 198] as [number, number, number],    // mapped to mint
+  gold: [255, 107, 53] as [number, number, number],           // mapped to orange
+  goldLight: [255, 202, 110] as [number, number, number],     // mapped to amber
+  emerald: [45, 212, 191] as [number, number, number],        // mapped to teal
+  lightGray: [233, 239, 255] as [number, number, number],     // mapped to grayMedium
 };
 
 export class ExecutivePDFExporter {
