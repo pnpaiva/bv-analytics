@@ -20,7 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Eye, Users, TrendingUp, DollarSign, BarChart3, Search, Filter, Download, X, Play, Video, EyeOff, FileText, Link, Tag } from 'lucide-react';
 import { Campaign } from '@/hooks/useCampaigns';
-import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+import { ExecutivePDFExporter } from '@/utils/executivePdfExporter';
 import { AnalyticsExportCustomizationDialog, AnalyticsExportOptions } from '@/components/analytics/ExportCustomizationDialog';
 import { CampaignTimelineChart } from '@/components/analytics/CampaignTimelineChart';
 import { toast } from 'sonner';
@@ -1086,8 +1086,8 @@ const NICHE_OPTIONS = [
         creators: { name: resolveCreatorForCampaign(c).name },
       }));
 
-      // Use the enhanced text-first PDF exporter (with optional chart capture from the current view)
-      const exporter = new EnhancedPDFExporter();
+      // Use the executive PDF exporter for professional reports
+      const exporter = new ExecutivePDFExporter();
       const exportTitle = options.customTitle || 'Campaign Analytics Report';
 
       // If charts requested, temporarily switch to the Videos tab so charts are visible for capture
@@ -1097,13 +1097,14 @@ const NICHE_OPTIONS = [
         await new Promise((r) => setTimeout(r, 350));
       }
 
-      await exporter.exportWithCharts(enrichedCampaigns, exportTitle, {
+      await exporter.exportExecutiveReport(enrichedCampaigns, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
         includeCharts: options.includeCharts,
         includeLogo: true,
         includeSentiment: true,
         sentimentData: sentimentMap,
+        campaignCreators: campaignCreators,
         getCreatorNameForUrl: (campaignId: string, url: string) => {
           const cid = getCreatorIdForUrl(campaignId, url);
           if (!cid) return undefined;
@@ -1124,7 +1125,7 @@ const NICHE_OPTIONS = [
         setActiveTab(prevTab);
       }
 
-      toast.success(`PDF report exported with ${campaignsToExport.length} campaigns`);
+      toast.success(`Executive PDF exported with ${campaignsToExport.length} campaigns`);
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export PDF report');

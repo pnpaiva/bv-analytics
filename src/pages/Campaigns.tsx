@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useCampaigns, Campaign } from '@/hooks/useCampaigns';
+import { useCampaignCreators } from '@/hooks/useCampaignCreators';
 import { useUserPermissions } from '@/hooks/useUserRoles';
 import { useUserAccessibleCampaigns } from '@/hooks/useCampaignAssignments';
 import { useDealValueVisibility } from '@/hooks/useDealValueVisibility';
@@ -19,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RefreshCw, Search, Filter, Download, ChevronLeft, ChevronRight, Eye, EyeOff, Grid3X3, List } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
-import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+import { ExecutivePDFExporter } from '@/utils/executivePdfExporter';
 import { ExportCustomizationDialog, ExportCustomizationOptions } from '@/components/campaigns/ExportCustomizationDialog';
 import { toast } from 'sonner';
 import {
@@ -53,6 +54,7 @@ export default function Campaigns() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   
   const { data: campaigns = [], isLoading, refetch } = useAccessibleCampaigns();
+  const { data: campaignCreators = [] } = useCampaignCreators();
   const { canCreate, canEdit, canDelete, isMasterAdmin, isLocalAdmin } = useUserPermissions();
   const { data: accessibleCampaignIds = [] } = useUserAccessibleCampaigns();
   const queryClient = useQueryClient();
@@ -75,20 +77,21 @@ export default function Campaigns() {
       console.log('Starting PDF export with options:', options);
       console.log('Campaigns to export:', sortedCampaigns.length);
       
-      const exporter = new EnhancedPDFExporter();
+      const exporter = new ExecutivePDFExporter();
       const exportTitle = options.customTitle || (searchTerm 
         ? `Filtered Campaigns Report` 
         : 'All Campaigns Report');
       
-      await exporter.exportWithCharts(sortedCampaigns, exportTitle, {
+      await exporter.exportExecutiveReport(sortedCampaigns, exportTitle, {
         includeAnalytics: options.includeAnalytics,
         includeContentUrls: options.includeContentUrls,
         includeMasterCampaigns: options.includeMasterCampaigns,
         includeCharts: options.includeCharts,
-        includeLogo: options.includeLogo
+        includeLogo: options.includeLogo,
+        campaignCreators: campaignCreators
       });
       
-      toast.success('Premium PDF report exported successfully');
+      toast.success('Executive PDF report exported successfully');
     } catch (error) {
       console.error('Error exporting PDF:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
