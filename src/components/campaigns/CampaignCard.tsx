@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { EditCampaignDialog } from './EditCampaignDialog';
 import { MasterCampaignDialog } from './MasterCampaignDialog';
 import { CampaignManagementDialog } from './CampaignManagementDialog';
-import { EnhancedPDFExporter } from '@/utils/enhancedPdfExporter';
+import { ExecutivePDFExporter } from '@/utils/executivePdfExporter';
 import { toast } from 'sonner';
 import { useVideoScriptAnalysis } from '@/hooks/useVideoScriptAnalysis';
 import { useStoredScriptAnalysis } from '@/hooks/useStoredScriptAnalysis';
@@ -221,8 +221,8 @@ export function CampaignCard({
         sentimentMap.set(campaign.id, sentimentData);
       }
 
-      const exporter = new EnhancedPDFExporter();
-      await exporter.exportWithCharts([campaign], `${campaign.brand_name} Campaign Report`, {
+      const exporter = new ExecutivePDFExporter();
+      await exporter.exportExecutiveReport([campaign], `${campaign.brand_name} Campaign Report`, {
         includeAnalytics: true,
         includeContentUrls: true,
         includeMasterCampaigns: true,
@@ -231,7 +231,7 @@ export function CampaignCard({
         sentimentData: sentimentMap
       });
       
-      toast.success('Campaign PDF exported successfully');
+      toast.success('Executive PDF exported successfully');
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error('Failed to export campaign PDF');
